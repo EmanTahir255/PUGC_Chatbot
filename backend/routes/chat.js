@@ -2,7 +2,13 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const { getPool, sql } = require('../db');
-const { extractIntentFromQuestion, getGroqResponse } = require('../gemini');
+const {
+    extractIntentFromQuestion,
+    getGroqResponse,
+    isAnswerRelevant,
+    refineAnswerWithDBContext,
+    getGroundedGroqResponse
+} = require('../gemini');
 
 async function getAnswerFromDB(intent, pool) {
     const result = await pool.request()
@@ -11,11 +17,37 @@ async function getAnswerFromDB(intent, pool) {
     return result.recordset.length > 0 ? result.recordset[0].answer_text : null;
 }
 
+function cleanMessageText(text = '') {
+    return String(text).replace(/<[^>]*>/g, '').trim();
+}
+
+function isTransientBotMessage(msg) {
+    const text = cleanMessageText(msg?.text).toLowerCase();
+    return msg?.sender === 'bot' && (
+        text === 'ai is thinking...' ||
+        text === 'ai is thinking' ||
+        text === 'typing...' ||
+        text === 'loading...'
+    );
+}
+
+function sanitizeHistory(history) {
+    if (!Array.isArray(history)) return [];
+    // Drop temporary UI messages before using history for context or Groq prompts.
+    return history
+        .filter(msg => msg && !isTransientBotMessage(msg))
+        .map(msg => ({
+            sender: msg.sender,
+            text: cleanMessageText(msg.text)
+        }))
+        .filter(msg => msg.text.length > 0);
+}
+
 function buildConversationHistory(history) {
     if (!history || history.length === 0) return [];
     return history.map(msg => ({
         role: msg.sender === 'user' ? 'user' : 'assistant',
-        content: msg.text.replace(/<[^>]*>/g, '').trim()
+        content: msg.text
     }));
 }
 
@@ -43,7 +75,7 @@ function getLastBotTopic(history) {
     // Get last user message topic for better context
     for (let i = history.length - 1; i >= 0; i--) {
         if (history[i].sender === 'bot') {
-            const text = history[i].text.replace(/<[^>]*>/g, '').trim();
+            const text = history[i].text;
             // Get first meaningful line
             const lines = text.split('\n').filter(l => l.trim().length > 3);
             if (lines.length > 0) {
@@ -56,6 +88,42 @@ function getLastBotTopic(history) {
     return null;
 }
 
+async function sendDBAnswerOrRefinedResponse(
+    res,
+    message,
+    dbAnswer,
+    conversationHistory,
+    source,
+    allowRefinement = true
+) {
+    // Prefer database facts, then let Groq present them in a friendlier form.
+    const relevant = await isAnswerRelevant(message, dbAnswer, conversationHistory);
+
+    if (relevant) {
+        console.log(`Source: ${source}, refining DB answer for presentation`);
+        const refinedAnswer = await refineAnswerWithDBContext(message, dbAnswer, conversationHistory);
+        return res.json({ reply: refinedAnswer || dbAnswer, source: `${source}_refined` });
+    }
+
+    if (!allowRefinement) {
+        console.log(`Source: ${source} not relevant, using grounded Groq fallback`);
+        const groqAnswer = await getGroundedGroqResponse(message, dbAnswer, conversationHistory);
+        if (groqAnswer) {
+            return res.json({ reply: groqAnswer, source: 'groq_grounded' });
+        }
+
+        return res.json({ reply: dbAnswer, source });
+    }
+
+    console.log(`Source: ${source} not directly relevant, refining with Groq`);
+    const refinedAnswer = await refineAnswerWithDBContext(message, dbAnswer, conversationHistory);
+    if (refinedAnswer) {
+        return res.json({ reply: refinedAnswer, source: `${source}_refined` });
+    }
+
+    return res.json({ reply: dbAnswer, source });
+}
+
 router.post('/chat', async (req, res) => {
     const { message, history } = req.body;
 
@@ -65,14 +133,15 @@ router.post('/chat', async (req, res) => {
 
     try {
         const pool = await getPool();
+        const cleanHistory = sanitizeHistory(history);
 
         // Build conversation history for Groq context
-        const conversationHistory = buildConversationHistory(history);
+        const conversationHistory = buildConversationHistory(cleanHistory);
 
         // Enrich vague messages with context from history
         let enrichedMessage = message;
-        if (isVagueMessage(message) && history && history.length > 0) {
-            const lastTopic = getLastBotTopic(history);
+        if (isVagueMessage(message) && cleanHistory.length > 0) {
+            const lastTopic = getLastBotTopic(cleanHistory);
             if (lastTopic) {
                 enrichedMessage = `${message} ${lastTopic}`;
                 console.log(`Enriched message: ${enrichedMessage}`);
@@ -94,8 +163,14 @@ router.post('/chat', async (req, res) => {
         if (confidence >= 0.5) {
             const dbAnswer = await getAnswerFromDB(intent, pool);
             if (dbAnswer) {
-                console.log('Source: Rasa + Database');
-                return res.json({ reply: dbAnswer, source: 'rasa_db' });
+                return await sendDBAnswerOrRefinedResponse(
+                    res,
+                    enrichedMessage,
+                    dbAnswer,
+                    conversationHistory,
+                    'rasa_db',
+                    true
+                );
             }
 
             // Rasa confident but no DB answer
@@ -110,14 +185,20 @@ router.post('/chat', async (req, res) => {
 
         // LAYER 3: Groq extracts intent → DB lookup
         console.log('Trying Groq intent extraction...');
-        const extractedIntent = await extractIntentFromQuestion(message);
+        const extractedIntent = await extractIntentFromQuestion(enrichedMessage);
         console.log(`Groq extracted intent: ${extractedIntent}`);
 
         if (extractedIntent) {
             const dbAnswer = await getAnswerFromDB(extractedIntent, pool);
             if (dbAnswer) {
-                console.log('Source: Groq intent + Database');
-                return res.json({ reply: dbAnswer, source: 'groq_db' });
+                return await sendDBAnswerOrRefinedResponse(
+                    res,
+                    enrichedMessage,
+                    dbAnswer,
+                    conversationHistory,
+                    'groq_db',
+                    false
+                );
             }
         }
 

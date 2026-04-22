@@ -102,7 +102,7 @@ function updateFeatureLocks() {
 // Formatting Functions
 // ==============================
 
-function formatResponse(text) {
+function legacyFormatResponse(text) {
     // If already contains HTML tags leave it as is
     if (text.includes('<b>') || text.includes('<ul>') || text.includes('<br>')) {
         return text;
@@ -169,6 +169,84 @@ function formatResponse(text) {
     return html;
 }
 
+function escapeHtml(text) {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function highlightImportantValues(text) {
+    return text
+        .replace(/(0\d{2}-\d{7,8})/g, '<b>$1</b>')
+        .replace(/(Rs\.?\s*[\d,]+)/g, '<b>$1</b>')
+        .replace(/(\d+(\.\d+)?%)/g, '<b>$1</b>')
+        .replace(/\b(\d+\s*(days?|semesters?|years?|books?|hours?))\b/gi, '<b>$1</b>');
+}
+
+function formatResponse(text) {
+    const rawText = String(text || '').trim();
+    if (!rawText) return '';
+
+    // Groq/DB may already return safe HTML formatting; preserve it.
+    if (/<(b|ul|ol|li|br)\b/i.test(rawText)) {
+        return rawText;
+    }
+
+    const normalized = rawText
+        .replace(/\r/g, '')
+        .replace(/\s+-\s+/g, '\n- ')
+        .replace(/\s+([A-Z][A-Za-z /&]{2,35}):\s+/g, '\n$1: ');
+
+    const lines = normalized
+        .split(/\n+/)
+        .map(line => line.trim())
+        .filter(Boolean);
+
+    if (lines.length === 0) return '';
+
+    let heading = lines.shift();
+    if (heading.includes(':')) {
+        const [possibleHeading, ...rest] = heading.split(':');
+        heading = possibleHeading.trim();
+        const remaining = rest.join(':').trim();
+        if (remaining) lines.unshift(remaining);
+    }
+
+    const sentenceLines = lines.length
+        ? lines
+        : normalized
+            .replace(heading, '')
+            .split(/(?<=\.)\s+(?=[A-Z])/)
+            .map(line => line.trim())
+            .filter(Boolean);
+
+    let html = `<b>${escapeHtml(heading)}</b><br><br>`;
+    const labelLines = sentenceLines.filter(line => /^[A-Za-z][A-Za-z /&()]{2,45}:\s+/.test(line));
+
+    if (labelLines.length >= 2 || sentenceLines.length >= 4) {
+        html += '<ul>';
+        sentenceLines.forEach(line => {
+            const escaped = highlightImportantValues(escapeHtml(line));
+            const labelMatch = escaped.match(/^([^:]{2,45}):\s*(.+)$/);
+            if (labelMatch) {
+                html += `<li><b>${labelMatch[1]}:</b> ${labelMatch[2]}</li>`;
+            } else {
+                html += `<li>${escaped}</li>`;
+            }
+        });
+        html += '</ul>';
+    } else {
+        html += sentenceLines
+            .map(line => highlightImportantValues(escapeHtml(line)))
+            .join('<br><br>');
+    }
+
+    return html;
+}
+
 // ==============================
 // Utility Functions
 // ==============================
@@ -188,7 +266,8 @@ function appendMessage(sender, text, className = '') {
     chatWindow.scrollTop = chatWindow.scrollHeight;
 
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (currentUser?.email) {
+    // Loading placeholders are visual only; saving them pollutes follow-up context.
+    if (currentUser?.email && !className.includes('loading-text')) {
         const historyKey = `chatHistory_${currentUser.email}`;
         const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
         history.push({ sender, text });

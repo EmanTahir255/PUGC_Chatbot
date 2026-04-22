@@ -77,6 +77,17 @@ body {
     margin-right: auto;
     text-align: left;
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    line-height: 1.5;
+}
+
+.message.bot ul,
+.message.bot ol {
+    margin: 8px 0 0 18px;
+    padding: 0;
+}
+
+.message.bot li {
+    margin: 6px 0;
 }
 
 /* Typing animation dots */

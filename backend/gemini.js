@@ -4,6 +4,42 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
+const SUPPORTED_INTENTS = [
+  "greet", "goodbye", "bot_introduction", "thank_you", "fallback_help", "ask_fee_deadline",
+  "ask_tuition_fee", "ask_cs_fee", "ask_bba_fee", "ask_late_fee", "ask_fee_payment_method", "ask_scholarship",
+  "ask_scholarship_deadline", "ask_fee_refund", "ask_hostel_fee", "ask_transport_fee", "ask_admission_requirements", "ask_admission_schedule",
+  "ask_entry_test_details", "ask_merit_list", "ask_documents_list", "ask_transfer_policy", "ask_foreign_student_admission", "ask_available_programs",
+  "ask_bs_cs_details", "ask_bba_details", "ask_program_duration", "ask_credit_hours", "ask_elective_courses", "ask_phd_program",
+  "ask_ms_program", "ask_course_change", "ask_exam_schedule", "ask_result_date", "ask_grading_system", "ask_attendance_policy",
+  "ask_exam_rules", "ask_recheck_result", "ask_backlog_exam", "ask_library_hours", "ask_library_membership", "ask_library_books",
+  "ask_library_fine", "ask_digital_library", "ask_hostel_availability", "ask_hostel_application", "ask_hostel_rules", "ask_hostel_facilities",
+  "ask_department_list", "ask_cs_department", "ask_bba_department", "ask_hod_contact", "ask_dean_contact", "ask_vc_contact",
+  "ask_dress_code", "ask_mobile_phone_policy", "ask_ragging_policy", "ask_smoking_policy", "ask_code_of_conduct", "ask_plagiarism_policy",
+  "ask_student_id_card", "ask_semester_start", "ask_semester_end", "ask_holidays", "ask_winter_break", "ask_summer_break",
+  "ask_add_drop", "ask_semester_events", "ask_orientation", "ask_wifi", "ask_cafeteria", "ask_computer_lab",
+  "ask_sports_facilities", "ask_transport", "ask_transport_routes", "ask_parking", "ask_health_center", "ask_prayer_area",
+  "ask_atm", "ask_photocopying", "ask_main_contact", "ask_university_address", "ask_student_portal", "ask_transcript",
+  "ask_degree_certificate", "ask_character_certificate", "ask_migration_certificate", "ask_enrollment_status", "ask_registration", "ask_dropout_policy",
+  "ask_student_societies", "ask_sports_teams", "ask_internship", "ask_alumni_network", "ask_counseling", "ask_research_facilities",
+  "ask_final_year_project", "ask_thesis", "ask_quota_system", "ask_matric_certificate", "ask_intermediate_certificate", "ask_cnic_requirement",
+  "ask_domicile_requirement", "ask_photos_requirement", "ask_bs_math_details", "ask_bs_english_details", "ask_course_prerequisites", "ask_course_instructor",
+  "ask_recommended_books", "ask_course_assessment", "ask_graduation_requirements", "ask_cgpa_requirement", "ask_academic_calendar", "ask_spring_semester_dates",
+  "ask_fall_semester_dates", "ask_summer_semester", "ask_class_timetable", "ask_class_timings", "ask_section_change", "ask_exam_system",
+  "ask_seating_plan", "ask_provisional_certificate", "ask_attendance_shortage", "ask_medical_leave", "ask_leave_application", "ask_grade_improvement",
+  "ask_academic_probation", "ask_distinction", "ask_registration_deadline", "ask_late_registration", "ask_withdrawal_policy", "ask_study_plan",
+  "ask_internship_report", "ask_fyp_supervisor", "ask_fyp_topic", "ask_fyp_evaluation", "ask_thesis_format", "ask_convocation",
+  "ask_graduation_eligibility", "ask_migration_policy", "ask_noc_process", "ask_scholarship_renewal", "ask_scholarship_cancellation", "ask_student_loan",
+  "ask_installment_plan", "ask_document_verification", "ask_library_general", "ask_library_location", "ask_library_catalog", "ask_library_reservation",
+  "ask_reading_room", "ask_hostel_warden", "ask_gym_facility", "ask_lab_software", "ask_lab_booking", "ask_wifi_problems",
+  "ask_campus_security", "ask_lost_found", "ask_building_locations", "ask_public_transport", "ask_career_services", "ask_job_placement",
+  "ask_cv_building", "ask_interview_preparation", "ask_cs_society", "ask_event_registration", "ask_event_eligibility", "ask_exchange_program",
+  "ask_industry_partnerships", "ask_entrepreneurship", "ask_complaint_system", "ask_admissions_contact", "ask_exam_office_contact", "ask_accounts_contact",
+  "ask_it_support_contact", "ask_emergency_contacts", "ask_department_events", "ask_department_office_hours", "ask_online_resources", "ask_id_card_replacement",
+  "ask_no_dues_certificate"
+];
+
+const SUPPORTED_INTENT_SET = new Set(SUPPORTED_INTENTS);
+
 // Extract intent keyword from question using Groq
 async function extractIntentFromQuestion(userMessage) {
   try {
@@ -15,30 +51,7 @@ async function extractIntentFromQuestion(userMessage) {
           content: `You are an intent classifier for PUGC university chatbot. 
 Given a student question, return ONLY a single database intent name from this list (return exactly as written, nothing else):
 
-ask_admission_general, ask_eligibility_criteria, ask_entry_test_details, ask_merit_formula,
-ask_fee_structure, ask_cs_fee, ask_bba_fee, ask_hostel_general, ask_hostel_fee,
-ask_library_hours, ask_transport, ask_exam_system, ask_grading_system, ask_cgpa_requirement,
-ask_merit_scholarship, ask_need_based_scholarship, ask_scholarship, ask_contact_number,
-ask_campus_location, ask_bs_cs_details, ask_bs_se_details, ask_bs_it_details,
-ask_bba_details, ask_ms_cs_details, ask_phd_general, ask_fyp_general, ask_internship,
-ask_hostel_availability, ask_hostel_facilities, ask_transport_routes, ask_department_list,
-ask_academic_calendar, ask_graduation_requirements, ask_attendance_policy, ask_result_portal,
-ask_student_portal, ask_wifi_details, ask_sports_facilities, ask_cafeteria_menu,
-ask_computer_lab, ask_parking, ask_health_center, ask_counseling, ask_job_placement,
-ask_cv_building, ask_fee_payment_method, ask_fee_deadline, ask_late_fee, ask_dress_code,
-ask_hostel_rules, ask_exam_rules, ask_plagiarism_policy, ask_transcript, ask_degree_certificate,
-ask_character_certificate, ask_student_id_card, ask_registration, ask_class_timetable,
-ask_course_list, ask_section_change, ask_cgpa_calculation, ask_grading_scale,
-ask_academic_probation, ask_distinction, ask_supplementary_exam, ask_result_announcement,
-ask_datesheet, ask_passing_marks, ask_attendance_shortage, ask_medical_leave,
-ask_scholarship_deadline, ask_scholarship_application, ask_financial_aid, ask_fee_refund,
-ask_hostel_application, ask_hostel_warden, ask_library_books, ask_library_fine,
-ask_digital_library, ask_sports_general, ask_gym_facility, ask_transport_registration,
-ask_health_center, ask_emergency_contacts, ask_lost_found, ask_campus_security,
-ask_student_societies, ask_internship_requirement, ask_alumni, ask_events_general,
-ask_convocation, ask_orientation, ask_semester_start, ask_holidays, ask_fyp_supervisor,
-ask_thesis_general, ask_research_opportunities, ask_complaint_system, ask_no_dues_certificate,
-ask_clearance_process, ask_dropout_policy, ask_withdrawal_policy, ask_add_drop_process
+${SUPPORTED_INTENTS.join(", ")}
 
 If the question does not match any intent, return: NONE`,
         },
@@ -52,7 +65,7 @@ If the question does not match any intent, return: NONE`,
     });
 
     const result = completion.choices[0].message.content.trim();
-    return result === "NONE" ? null : result;
+    return result === "NONE" || !SUPPORTED_INTENT_SET.has(result) ? null : result;
   } catch (error) {
     console.error("Intent extraction error:", error.message);
     return null;
@@ -77,10 +90,12 @@ Rules:
 
 IMPORTANT FORMATTING RULES:
 - Always start with a bold heading using <b>heading</b>
-- Use <br> for line breaks
-- Use <ul><li>item</li></ul> for lists
+- Do not return one long paragraph
+- Use <br><br> after the heading
+- Use <ul><li><b>Label:</b> value</li></ul> when the answer has multiple facts, fees, rules, steps, or requirements
 - Use <b>text</b> for important values like numbers, fees, dates
 - Never use markdown symbols like ** or ## or * for bullets
+- Keep the final answer easy to scan, usually 3 to 7 bullet points
 - Always end with contact info if relevant`
             },
             ...conversationHistory,
@@ -105,4 +120,131 @@ IMPORTANT FORMATTING RULES:
     }
 }
 
-module.exports = { extractIntentFromQuestion, getGroqResponse };
+async function isAnswerRelevant(userMessage, dbAnswer, conversationHistory = []) {
+    try {
+        // Gate broad DB answers so follow-up questions can be answered more precisely.
+        const completion = await groq.chat.completions.create({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+                {
+                    role: 'system',
+                    content: `Decide whether the candidate answer directly answers the user's latest question.
+Use the conversation history only to understand references like "this", "them", "it", or "that".
+Return ONLY YES or NO.`
+                },
+                ...conversationHistory,
+                {
+                    role: 'user',
+                    content: `Latest user question:
+${userMessage}
+
+Candidate answer:
+${dbAnswer}`
+                }
+            ],
+            max_tokens: 5,
+            temperature: 0
+        });
+
+        const result = completion.choices[0].message.content.trim().toUpperCase();
+        return result === 'YES';
+    } catch (error) {
+        console.error('Answer relevance error:', error.message);
+        return true;
+    }
+}
+
+async function refineAnswerWithDBContext(userMessage, dbAnswer, conversationHistory = []) {
+    try {
+        // Reword only when the stored answer is related but does not directly answer the latest question.
+        const completion = await groq.chat.completions.create({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+                {
+                    role: 'system',
+                    content: `You are PUGC SmartBot, a helpful virtual assistant for Punjab University Gujranwala Campus (PUGC).
+Answer the user's latest question directly and concisely.
+Use the provided PUGC database information as trusted context, but do not repeat unrelated details.
+If the database context does not contain the exact answer, infer only what is reasonable from it and say to contact PUGC for confirmation.
+
+IMPORTANT FORMATTING RULES:
+- Always start with a bold heading using <b>heading</b>
+- Do not return one long paragraph
+- Use <br><br> after the heading
+- Use <ul><li>item</li></ul> for lists only when useful
+- Use <ul><li><b>Label:</b> value</li></ul> when the answer has multiple facts, fees, rules, steps, or requirements
+- Use <b>text</b> for important values like numbers, fees, dates
+- Never use markdown symbols like ** or ## or * for bullets
+- Keep the final answer easy to scan, usually 3 to 7 bullet points`
+                },
+                ...conversationHistory,
+                {
+                    role: 'user',
+                    content: `Latest user question:
+${userMessage}
+
+Related PUGC database information:
+${dbAnswer}`
+                }
+            ],
+            max_tokens: 350,
+            temperature: 0.2
+        });
+
+        return completion.choices[0].message.content;
+    } catch (error) {
+        console.error('Answer refinement error:', error.message);
+        return null;
+    }
+}
+
+async function getGroundedGroqResponse(userMessage, dbAnswer, conversationHistory = []) {
+    try {
+        // Strict fallback: use nearby DB context, but do not invent missing PUGC facts.
+        const completion = await groq.chat.completions.create({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+                {
+                    role: 'system',
+                    content: `You are PUGC SmartBot.
+Answer the user's latest question using ONLY the provided PUGC database information and the conversation history.
+Do not introduce new departments, programs, fees, dates, or policies unless they appear in the provided information.
+If the exact answer is not present, clearly say that it is not available in the current PUGC data and suggest contacting PUGC.
+
+IMPORTANT FORMATTING RULES:
+- Always start with a bold heading using <b>heading</b>
+- Do not return one long paragraph
+- Use <br><br> after the heading
+- Use <ul><li>item</li></ul> for lists only when useful
+- Use <ul><li><b>Label:</b> value</li></ul> when the answer has multiple facts, fees, rules, steps, or requirements
+- Never use markdown symbols like ** or ## or * for bullets
+- Keep the final answer easy to scan, usually 3 to 7 bullet points`
+                },
+                ...conversationHistory,
+                {
+                    role: 'user',
+                    content: `Latest user question:
+${userMessage}
+
+Nearest PUGC database information:
+${dbAnswer}`
+                }
+            ],
+            max_tokens: 350,
+            temperature: 0.1
+        });
+
+        return completion.choices[0].message.content;
+    } catch (error) {
+        console.error('Grounded Groq error:', error.message);
+        return null;
+    }
+}
+
+module.exports = {
+    extractIntentFromQuestion,
+    getGroqResponse,
+    isAnswerRelevant,
+    refineAnswerWithDBContext,
+    getGroundedGroqResponse
+};
