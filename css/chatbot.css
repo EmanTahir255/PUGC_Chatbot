@@ -13,13 +13,13 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    height: calc(100vh - 300px);
-    padding: 30px 35px;
+    height: calc(100vh - 120px);
+    padding: 20px 25px;
     background-color: #ffffff;
     border-radius: 20px;
     box-shadow: 0 20px 40px rgba(0,0,0,0.12);
     transition: all 0.3s ease;
-    margin-top: 40px;
+    margin-top: 10px;
 }
 
 /* Card Header */
@@ -171,8 +171,9 @@ body {
 /* Responsive adjustments */
 @media screen and (max-width: 900px) {
     .chatbot-card {
-        height: auto;
-        padding: 20px;
+        /* height: auto; */
+        height: calc(100vh - 160px);
+        padding: 15px;
     }
 
     .chat-window {

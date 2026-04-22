@@ -1,0 +1,4139 @@
+version: "3.1"
+
+nlu:
+
+# ─────────────────────────────────────────────
+# GENERAL / GREETINGS
+# ─────────────────────────────────────────────
+
+- intent: greet
+  examples: |
+    - hello
+    - hi
+    - hey
+    - good morning
+    - good afternoon
+    - good evening
+    - hi there
+    - hey there
+    - hello there
+    - what's up
+    - howdy
+    - salam
+    - assalamualaikum
+    - walaikum assalam
+    - greetings
+    - hiya
+    - yo
+    - sup
+    - helo
+    - hii
+    - hai
+    - aoa
+    - good day
+    - morning
+    - evening
+
+- intent: goodbye
+  examples: |
+    - bye
+    - goodbye
+    - see you later
+    - take care
+    - thanks bye
+    - that's all
+    - ok thanks
+    - thank you
+    - thanks
+    - I'm done
+    - quit
+    - exit
+    - nothing else
+    - ok bye
+    - allah hafiz
+    - khuda hafiz
+    - bye bye
+    - later
+    - cya
+    - see ya
+    - no more questions
+    - that will be all
+    - done for now
+
+- intent: bot_introduction
+  examples: |
+    - who are you
+    - what are you
+    - are you a bot
+    - are you human
+    - what can you do
+    - introduce yourself
+    - tell me about yourself
+    - what is your purpose
+    - how can you help me
+    - what do you know
+    - are you an AI
+    - what kind of bot are you
+    - what is this chatbot for
+    - how does this work
+    - explain yourself
+    - what is your name
+    - what should I call you
+    - what services do you offer
+    - are you a robot
+    - help me understand what you do
+
+- intent: thank_you
+  examples: |
+    - thank you
+    - thanks
+    - thanks a lot
+    - thank you so much
+    - much appreciated
+    - great thanks
+    - ok thanks
+    - wonderful thanks
+    - shukriya
+    - jazakallah
+    - thanks for the info
+    - that was helpful
+    - thank you for your help
+    - appreciate it
+    - many thanks
+    - thank you very much
+    - thx
+    - thnx
+    - thankyou
+    - ty
+
+- intent: fallback_help
+  examples: |
+    - I don't understand
+    - can you repeat that
+    - what do you mean
+    - I need help
+    - help
+    - help me
+    - I am confused
+    - I am lost
+    - not sure what to ask
+    - guide me
+    - what can I ask you
+    - show me options
+    - give me a list of topics
+    - what topics do you cover
+    - menu
+    - main menu
+    - options
+    - what questions can I ask
+
+# ─────────────────────────────────────────────
+# FEES & FINANCE
+# ─────────────────────────────────────────────
+
+- intent: ask_fee_deadline
+  examples: |
+    - when is the fee deadline
+    - what is the last date for fee submission
+    - fee due date
+    - when should I pay fee
+    - fee submission deadline
+    - what is the fee deadline
+    - tell me the fee deadline
+    - fee last date
+    - when to pay fee
+    - is fee deadline near
+    - fee payment last date
+    - last date to submit fee
+    - what date is fee due
+    - fee kab jama karni hai
+    - when is fee due
+    - how much time left for fee
+    - fee submission date
+    - when do I have to pay tuition fee
+    - fee challan last date
+    - when does fee expire
+
+- intent: ask_tuition_fee
+  examples: |
+    - what is the tuition fee
+    - how much is the semester fee
+    - total fee amount
+    - semester fee
+    - fee per semester
+    - fee structure
+    - how much do I have to pay
+    - fee kitni hai
+    - how much is the fee
+    - annual fee
+    - yearly fee
+    - semester charges
+    - total charges per semester
+    - fee detail
+    - how much does it cost to study here
+    - cost of education
+    - fee amount
+
+- intent: ask_cs_fee
+  examples: |
+    - what is the fee for computer science
+    - CS fee
+    - BSCS fee
+    - software engineering fee
+    - IT program fee
+    - how much is CS program
+    - computer science fees
+    - fee for BS computer science
+    - how much to study CS
+    - CS ki fees kya hai
+    - cost of computer science degree
+    - semester fee for CS
+    - BS IT fee
+    - IT fee structure
+    - CS program cost
+    - SE fee
+    - BS SE fee
+
+- intent: ask_bba_fee
+  examples: |
+    - BBA fee
+    - business administration fee
+    - what is the fee for BBA
+    - management science fee
+    - commerce fee
+    - BS commerce fee
+    - BBA program fee
+    - business studies fee
+    - MBA fee
+    - MS management fee
+    - what does BBA cost
+    - fee for business program
+
+- intent: ask_late_fee
+  examples: |
+    - what is the late fee
+    - late fee charges
+    - what happens if I pay fee late
+    - penalty for late fee
+    - late submission fine
+    - late fee per day
+    - extra charges after deadline
+    - fee fine
+    - what is the fine for late fee
+    - late challan fine
+    - penalty fee amount
+    - late fee kitni hai
+    - how much is the late fee
+    - fine after deadline
+
+- intent: ask_fee_payment_method
+  examples: |
+    - how to pay fee
+    - fee payment method
+    - where to pay fee
+    - bank for fee payment
+    - online fee payment
+    - fee challan
+    - how to generate challan
+    - fee payment process
+    - can I pay fee online
+    - fee submit karne ka tarika
+    - how is fee paid
+    - which bank accepts PUGC fee
+    - challan generation
+    - fee portal
+    - online payment method
+
+- intent: ask_scholarship
+  examples: |
+    - are scholarships available
+    - scholarship information
+    - how to get scholarship
+    - merit scholarship
+    - need based scholarship
+    - scholarship criteria
+    - financial aid
+    - scholarship apply
+    - can I get scholarship
+    - scholarship for good students
+    - fee waiver
+    - scholarship deadline
+    - scholarship kaise milti hai
+    - tell me about scholarships
+    - HEC scholarship
+    - government scholarship
+    - scholarship eligibility
+    - partial scholarship
+    - full scholarship
+
+- intent: ask_scholarship_deadline
+  examples: |
+    - when is the scholarship deadline
+    - last date for scholarship application
+    - scholarship apply karne ki deadline
+    - when to apply for scholarship
+    - scholarship form last date
+    - how long do I have to apply for scholarship
+    - scholarship submission date
+
+- intent: ask_fee_refund
+  examples: |
+    - can I get fee refund
+    - fee refund policy
+    - fee wapas milegi
+    - refund on withdrawal
+    - fee refund on leaving
+    - refund process
+    - is fee refundable
+    - what is the refund policy
+    - fee wapas kab milti hai
+    - partial refund
+    - refund after dropping course
+
+- intent: ask_hostel_fee
+  examples: |
+    - what is the hostel fee
+    - hostel charges
+    - hostel monthly fee
+    - hostel rent
+    - hostel ki fees kya hai
+    - how much is hostel
+    - accommodation charges
+    - hostel fee per month
+    - room charges
+    - boarding fee
+    - hostel fee structure
+
+- intent: ask_transport_fee
+  examples: |
+    - what is the transport fee
+    - bus charges
+    - van fee
+    - transport monthly fee
+    - how much is university transport
+    - transport ki fees kya hai
+    - bus service fee
+    - route fee
+    - transport charges
+
+# ─────────────────────────────────────────────
+# ADMISSIONS & ELIGIBILITY
+# ─────────────────────────────────────────────
+
+- intent: ask_admission_requirements
+  examples: |
+    - what are the admission requirements
+    - how to get admission
+    - admission criteria
+    - what do I need for admission
+    - eligibility for admission
+    - how can I apply for admission
+    - admission procedure
+    - requirements for joining university
+    - what marks do I need for admission
+    - minimum percentage for admission
+    - admission eligibility criteria
+    - documents required for admission
+    - how to take admission
+    - admission process
+    - entry test required
+    - what is needed for admission
+    - apply for admission
+    - admissions kaise hoti hain
+
+- intent: ask_admission_last_date
+  examples: |
+    - when is the last date for admission
+    - admission deadline
+    - admission form last date
+    - last date to apply
+    - admission kab tak hogi
+    - apply karne ki last date
+    - when does admission close
+    - admission closing date
+    - last day for admission
+
+- intent: ask_admission_test
+  examples: |
+    - is there an entry test
+    - admission test details
+    - entry test syllabus
+    - what is in the entry test
+    - how to prepare for entry test
+    - entry test date
+    - NTS test for admission
+    - test based admission
+    - merit based or test based
+    - admission test pattern
+    - entry test kab hoga
+    - test for admission
+
+- intent: ask_merit_list
+  examples: |
+    - when will merit list come
+    - merit list date
+    - merit list kab aayegi
+    - first merit list
+    - second merit list
+    - merit criteria
+    - how is merit calculated
+    - merit percentage
+    - merit list announcement
+    - how to check merit list
+    - merit list portal
+    - what is the minimum merit
+
+- intent: ask_documents_required
+  examples: |
+    - what documents are required for admission
+    - admission documents list
+    - which papers are needed
+    - document checklist
+    - documents for enrollment
+    - what to bring for admission
+    - required papers for admission
+    - matric certificate required
+    - domicile required
+    - documents ki list
+
+- intent: ask_transfer_admission
+  examples: |
+    - can I transfer from another university
+    - credit transfer policy
+    - lateral entry admission
+    - transfer admission
+    - migration from another university
+    - can I join mid program
+    - transfer student admission
+    - credit hour transfer
+
+- intent: ask_foreign_student_admission
+  examples: |
+    - can foreign students apply
+    - international student admission
+    - foreign student eligibility
+    - overseas Pakistani admission
+    - admission for foreign nationals
+    - non Pakistani student admission
+
+# ─────────────────────────────────────────────
+# COURSES & PROGRAMS
+# ─────────────────────────────────────────────
+
+- intent: ask_course_list
+  examples: |
+    - what courses are offered
+    - available programs
+    - list of courses
+    - what programs does the university offer
+    - which degrees can I do
+    - university courses
+    - programs offered
+    - what can I study here
+    - available degrees
+    - bachelor programs
+    - masters programs
+    - course list
+    - which subjects are available
+    - tell me about courses
+    - what fields are available
+    - departments list
+    - PUGC programs
+
+- intent: ask_cs_program
+  examples: |
+    - tell me about computer science program
+    - BS CS details
+    - computer science course outline
+    - CS program duration
+    - what is covered in CS
+    - BS computer science subjects
+    - CS program details
+    - software engineering program
+    - BS SE details
+    - BS IT details
+    - information technology program
+
+- intent: ask_bba_program
+  examples: |
+    - tell me about BBA program
+    - BBA details
+    - business administration subjects
+    - BBA course outline
+    - BBA duration
+    - what is BBA
+    - business studies program
+    - commerce program details
+    - MBA program details
+
+- intent: ask_program_duration
+  examples: |
+    - how long is the program
+    - program duration
+    - how many years is BS
+    - BS duration
+    - how many semesters
+    - degree duration
+    - when will I graduate
+    - 4 year degree
+    - 2 year program
+    - course length
+    - program kitne saal ka hai
+
+- intent: ask_credit_hours
+  examples: |
+    - how many credit hours
+    - total credit hours required
+    - credit hours for graduation
+    - credit hour requirement
+    - minimum credit hours
+    - how many courses per semester
+    - credit load
+    - how many subjects per semester
+
+- intent: ask_elective_courses
+  examples: |
+    - what elective courses are available
+    - elective subjects
+    - optional courses
+    - elective selection
+    - can I choose my subjects
+    - elective courses list
+    - optional subjects list
+
+- intent: ask_phd_program
+  examples: |
+    - is there a PhD program
+    - PhD details
+    - doctoral program
+    - PhD admission requirements
+    - PhD duration
+    - PhD research
+    - PhD scholarship
+    - PhD courses at PUGC
+
+- intent: ask_ms_program
+  examples: |
+    - MS program details
+    - masters degree
+    - MS admission requirements
+    - MS duration
+    - post graduate program
+    - masters program details
+    - MS CS details
+    - MS management details
+
+- intent: ask_course_change
+  examples: |
+    - can I change my course
+    - program change policy
+    - switch degree program
+    - change from CS to BBA
+    - course transfer within university
+    - how to change my degree
+    - is it possible to change program
+    - changing program rules
+
+# ─────────────────────────────────────────────
+# EXAMS & RESULTS
+# ─────────────────────────────────────────────
+
+- intent: ask_exam_schedule
+  examples: |
+    - when are the exams
+    - exam schedule
+    - when is the exam
+    - date sheet
+    - exam timetable
+    - when do exams start
+    - final exam date
+    - mid term exam date
+    - when is the midterm
+    - exam date sheet
+    - examination schedule
+    - when are finals
+    - test schedule
+    - exam ki date kab hai
+    - final exams kab hain
+    - when will exams be held
+    - exam timing
+
+- intent: ask_result_date
+  examples: |
+    - when will results come
+    - result date
+    - when are results announced
+    - result kab aayega
+    - exam result
+    - result announcement date
+    - when to check result
+    - result portal
+    - how to check result
+    - result declaration
+    - semester result date
+    - result kab niklega
+    - result check karna hai
+
+- intent: ask_grading_system
+  examples: |
+    - what is the grading system
+    - how is GPA calculated
+    - grading criteria
+    - what marks for A grade
+    - GPA scale
+    - how grades work
+    - passing marks
+    - minimum passing grade
+    - grade calculation
+    - what is CGPA
+    - grading policy
+    - grade point average
+    - how to calculate CGPA
+    - what is GPA
+    - grading scale
+
+- intent: ask_attendance_policy
+  examples: |
+    - what is the attendance policy
+    - minimum attendance required
+    - attendance rule
+    - how many classes can I miss
+    - attendance percentage
+    - attendance requirement
+    - can I be barred from exam
+    - attendance kya chahiye
+    - 75 percent attendance
+    - absence policy
+    - attendance shortage
+    - attendance problem
+    - low attendance consequences
+    - medical leave attendance
+
+- intent: ask_exam_rules
+  examples: |
+    - what are the exam rules
+    - rules during exam
+    - exam regulations
+    - can I bring anything to exam
+    - exam hall rules
+    - cheating policy
+    - what happens if caught cheating
+    - exam conduct
+    - exam discipline
+    - allowed items in exam
+    - exam do's and don'ts
+    - unfair means policy
+
+- intent: ask_recheck_result
+  examples: |
+    - can I recheck my paper
+    - paper rechecking
+    - result recheck
+    - how to apply for rechecking
+    - rechecking fee
+    - rechecking procedure
+    - reassessment of paper
+    - request for recheck
+    - rechecking kaise hoti hai
+
+- intent: ask_backlog_exam
+  examples: |
+    - what is a backlog
+    - how to clear backlog
+    - supplementary exam
+    - repeat exam
+    - failed subject exam
+    - back paper exam
+    - how many backlogs allowed
+    - backlog rules
+    - clear failed subject
+
+- intent: ask_exam_datesheet
+  examples: |
+    - where to find datesheet
+    - how to download datesheet
+    - datesheet kahan milegi
+    - mid term datesheet
+    - final term datesheet
+    - exam schedule portal
+    - datesheet announcement
+    - when is datesheet released
+
+# ─────────────────────────────────────────────
+# LIBRARY
+# ─────────────────────────────────────────────
+
+- intent: ask_library_hours
+  examples: |
+    - library timing
+    - when is the library open
+    - library hours
+    - what time does library open
+    - library open time
+    - is the library open now
+    - library kab khulti hai
+    - library closing time
+    - library schedule
+    - library timings today
+    - when does library close
+    - what are library timings
+    - library open on saturday
+    - library open on sunday
+    - library working hours
+
+- intent: ask_library_membership
+  examples: |
+    - how to get library membership
+    - library card
+    - library registration
+    - how to join library
+    - library membership fee
+    - library access
+    - get library card
+    - library membership process
+    - how to use library
+
+- intent: ask_library_books
+  examples: |
+    - how many books can I borrow
+    - book borrowing limit
+    - how long can I keep a book
+    - book return date
+    - library book limit
+    - borrow books from library
+    - how to issue book
+    - book issue process
+    - book return policy
+    - how many books allowed
+
+- intent: ask_library_fine
+  examples: |
+    - what is the library fine
+    - late return fine
+    - book return fine
+    - library penalty
+    - overdue fine
+    - fine for late book return
+    - library fine amount
+    - fine per day library
+    - library charges for late return
+
+- intent: ask_digital_library
+  examples: |
+    - is there a digital library
+    - online library access
+    - e-library
+    - digital books
+    - online journals access
+    - HEC digital library
+    - research papers access
+    - online resources library
+    - e-books available
+
+# ─────────────────────────────────────────────
+# HOSTEL & ACCOMMODATION
+# ─────────────────────────────────────────────
+
+- intent: ask_hostel_availability
+  examples: |
+    - is hostel available
+    - hostel facility
+    - does university have hostel
+    - hostel accommodation
+    - boys hostel
+    - girls hostel
+    - hostel availability
+    - on campus accommodation
+    - hostel apply karna hai
+    - can I get hostel
+    - hostel information
+    - residential facility
+    - is there on campus housing
+
+- intent: ask_hostel_application
+  examples: |
+    - how to apply for hostel
+    - hostel application process
+    - hostel form
+    - hostel registration
+    - hostel apply kaise karein
+    - hostel admission procedure
+    - when to apply for hostel
+    - hostel allocation process
+    - how to get hostel room
+
+- intent: ask_hostel_rules
+  examples: |
+    - what are hostel rules
+    - hostel regulations
+    - hostel discipline
+    - rules in hostel
+    - hostel visiting hours
+    - guest policy in hostel
+    - hostel curfew time
+    - hostel conduct
+    - hostel do's and don'ts
+    - hostel timing
+
+- intent: ask_hostel_facilities
+  examples: |
+    - what facilities are in hostel
+    - hostel amenities
+    - hostel wifi
+    - hostel food
+    - hostel mess
+    - hostel rooms
+    - hostel laundry
+    - hostel security
+    - hostel gym
+    - what is provided in hostel
+
+# ─────────────────────────────────────────────
+# DEPARTMENTS & FACULTY
+# ─────────────────────────────────────────────
+
+- intent: ask_departments_list
+  examples: |
+    - what departments are there
+    - list of departments
+    - how many departments
+    - departments at PUGC
+    - faculty departments
+    - which departments exist
+    - tell me the departments
+    - department list
+    - department names
+
+- intent: ask_cs_department
+  examples: |
+    - tell me about CS department
+    - computer science department
+    - CS department head
+    - who is head of CS
+    - CS department contact
+    - CS department location
+    - IT department
+    - software engineering department
+    - CS faculty
+
+- intent: ask_bba_department
+  examples: |
+    - tell me about BBA department
+    - business administration department
+    - management sciences department
+    - commerce department
+    - BBA faculty
+    - who heads BBA department
+    - BBA department contact
+
+- intent: ask_faculty_list
+  examples: |
+    - who are the teachers
+    - faculty list
+    - professors list
+    - teaching staff
+    - faculty members
+    - who teaches here
+    - qualified faculty
+    - staff list
+    - lecturers at PUGC
+
+- intent: ask_hod_contact
+  examples: |
+    - how to contact head of department
+    - HOD contact number
+    - department head email
+    - how to meet HOD
+    - HOD office hours
+    - HOD appointment
+    - department head information
+
+- intent: ask_dean_contact
+  examples: |
+    - how to contact the dean
+    - dean office
+    - dean contact number
+    - dean email
+    - who is the dean
+    - meet the dean
+    - dean appointment
+    - dean office hours
+
+- intent: ask_vc_contact
+  examples: |
+    - who is the vice chancellor
+    - VC contact
+    - vice chancellor name
+    - VC office
+    - how to contact VC
+    - chancellor name
+    - rector contact
+
+# ─────────────────────────────────────────────
+# CAMPUS RULES & POLICIES
+# ─────────────────────────────────────────────
+
+- intent: ask_dress_code
+  examples: |
+    - is there a dress code
+    - dress code policy
+    - what to wear to university
+    - formal dress required
+    - uniform policy
+    - dress code rules
+    - can I wear jeans
+    - dress regulations
+    - clothing rules
+    - what is the dress code
+    - dress code kya hai
+    - dress code for girls
+    - dress code for boys
+    - modest dress required
+
+- intent: ask_mobile_phone_policy
+  examples: |
+    - can I use mobile phone in class
+    - mobile phone policy
+    - phone allowed in class
+    - phone rules
+    - mobile policy
+    - can I use phone during lecture
+    - phone in exam hall
+    - mobile restrictions
+    - phone ban
+
+- intent: ask_ragging_policy
+  examples: |
+    - what is the anti ragging policy
+    - ragging rules
+    - is ragging allowed
+    - ragging punishment
+    - anti ragging committee
+    - report ragging
+    - hazing policy
+    - senior junior interaction rules
+
+- intent: ask_smoking_policy
+  examples: |
+    - is smoking allowed on campus
+    - smoking policy
+    - no smoking area
+    - smoking rules
+    - where can I smoke
+    - smoking ban
+    - smoking on university premises
+
+- intent: ask_code_of_conduct
+  examples: |
+    - what is the code of conduct
+    - student conduct rules
+    - disciplinary rules
+    - student behavior policy
+    - rules and regulations
+    - what are campus rules
+    - student handbook
+    - general rules
+    - university rules
+
+- intent: ask_plagiarism_policy
+  examples: |
+    - what is the plagiarism policy
+    - plagiarism rules
+    - copying assignment punishment
+    - anti plagiarism
+    - what happens if I plagiarize
+    - turnitin policy
+    - academic dishonesty
+    - plagiarism consequences
+
+- intent: ask_student_id_card
+  examples: |
+    - how to get student ID card
+    - student ID card
+    - ID card process
+    - ID card kaise banegi
+    - when is ID card issued
+    - lost ID card replacement
+    - duplicate ID card
+    - ID card fee
+    - student card
+
+# ─────────────────────────────────────────────
+# ACADEMIC CALENDAR & EVENTS
+# ─────────────────────────────────────────────
+
+- intent: ask_semester_start
+  examples: |
+    - when does semester start
+    - semester start date
+    - first day of semester
+    - when does class begin
+    - semester beginning
+    - class start date
+    - when do classes start
+    - semester kab shuru hoga
+    - start of spring semester
+    - fall semester start
+    - academic year start
+    - new semester date
+
+- intent: ask_semester_end
+  examples: |
+    - when does semester end
+    - semester end date
+    - last day of semester
+    - semester kab khatam hoga
+    - end of spring semester
+    - semester closing date
+    - when do classes end
+
+- intent: ask_holidays
+  examples: |
+    - what are the university holidays
+    - holiday list
+    - public holidays
+    - eid holiday
+    - independence day holiday
+    - holidays this semester
+    - when is university closed
+    - national holidays observed
+    - upcoming holidays
+
+- intent: ask_winter_break
+  examples: |
+    - when is winter break
+    - winter vacation dates
+    - winter holidays
+    - December holidays
+    - end of year break
+    - winter vacation kab hai
+
+- intent: ask_summer_break
+  examples: |
+    - when is summer break
+    - summer vacation dates
+    - summer holidays
+    - summer semester break
+    - June July holidays
+    - summer vacation kab hai
+
+- intent: ask_add_drop
+  examples: |
+    - what is add drop period
+    - can I change my courses
+    - add drop deadline
+    - how to add or drop a course
+    - course registration change
+    - can I drop a subject
+    - add drop process
+    - course withdrawal
+    - drop course after registration
+
+- intent: ask_semester_events
+  examples: |
+    - what events happen this semester
+    - upcoming university events
+    - campus events
+    - extra curricular activities
+    - student events
+    - convocation date
+    - sports events
+    - cultural events
+    - farewell event
+    - orientation date
+
+- intent: ask_orientation
+  examples: |
+    - when is orientation
+    - new student orientation
+    - orientation program
+    - orientation date
+    - welcome week
+    - orientation kab hai
+    - first day orientation
+    - freshman orientation
+
+# ─────────────────────────────────────────────
+# CAMPUS FACILITIES
+# ─────────────────────────────────────────────
+
+- intent: ask_wifi
+  examples: |
+    - is there wifi on campus
+    - wifi availability
+    - internet access
+    - campus wifi
+    - wifi password
+    - how to connect to wifi
+    - wifi network name
+    - is internet available
+    - wifi in hostel
+    - free internet
+    - wifi speed
+    - wifi kahan milega
+    - university internet
+
+- intent: ask_cafeteria
+  examples: |
+    - where is the cafeteria
+    - canteen location
+    - food on campus
+    - cafeteria timing
+    - where to eat
+    - food court
+    - canteen hours
+    - university restaurant
+    - khana kahan milega
+    - cafeteria menu
+    - food prices
+    - canteen available
+
+- intent: ask_computer_lab
+  examples: |
+    - what are computer lab timings
+    - computer lab schedule
+    - lab hours
+    - when is lab open
+    - computer lab access
+    - IT lab timing
+    - lab kab khulti hai
+    - how to book lab
+    - computer lab facilities
+    - lab computers
+
+- intent: ask_sports_facilities
+  examples: |
+    - what sports facilities are available
+    - sports ground
+    - cricket ground
+    - football field
+    - sports complex
+    - gym on campus
+    - sports activities
+    - sports society
+    - indoor sports
+    - outdoor sports
+    - sports fee
+
+- intent: ask_transport
+  examples: |
+    - is there university transport
+    - university bus service
+    - bus routes
+    - transport facility
+    - how to get to university
+    - university van service
+    - bus timing
+    - transport fee
+    - university transport available
+    - bus service kahan se milti hai
+    - van service
+    - shuttle service
+
+- intent: ask_transport_routes
+  examples: |
+    - what bus routes are available
+    - which areas are covered by bus
+    - bus route list
+    - does bus go to my area
+    - transport coverage area
+    - bus stop location
+    - pickup point
+    - which routes does PUGC cover
+    - transport route details
+
+- intent: ask_parking
+  examples: |
+    - is there parking available
+    - car parking
+    - parking facility
+    - motorcycle parking
+    - where to park
+    - parking rules
+    - parking area location
+    - student parking
+    - parking charges
+
+- intent: ask_health_center
+  examples: |
+    - is there a health center
+    - medical facility on campus
+    - clinic on campus
+    - doctor on campus
+    - medical room
+    - first aid on campus
+    - health services
+    - sick room
+    - medical help on campus
+    - health center timing
+
+- intent: ask_prayer_area
+  examples: |
+    - is there a mosque on campus
+    - prayer room
+    - namaz area
+    - masjid on campus
+    - where to pray
+    - prayer timing
+    - prayer area location
+    - namaz room
+    - mosque facility
+
+- intent: ask_atm
+  examples: |
+    - is there an ATM on campus
+    - ATM facility
+    - ATM location
+    - nearest ATM
+    - bank ATM on campus
+    - cash machine
+    - ATM available
+
+- intent: ask_photocopying
+  examples: |
+    - where can I photocopy documents
+    - photocopier on campus
+    - printing facility
+    - photocopy shop
+    - print documents where
+    - photostat on campus
+    - printing lab
+    - where to print assignments
+
+# ─────────────────────────────────────────────
+# STUDENT SERVICES & ADMINISTRATION
+# ─────────────────────────────────────────────
+
+- intent: ask_contact_number
+  examples: |
+    - what is the contact number
+    - university phone number
+    - how to contact university
+    - admission office number
+    - university contact
+    - phone number
+    - helpline number
+    - contact details
+    - university ka number kya hai
+    - office number
+    - how do I call the university
+    - email address
+    - university email
+    - PUGC contact
+
+- intent: ask_university_address
+  examples: |
+    - what is the university address
+    - where is PUGC located
+    - university location
+    - campus address
+    - how to reach PUGC
+    - PUGC ka address
+    - campus map
+    - where is the campus
+    - university ka pata
+    - directions to university
+
+- intent: ask_student_portal
+  examples: |
+    - how to access student portal
+    - student portal login
+    - online portal
+    - student dashboard
+    - portal website
+    - how to use student portal
+    - portal password forgot
+    - portal not working
+    - where to find student portal
+    - LMS access
+    - learning management system
+
+- intent: ask_transcript
+  examples: |
+    - how to get transcript
+    - official transcript
+    - transcript request
+    - transcript fee
+    - transcript process
+    - academic transcript
+    - how long for transcript
+    - transcript kaise milega
+    - degree transcript
+
+- intent: ask_degree_certificate
+  examples: |
+    - when will I get my degree
+    - degree certificate
+    - degree issuance
+    - how to collect degree
+    - degree after graduation
+    - convocation degree
+    - provisional certificate
+    - degree completion certificate
+    - degree kab milegi
+
+- intent: ask_character_certificate
+  examples: |
+    - how to get character certificate
+    - character certificate fee
+    - character certificate process
+    - good conduct certificate
+    - character certificate kaise milega
+    - when is character certificate issued
+    - character certificate request
+
+- intent: ask_migration_certificate
+  examples: |
+    - how to get migration certificate
+    - migration certificate process
+    - migration certificate fee
+    - transfer certificate
+    - leaving certificate
+    - migration kaise milega
+
+- intent: ask_enrollment_status
+  examples: |
+    - how to check enrollment status
+    - am I enrolled
+    - enrollment confirmation
+    - enrollment verification
+    - check my enrollment
+    - enrollment kaise check karein
+    - registration status
+
+- intent: ask_registration
+  examples: |
+    - how to register for courses
+    - course registration process
+    - registration deadline
+    - how to enroll in subjects
+    - course enrollment
+    - registration portal
+    - how to register online
+    - course selection
+    - subject registration
+
+- intent: ask_dropout_policy
+  examples: |
+    - what happens if I leave university
+    - dropout procedure
+    - withdrawal from program
+    - how to leave university
+    - leaving mid semester
+    - withdrawal policy
+    - discontinue studies
+    - dropping out process
+
+# ─────────────────────────────────────────────
+# STUDENT LIFE & ACTIVITIES
+# ─────────────────────────────────────────────
+
+- intent: ask_student_societies
+  examples: |
+    - what student societies are there
+    - clubs and societies
+    - extra curricular clubs
+    - how to join a club
+    - student club list
+    - society membership
+    - cultural society
+    - literary society
+    - debating club
+    - drama society
+    - student organizations
+
+- intent: ask_sports_teams
+  examples: |
+    - does PUGC have sports teams
+    - university cricket team
+    - football team
+    - how to join sports team
+    - sports selection
+    - university tournament
+    - inter university games
+    - sports scholarship
+    - sports competition
+
+- intent: ask_internship
+  examples: |
+    - does the university help with internships
+    - internship opportunities
+    - career placement
+    - internship guidance
+    - internship office
+    - how to find internship
+    - career services
+    - job placement
+    - industry connections
+
+- intent: ask_alumni
+  examples: |
+    - is there an alumni network
+    - alumni association
+    - alumni events
+    - how to connect with alumni
+    - alumni membership
+    - past graduates network
+    - alumni contact
+
+- intent: ask_counseling
+  examples: |
+    - is there a counseling service
+    - student counselor
+    - mental health support
+    - psychological help
+    - student wellbeing
+    - counseling office
+    - how to meet counselor
+    - academic counseling
+    - career counseling
+
+# ─────────────────────────────────────────────
+# RESEARCH & PROJECTS
+# ─────────────────────────────────────────────
+
+- intent: ask_research_facilities
+  examples: |
+    - what research facilities are available
+    - research labs
+    - research opportunities
+    - can students do research
+    - undergraduate research
+    - research center
+    - research funding
+    - research projects
+
+- intent: ask_final_year_project
+  examples: |
+    - how does final year project work
+    - FYP details
+    - final project requirements
+    - FYP supervisor
+    - how to select FYP topic
+    - FYP submission
+    - final year project guidelines
+    - FYP evaluation
+    - FYP defense
+
+- intent: ask_thesis
+  examples: |
+    - how to write thesis
+    - thesis requirements
+    - MS thesis
+    - thesis supervisor
+    - thesis submission deadline
+    - thesis defense
+    - thesis format
+    - thesis guidelines
+
+
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 1: ADMISSIONS & APPLICATIONS
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_admission_general
+  examples: |
+    - how do I get admission in PUGC
+    - I want to take admission
+    - admission process at PUGC
+    - how to apply for admission
+    - admissions kaise hoti hain
+    - tell me about admissions
+    - I want to study at PUGC
+    - how to join PUGC
+    - admission guide
+    - complete admission process
+    - apply for university admission
+    - I want to enroll at PUGC
+    - how can I become a student here
+    - admission procedure step by step
+    - what is the process to get admitted
+    - PUGC admission guide
+    - joining PUGC as a student
+    - how to secure admission
+    - admission ka tarika batao
+    - I am interested in joining PUGC
+
+- intent: ask_available_programs
+  examples: |
+    - what programs are available at PUGC
+    - list all programs
+    - which degrees can I apply for
+    - what courses are offered
+    - available degree programs
+    - programs list
+    - all programs at PUGC
+    - what can I study at PUGC
+    - degree options
+    - what fields are available
+    - which departments offer programs
+    - program list PUGC
+    - tell me about programs offered
+    - what degrees does PUGC offer
+    - full list of programs
+    - sabhi programs ki list
+    - kaunsi degrees milti hain
+    - degree programs available
+    - program options
+    - undergraduate and postgraduate programs list
+
+- intent: ask_eligibility_criteria
+  examples: |
+    - what is the eligibility for admission
+    - who can apply for admission
+    - eligibility criteria
+    - minimum qualification for admission
+    - am I eligible for admission
+    - what qualifications do I need
+    - can I apply with arts background
+    - can science students apply for BBA
+    - eligibility for BS programs
+    - what are the requirements to apply
+    - minimum marks for eligibility
+    - kya mein apply kar sakta hoon
+    - eligibility check karni hai
+    - what background is required
+    - pre-requisites for admission
+    - can I apply after FA
+    - FSc required for CS
+    - ICS holders can apply for CS
+    - eligibility for commerce program
+    - who qualifies for PUGC admission
+
+- intent: ask_merit_formula
+  examples: |
+    - how is merit calculated
+    - merit formula
+    - merit calculation
+    - how is merit list made
+    - matric and intermediate weightage
+    - test marks weightage in merit
+    - merit percentage calculation
+    - how do I calculate my merit
+    - merit formula for BS
+    - entry test contribution to merit
+    - merit banane ka formula
+    - marks weightage
+    - how much does test matter in merit
+    - merit formula explain karo
+    - matric percentage in merit
+    - how many percent is intermediate in merit
+    - what is the merit criteria
+    - merit calculation formula detail
+    - merit score calculation
+    - aggregate formula PUGC
+
+- intent: ask_entry_test_details
+  examples: |
+    - tell me about the entry test
+    - entry test syllabus
+    - what is in the entry test
+    - entry test pattern
+    - entry test marks
+    - how to prepare for entry test
+    - entry test kab hoga
+    - entry test date
+    - entry test registration
+    - is entry test compulsory
+    - how to get entry test form
+    - entry test subjects
+    - MCQ based test
+    - entry test duration
+    - entry test total marks
+    - test ka pattern kya hai
+    - test ki preparation kaise karein
+    - entry test result
+    - how many questions in entry test
+    - entry test admit card
+    - do i have to pass admission test
+    - is entry test compulsory for admission
+    - admission test required or not
+    - do i need to give a test for admission
+    - is there a test for getting admission
+    - test required for joining PUGC
+
+- intent: ask_admission_schedule
+  examples: |
+    - what is the admission schedule
+    - admission dates
+    - when does admission start
+    - admission form availability date
+    - last date for admission
+    - admission timeline
+    - admission calendar
+    - when to apply for admission
+    - admission open date
+    - admission close date
+    - admission form kab milega
+    - fall admission schedule
+    - spring admission dates
+    - admission dates 2025
+    - when will admission open
+    - form submission deadline
+    - schedule for admission process
+    - complete admission dates
+    - announcement of admission
+    - when to submit admission form
+
+- intent: ask_quota_system
+  examples: |
+    - is there a quota system
+    - quota for students
+    - reserved seats
+    - open merit seats
+    - government quota
+    - special quota
+    - sports quota seats
+    - disabled quota
+    - minority quota
+    - how many seats on merit
+    - quota seats information
+    - reserved category seats
+    - how are seats divided
+    - open merit vs quota
+    - how many total seats
+    - seat allocation PUGC
+    - quota system details
+    - what percentage of seats on merit
+    - special category admission
+    - seats for different categories
+
+- intent: ask_transfer_policy
+  examples: |
+    - can I transfer from another university
+    - transfer policy
+    - credit transfer
+    - how to transfer to PUGC
+    - migration to PUGC
+    - lateral entry
+    - transfer from private university
+    - is transfer allowed
+    - transfer admission requirements
+    - how many credits can be transferred
+    - transfer application process
+    - CGPA required for transfer
+    - transfer deadline
+    - doosri university se transfer
+    - transfer form
+    - transfer eligibility
+    - transfer rules PUGC
+    - who approves transfer
+    - transfer kaise hoga
+    - maximum credits transfer allowed
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 2: REQUIRED DOCUMENTS
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_documents_list
+  examples: |
+    - what documents are required
+    - documents list for admission
+    - which papers are needed
+    - document checklist
+    - required documents
+    - papers needed for joining
+    - documents for enrollment
+    - admission documents
+    - kaunse documents chahiye
+    - document requirements
+    - what to bring for admission
+    - list of required papers
+    - documents submit karne hain
+    - complete documents list
+    - which certificates are needed
+    - documentation requirements
+    - admission file contents
+    - what to include in admission form
+    - documents for PUGC admission
+    - admission papers list
+
+- intent: ask_matric_certificate
+  examples: |
+    - is matric certificate required
+    - matric documents
+    - matric certificate attested
+    - do I need original matric
+    - matric DMC required
+    - secondary school certificate
+    - SSC certificate requirement
+    - matric certificate attest kahan se
+    - matric board result required
+    - original matric or attested copy
+    - how many copies of matric
+    - matric certificate missing what to do
+    - matric ki copy chahiye
+    - matric result card
+    - SSC DMC requirement
+
+- intent: ask_intermediate_certificate
+  examples: |
+    - is intermediate certificate required
+    - FSc certificate needed
+    - FA certificate required
+    - ICS certificate needed
+    - intermediate DMC required
+    - HSSC certificate
+    - intermediate board result
+    - how many copies of intermediate
+    - attested intermediate certificate
+    - original inter certificate
+    - inter result card required
+    - FSc ki copy chahiye
+    - intermediate attest kaise karein
+    - inter certificate missing what to do
+    - intermediate passing certificate
+
+- intent: ask_cnic_requirement
+  examples: |
+    - is CNIC required
+    - CNIC copy needed
+    - what if I don't have CNIC
+    - B-form instead of CNIC
+    - CNIC for underage students
+    - parent CNIC required
+    - CNIC copy attested
+    - how many CNIC copies
+    - CNIC verification
+    - B-form acceptable
+    - student CNIC requirement
+    - CNIC na ho to kya karein
+    - guardian CNIC required
+    - CNIC photocopy needed
+
+- intent: ask_domicile_requirement
+  examples: |
+    - is domicile required
+    - domicile certificate needed
+    - Punjab domicile required
+    - what if I don't have domicile
+    - domicile certificate process
+    - domicile from where
+    - domicile for out of province students
+    - domicile certificate attest
+    - domicile kahan se banta hai
+    - domicile required for merit
+    - how to get domicile certificate
+    - provincial domicile importance
+    - domicile nahi hai kya karein
+
+- intent: ask_character_certificate_docs
+  examples: |
+    - character certificate required
+    - where to get character certificate
+    - character certificate from school
+    - good conduct certificate needed
+    - character certificate attest
+    - who issues character certificate
+    - character certificate format
+    - character certificate from last college
+    - character certificate missing what to do
+    - character certificate kahan se milega
+
+- intent: ask_photos_requirement
+  examples: |
+    - how many photos are required
+    - passport size photos
+    - photo size for admission
+    - background color of photos
+    - recent photographs required
+    - how many pictures needed
+    - photo specifications
+    - tasveer ki zaroorat
+    - photos kitni chahiye
+    - photo requirements for form
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 3: UNDERGRADUATE PROGRAMS
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_bs_programs
+  examples: |
+    - what BS programs are available
+    - bachelor degree programs
+    - 4 year degree programs
+    - BS degree list
+    - undergraduate programs at PUGC
+    - bachelor level courses
+    - BS programs detail
+    - which BS can I do
+    - 4 saal ki degree
+    - bachelor programs
+    - BS degree options
+    - undergraduate degree list
+    - all bachelor programs PUGC
+    - BS level study
+    - what can I do after intermediate
+
+- intent: ask_bs_cs_details
+  examples: |
+    - tell me about BS computer science
+    - BS CS program details
+    - computer science subjects
+    - CS program outline
+    - what is taught in CS
+    - BS CS duration
+    - BS CS fee
+    - computer science career
+    - BS CS kya hota hai
+    - CS program overview
+    - computer science at PUGC
+    - BS CS scope
+    - programming subjects in CS
+    - AI in CS curriculum
+    - CS degree details
+
+- intent: ask_bs_se_details
+  examples: |
+    - tell me about BS software engineering
+    - BS SE details
+    - software engineering program
+    - SE subjects list
+    - what is software engineering
+    - BS SE vs BS CS
+    - difference between CS and SE
+    - SE program duration
+    - software engineering scope
+    - BS SE kya hota hai
+    - software engineering at PUGC
+    - SE curriculum details
+    - software development courses
+    - BS SE career options
+
+- intent: ask_bs_it_details
+  examples: |
+    - tell me about BS information technology
+    - BS IT program
+    - IT subjects
+    - what is IT program
+    - BS IT details
+    - information technology program
+    - BS IT scope
+    - IT degree at PUGC
+    - BS IT vs BS CS
+    - IT program curriculum
+    - network and IT subjects
+    - BS IT kya hota hai
+    - IT program overview
+
+- intent: ask_bba_details
+  examples: |
+    - tell me about BBA
+    - BBA program details
+    - business administration subjects
+    - BBA curriculum
+    - what is BBA
+    - BBA scope
+    - BBA career options
+    - BBA duration
+    - BBA kya hota hai
+    - business administration at PUGC
+    - management subjects in BBA
+    - BBA specializations
+    - after BBA what to do
+    - is BBA a good degree
+
+- intent: ask_bs_commerce_details
+  examples: |
+    - tell me about BS commerce
+    - commerce program details
+    - commerce subjects
+    - BS commerce curriculum
+    - what is BS commerce
+    - BS commerce scope
+    - accounting subjects in commerce
+    - BS commerce vs BBA
+    - commerce at PUGC
+    - BS commerce career options
+    - commerce kya hota hai
+
+- intent: ask_bs_math_details
+  examples: |
+    - tell me about BS mathematics
+    - math program details
+    - mathematics subjects
+    - BS math curriculum
+    - pure mathematics program
+    - applied mathematics
+    - BS math scope
+    - mathematics at PUGC
+    - math degree career options
+    - what do you study in BS math
+
+- intent: ask_bs_english_details
+  examples: |
+    - tell me about BS English
+    - English program details
+    - literature and linguistics
+    - BS English curriculum
+    - English subjects list
+    - what is BS English
+    - English at PUGC
+    - BS English scope
+    - language and literature degree
+    - BS English career options
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 4: POSTGRADUATE PROGRAMS
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_ms_programs
+  examples: |
+    - what MS programs are available
+    - postgraduate programs list
+    - masters programs at PUGC
+    - MS degree options
+    - which MS can I do
+    - masters level programs
+    - MS programs detail
+    - postgraduate study options
+    - MS kaunse hain
+    - after bachelors what to do at PUGC
+    - masters degree programs
+    - post graduate degree list
+
+- intent: ask_ms_cs_details
+  examples: |
+    - tell me about MS computer science
+    - MS CS program
+    - MS CS subjects
+    - MS CS admission requirements
+    - MS CS duration
+    - MS CS fee
+    - MS CS thesis
+    - MS CS research areas
+    - MS CS scope
+    - MS CS kya hota hai
+    - masters in computer science details
+    - MS CS eligibility
+
+- intent: ask_mba_details
+  examples: |
+    - tell me about MBA
+    - MBA program details
+    - MBA subjects
+    - MBA admission requirements
+    - MBA duration
+    - MBA fee
+    - what is MBA
+    - MBA scope
+    - MBA vs MS management
+    - MBA career options
+    - executive MBA
+    - MBA kya hota hai
+    - business management masters
+
+- intent: ask_ms_admission_requirements
+  examples: |
+    - what are MS admission requirements
+    - how to get admission in MS
+    - MS eligibility criteria
+    - GAT test for MS
+    - CGPA required for MS
+    - bachelors marks for MS
+    - MS admission process
+    - MS apply kaise karein
+    - MS admission documents
+    - GAT score requirement
+    - MS admission deadline
+    - MS interview process
+    - MS ki eligibility kya hai
+    - can I do MS after 2.0 CGPA
+
+- intent: ask_ms_thesis_coursework
+  examples: |
+    - MS with thesis or coursework
+    - thesis vs coursework MS
+    - is thesis compulsory for MS
+    - coursework only MS
+    - MS thesis requirements
+    - MS without thesis option
+    - how to choose between thesis and coursework
+    - MS thesis vs course work difference
+    - non thesis MS
+    - research MS or coursework MS
+    - MS research option
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 5: PhD PROGRAMS
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_phd_general
+  examples: |
+    - tell me about PhD program
+    - PhD at PUGC
+    - doctorate program
+    - PhD admission
+    - PhD details
+    - PhD kya hota hai
+    - PhD scope
+    - how to do PhD
+    - doctoral studies
+    - PhD program overview
+    - research doctorate
+    - PhD requirements
+    - PhD duration
+    - PhD kahan se karein
+
+- intent: ask_phd_eligibility
+  examples: |
+    - what is required for PhD admission
+    - PhD eligibility criteria
+    - can I do PhD after BS
+    - MPhil required for PhD
+    - MS required for PhD
+    - CGPA for PhD
+    - GRE for PhD
+    - GAT subject for PhD
+    - PhD admission requirements
+    - who can apply for PhD
+    - PhD ki eligibility kya hai
+    - minimum CGPA for PhD
+    - research proposal for PhD
+
+- intent: ask_phd_duration
+  examples: |
+    - how long is PhD
+    - PhD duration in years
+    - minimum time to complete PhD
+    - maximum time for PhD
+    - PhD kitne saal ka hota hai
+    - when can I finish PhD
+    - PhD completion time
+    - PhD years required
+    - how many years PhD takes
+    - PhD timeline
+
+- intent: ask_phd_research
+  examples: |
+    - what research areas in PhD
+    - PhD research topics
+    - how to select PhD supervisor
+    - PhD supervisor role
+    - research proposal for PhD
+    - PhD thesis requirements
+    - PhD publication requirement
+    - HEC requirement for PhD thesis
+    - PhD paper publication
+    - research work in PhD
+    - PhD mein kya karna hota hai
+    - PhD journal paper required
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 6: COURSE INFORMATION
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_course_outline
+  examples: |
+    - where can I find course outline
+    - course outline kahan milega
+    - syllabus for my course
+    - what is covered in this course
+    - course content detail
+    - subject syllabus
+    - course outline download
+    - how to get course outline
+    - course outline on portal
+    - course syllabus information
+    - what topics are in this course
+    - course plan
+    - lecture plan for course
+    - course breakdown
+    - weekly lecture plan
+
+- intent: ask_course_prerequisites
+  examples: |
+    - what are the prerequisites for this course
+    - course prerequisites
+    - which course should I take first
+    - pre-requisite subjects
+    - can I take this course without prerequisite
+    - pre-req for advanced courses
+    - what do I need before this course
+    - subject sequence
+    - course dependency
+    - pre-requisites kya hain
+    - foundation courses required
+    - which subjects come first
+
+- intent: ask_course_instructor
+  examples: |
+    - who teaches this course
+    - course instructor name
+    - who is the professor for this subject
+    - teacher for this course
+    - lecturer information
+    - faculty for this course
+    - which professor takes this class
+    - instructor details
+    - course teacher
+    - who is my teacher for this subject
+    - ustaz ka naam
+
+- intent: ask_recommended_books
+  examples: |
+    - what books are recommended for this course
+    - textbooks for this subject
+    - reference books
+    - course books list
+    - which book to follow
+    - recommended reading material
+    - book list for course
+    - textbook required
+    - course reading list
+    - kitaabein kaunsi hain
+    - where to buy course books
+    - books for study
+
+- intent: ask_course_assessment
+  examples: |
+    - how is this course assessed
+    - assessment criteria for course
+    - marks distribution
+    - how many marks for assignments
+    - quiz marks
+    - midterm vs final marks
+    - grading breakdown for course
+    - assessment weightage
+    - how is final grade calculated
+    - assignment marks contribution
+    - marks breakdown for subject
+    - marks ka breakdown kya hai
+
+- intent: ask_lab_requirements
+  examples: |
+    - does this course have lab
+    - lab requirement for CS courses
+    - practical lab sessions
+    - lab work in this course
+    - computer lab required
+    - chemistry lab requirement
+    - physics lab sessions
+    - lab hours per week
+    - lab marks contribution
+    - is lab compulsory
+    - lab assessment criteria
+    - lab kab hoti hai
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 7: DEGREE REQUIREMENTS
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_graduation_requirements
+  examples: |
+    - what are the requirements to graduate
+    - graduation criteria
+    - how to complete degree
+    - degree completion requirements
+    - what do I need to graduate
+    - graduation requirements PUGC
+    - minimum requirements for degree
+    - degree kab milegi
+    - how to fulfill degree requirements
+    - graduation eligibility
+    - what CGPA needed to graduate
+    - degree requirements checklist
+    - final degree requirements
+    - graduation ke liye kya chahiye
+
+- intent: ask_total_credit_hours
+  examples: |
+    - how many total credit hours for graduation
+    - credit hours requirement
+    - total credits needed
+    - minimum credit hours
+    - credit hours for BS degree
+    - how many courses to complete degree
+    - total subjects for graduation
+    - credit hours kitne chahiye
+    - degree credit hours total
+    - how many credit hours in BS CS
+    - total credit load
+    - minimum credits to graduate
+
+- intent: ask_cgpa_requirement
+  examples: |
+    - minimum CGPA to graduate
+    - what CGPA is required for degree
+    - passing CGPA
+    - minimum grade point average
+    - CGPA requirement for BS
+    - CGPA requirement for MS
+    - can I graduate with 1.8 CGPA
+    - CGPA below 2.0 what happens
+    - minimum CGPA kya hai
+    - passing CGPA kya hota hai
+    - CGPA and degree completion
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 8: ACADEMIC CALENDAR
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_academic_calendar
+  examples: |
+    - where is the academic calendar
+    - academic calendar 2025
+    - semester schedule
+    - yearly academic plan
+    - university schedule
+    - important dates academic year
+    - academic year plan
+    - semester dates
+    - academic calendar download
+    - complete semester schedule
+    - academic planner
+    - calendar for this year
+    - academic year kab shuru hoga
+    - important academic dates
+
+- intent: ask_spring_semester_dates
+  examples: |
+    - when does spring semester start
+    - spring semester dates
+    - spring 2025 schedule
+    - spring semester start date
+    - spring semester end date
+    - spring semester important dates
+    - spring semester calendar
+    - spring semester kab shuru hoga
+    - spring semester timeline
+    - when is spring semester
+
+- intent: ask_fall_semester_dates
+  examples: |
+    - when does fall semester start
+    - fall semester dates
+    - fall 2025 schedule
+    - fall semester start date
+    - fall semester end date
+    - fall semester calendar
+    - fall semester kab shuru hoga
+    - fall semester schedule
+    - when is fall semester
+    - autumn semester dates
+
+- intent: ask_summer_semester
+  examples: |
+    - is there a summer semester
+    - summer semester details
+    - summer courses available
+    - summer session dates
+    - summer term
+    - summer classes PUGC
+    - summer semester kab hota hai
+    - can I take courses in summer
+    - summer semester fee
+    - summer semester schedule
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 9: CLASS TIMETABLE
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_class_timetable
+  examples: |
+    - where is the class timetable
+    - how to find my timetable
+    - class schedule
+    - lecture schedule
+    - timetable kahan milega
+    - class timing
+    - when are my classes
+    - class timetable download
+    - timetable on portal
+    - weekly class schedule
+    - lecture timings
+    - class ka schedule kya hai
+    - timetable for this semester
+    - class schedule this week
+
+- intent: ask_class_timings
+  examples: |
+    - what time do classes start
+    - class start time
+    - first class time
+    - last class time
+    - morning classes timing
+    - evening classes timing
+    - class hours
+    - lecture duration
+    - how long is each class
+    - class kab shuru hoti hai
+    - what are the class hours
+    - class schedule morning or evening
+    - what time does university start
+
+- intent: ask_section_change
+  examples: |
+    - can I change my section
+    - section change request
+    - how to change section
+    - transfer to another section
+    - section change process
+    - section change allowed or not
+    - section change deadline
+    - can I switch sections
+    - I want to change my section
+    - section badalna hai
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 10: EXAMINATION SYSTEM
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_exam_system
+  examples: |
+    - how does the exam system work
+    - examination system at PUGC
+    - how are exams conducted
+    - exam format
+    - exam system details
+    - midterm and final system
+    - exam pattern
+    - assessment system
+    - imtihan ka nizam
+    - how many exams per semester
+    - examination structure
+    - exam system overview
+
+- intent: ask_midterm_exam
+  examples: |
+    - when is midterm exam
+    - midterm schedule
+    - midterm date
+    - midterm exam details
+    - how many questions in midterm
+    - midterm marks weightage
+    - midterm ka date kya hai
+    - midterm exam pattern
+    - midterm kab hoga
+    - prepare for midterm
+    - midterm syllabus
+    - midterm exam rules
+
+- intent: ask_final_exam
+  examples: |
+    - when is the final exam
+    - final exam schedule
+    - final term exam date
+    - final exam details
+    - final exam marks weightage
+    - final term kab hoga
+    - final exam pattern
+    - final exam preparation
+    - final exam syllabus
+    - final term exam rules
+    - date sheet for finals
+    - final exam date kya hai
+
+- intent: ask_datesheet
+  examples: |
+    - where to find date sheet
+    - date sheet kahan milegi
+    - exam timetable
+    - how to download date sheet
+    - date sheet announcement
+    - when is date sheet released
+    - date sheet for midterm
+    - date sheet for finals
+    - date sheet on portal
+    - date sheet 2025
+    - exam schedule download
+    - date sheet kab aayegi
+
+- intent: ask_seating_plan
+  examples: |
+    - where is my seating plan
+    - exam seating arrangement
+    - seating plan for exam
+    - where do I sit in exam
+    - seating plan kahan milega
+    - roll number seating plan
+    - exam hall seating
+    - seating allocation exam
+    - how to find my seat in exam
+    - seating plan download
+
+- intent: ask_passing_marks
+  examples: |
+    - what are the passing marks
+    - minimum marks to pass
+    - passing percentage
+    - how many marks to pass
+    - fail hone ki limit
+    - passing marks kya hain
+    - minimum percentage to pass
+    - how much do I need to pass
+    - pass fail criteria
+    - minimum marks required
+    - percentage required to pass course
+
+- intent: ask_unfair_means
+  examples: |
+    - what happens if I cheat in exam
+    - cheating policy
+    - unfair means rules
+    - caught cheating consequences
+    - cheating punishment
+    - exam dishonesty
+    - copy karne ki saza
+    - what is the penalty for cheating
+    - UFM case
+    - unfair means consequences
+    - cheating in exam what happens
+    - academic dishonesty penalty
+
+- intent: ask_supplementary_exam
+  examples: |
+    - what is supplementary exam
+    - supplementary exam details
+    - back paper exam
+    - repeat exam for failed subject
+    - how to appear in supplementary
+    - supplementary exam date
+    - supplementary kab hota hai
+    - can I appear in supplementary
+    - supplementary exam fee
+    - supplementary exam registration
+    - failed subject exam
+
+- intent: ask_improvement_exam
+  examples: |
+    - what is improvement exam
+    - can I improve my grade
+    - improvement exam process
+    - how to appear for improvement
+    - grade improve karna hai
+    - repeat exam to improve marks
+    - improvement exam eligibility
+    - improvement exam fee
+    - can I improve CGPA through improvement exam
+    - improvement exam rules
+
+- intent: ask_exam_attendance_requirement
+  examples: |
+    - what attendance is required for exam
+    - minimum attendance to sit in exam
+    - attendance for exam eligibility
+    - barred from exam due to attendance
+    - shortage of attendance exam
+    - 75% attendance for exam
+    - can I sit in exam with low attendance
+    - attendance requirement for final exam
+    - attendance se exam barred
+    - what happens with low attendance
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 11: RESULTS & TRANSCRIPT SERVICES
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_result_announcement
+  examples: |
+    - when will results be announced
+    - result announcement date
+    - result kab aayega
+    - when to check result
+    - result declaration
+    - result portal
+    - result check online
+    - result notification
+    - SMS for result
+    - how to know my result
+    - result kab niklega
+    - result check karna hai
+    - result announcement timeline
+
+- intent: ask_result_portal
+  examples: |
+    - how to check result online
+    - result portal link
+    - where to check result
+    - result website
+    - result kahan check karein
+    - online result system
+    - student portal result
+    - result check karne ka tarika
+    - result page
+    - how to see my result
+    - result online kaise dekhein
+
+- intent: ask_transcript_process
+  examples: |
+    - how to get transcript
+    - transcript request process
+    - transcript fee
+    - how long for transcript
+    - official transcript
+    - transcript for abroad
+    - transcript kaise milega
+    - transcript application
+    - transcript submission
+    - how many copies of transcript
+    - urgent transcript
+    - transcript delivery time
+    - transcript request form
+
+- intent: ask_rechecking_process
+  examples: |
+    - how to apply for rechecking
+    - paper rechecking process
+    - rechecking fee
+    - rechecking deadline
+    - rechecking result time
+    - paper recheck request
+    - can I get my paper rechecked
+    - rechecking se marks badhenge
+    - rechecking kya hota hai
+    - rechecking application form
+    - who reviews rechecking
+    - rechecking rules
+
+- intent: ask_provisional_certificate
+  examples: |
+    - how to get provisional certificate
+    - provisional degree certificate
+    - certificate before convocation
+    - provisional certificate fee
+    - provisional certificate kab milega
+    - certificate for job application
+    - degree proof certificate
+    - provisional certificate process
+    - temporary degree certificate
+    - certificate for higher studies
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 12: ATTENDANCE POLICIES
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_attendance_rules
+  examples: |
+    - what are the attendance rules
+    - attendance policy details
+    - how much attendance is required
+    - attendance requirement per course
+    - attendance rules PUGC
+    - attendance regulation
+    - can I miss classes
+    - attendance policy explain
+    - what happens with low attendance
+    - attendance ka masla
+    - attendance rules detail batao
+    - attendance policy kya hai
+
+- intent: ask_attendance_shortage
+  examples: |
+    - what happens with attendance shortage
+    - attendance shortage consequences
+    - below 75% attendance
+    - I have low attendance what to do
+    - attendance shortage problem
+    - WF grade for attendance
+    - fail due to attendance
+    - how to recover attendance
+    - attendance kum ho gaye kya karein
+    - attendance shortage appeal
+    - short attendance solution
+    - can I pass with low attendance
+
+- intent: ask_medical_leave
+  examples: |
+    - how to apply for medical leave
+    - medical leave process
+    - sick leave attendance
+    - doctor certificate for absence
+    - medical leave counted in attendance
+    - medical leave rules
+    - bimari ki wajah se absence
+    - medical certificate submission
+    - how many days medical leave allowed
+    - medical leave attendance adjustment
+    - sick leave policy PUGC
+
+- intent: ask_leave_application
+  examples: |
+    - how to apply for leave
+    - leave application process
+    - student leave form
+    - leave request submission
+    - leave application kaise dein
+    - how many leaves allowed
+    - casual leave for students
+    - leave application to teacher
+    - leave form download
+    - leave approval process
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 13: GRADING & CGPA RULES
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_grading_scale
+  examples: |
+    - what is the grading scale
+    - grade points system
+    - GPA grading system
+    - letter grades and GPA
+    - A grade marks
+    - B grade marks
+    - what marks for what grade
+    - grading chart
+    - grade scale PUGC
+    - marks to grade conversion
+    - how grades are assigned
+    - grade system details
+
+- intent: ask_cgpa_calculation
+  examples: |
+    - how is CGPA calculated
+    - CGPA calculation formula
+    - how to calculate my CGPA
+    - GPA vs CGPA
+    - semester GPA
+    - cumulative GPA
+    - CGPA nikalne ka formula
+    - CGPA calculation example
+    - CGPA kaise calculate hoti hai
+    - what is CGPA
+    - how many courses affect CGPA
+    - credit hour weighted CGPA
+
+- intent: ask_grade_improvement
+  examples: |
+    - how to improve my grade
+    - grade improvement options
+    - repeat course to improve grade
+    - can I retake a course
+    - grade improvement policy
+    - CGPA improve karna hai
+    - retake subject for better grade
+    - improvement exam effect on CGPA
+    - how to raise CGPA
+    - low CGPA solution
+    - grade improve karne ka tarika
+
+- intent: ask_academic_probation
+  examples: |
+    - what is academic probation
+    - academic probation rules
+    - probation CGPA limit
+    - what happens on probation
+    - academic warning
+    - CGPA below 2.0 consequences
+    - academic standing
+    - probation period rules
+    - academic probation kya hai
+    - how to get off probation
+    - probation and degree completion
+    - probation warning PUGC
+
+- intent: ask_distinction
+  examples: |
+    - how to get distinction
+    - distinction criteria
+    - merit position
+    - top of class criteria
+    - distinction CGPA
+    - gold medal criteria
+    - honor roll
+    - position holder criteria
+    - highest GPA reward
+    - distinction certificate
+    - distinction kaise milti hai
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 14: COURSE REGISTRATION
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_registration_process
+  examples: |
+    - how to register for courses
+    - course registration process
+    - enrollment in subjects
+    - how to select courses
+    - registration portal
+    - registration kaise hogi
+    - course enrollment steps
+    - online registration
+    - course selection process
+    - register for next semester
+    - registration guide
+    - how to enroll in courses
+    - portal registration process
+
+- intent: ask_registration_deadline
+  examples: |
+    - when is course registration deadline
+    - registration last date
+    - deadline to register courses
+    - registration close date
+    - late registration date
+    - registration deadline kya hai
+    - when to complete registration
+    - registration date 2025
+    - when does registration open
+    - registration period
+
+- intent: ask_late_registration
+  examples: |
+    - can I register after deadline
+    - late registration fee
+    - late enrollment penalty
+    - registration after deadline
+    - late registration allowed
+    - late registration fine amount
+    - late enrollment process
+    - deadline ke baad registration
+    - registration late ho gaye kya karein
+    - late registration rules
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 15: ADD/DROP COURSES
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_add_drop_process
+  examples: |
+    - how to add or drop a course
+    - add drop process
+    - course add drop
+    - how to drop a subject
+    - how to add a new course
+    - add drop period
+    - add drop form
+    - add drop kaise karein
+    - add drop portal process
+    - subject change process
+    - drop course procedure
+
+- intent: ask_add_drop_deadline
+  examples: |
+    - when is the add drop deadline
+    - last date for add drop
+    - add drop period end date
+    - how long is add drop period
+    - add drop deadline 2025
+    - when can I add drop courses
+    - add drop window
+    - add drop kab tak hoga
+    - deadline for dropping courses
+    - last day to add a course
+
+- intent: ask_withdrawal_policy
+  examples: |
+    - what happens if I withdraw from a course
+    - course withdrawal rules
+    - W grade policy
+    - withdraw after add drop
+    - withdrawal effect on CGPA
+    - how to formally withdraw from course
+    - withdrawal grade
+    - withdrawal deadline
+    - course withdrawal form
+    - withdraw karne ka tarika
+    - withdrawal ke baad kya hoga
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 16: ACADEMIC ADVISING
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_academic_advisor
+  examples: |
+    - who is my academic advisor
+    - academic advisor details
+    - how to meet academic advisor
+    - advisor appointment
+    - academic counseling
+    - course selection advice
+    - advisor office hours
+    - academic advisor kaise milein
+    - advisor ka number
+    - academic guidance
+    - study plan advisor
+    - who to contact for academic help
+    - advisor ki zaroorat hai
+
+- intent: ask_study_plan
+  examples: |
+    - how to make study plan
+    - suggested course plan
+    - semester wise course plan
+    - study roadmap
+    - which courses in which semester
+    - 4 year course plan
+    - study schedule
+    - course sequence plan
+    - academic plan
+    - which subjects to take first
+    - study plan for CS degree
+    - recommended semester plan
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 17: INTERNSHIP & INDUSTRIAL TRAINING
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_internship_requirement
+  examples: |
+    - is internship compulsory
+    - internship requirement for degree
+    - when is internship done
+    - internship credit hours
+    - internship in which semester
+    - internship compulsory hai kya
+    - internship rules PUGC
+    - internship for graduation
+    - industrial training requirement
+    - internship in 7th semester
+    - internship credit requirement
+
+- intent: ask_internship_process
+  examples: |
+    - how to find internship
+    - internship process
+    - how to apply for internship
+    - company for internship
+    - internship approval process
+    - internship letter from university
+    - how to get internship placed
+    - career office help for internship
+    - internship kaise milti hai
+    - internship company approval
+    - internship supervisor
+    - internship report submission
+
+- intent: ask_internship_report
+  examples: |
+    - how to write internship report
+    - internship report format
+    - internship report submission deadline
+    - internship documentation
+    - internship evaluation
+    - internship report guidelines
+    - internship report kaise likhein
+    - internship report marks
+    - internship report template
+    - internship viva
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 18: FINAL YEAR PROJECT / THESIS
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_fyp_general
+  examples: |
+    - what is final year project
+    - FYP details
+    - how does FYP work
+    - final year project at PUGC
+    - FYP overview
+    - FYP kya hota hai
+    - final project requirements
+    - final year project guide
+    - FYP process
+    - final year project information
+
+- intent: ask_fyp_supervisor
+  examples: |
+    - how to select FYP supervisor
+    - FYP supervisor assignment
+    - who is my FYP supervisor
+    - FYP supervisor role
+    - supervisor selection criteria
+    - can I choose my supervisor
+    - FYP supervisor kaise milega
+    - supervisor approval
+    - FYP supervisor responsibilities
+    - supervisor meetings for FYP
+
+- intent: ask_fyp_topic
+  examples: |
+    - how to select FYP topic
+    - FYP topic approval
+    - good FYP topics
+    - FYP topic selection process
+    - FYP topic submission
+    - FYP topic change
+    - FYP idea approval
+    - what makes a good FYP topic
+    - FYP topic kaise chunein
+    - FYP topic proposal
+
+- intent: ask_fyp_evaluation
+  examples: |
+    - how is FYP evaluated
+    - FYP marks breakdown
+    - FYP defense
+    - FYP viva
+    - FYP presentation
+    - FYP grading criteria
+    - who evaluates FYP
+    - FYP evaluation committee
+    - FYP marks distribution
+    - FYP pass fail criteria
+    - FYP demonstration
+
+- intent: ask_thesis_general
+  examples: |
+    - how does MS thesis work
+    - thesis requirements
+    - thesis process
+    - thesis submission
+    - thesis defense
+    - thesis kya hota hai
+    - MS thesis details
+    - thesis completion requirements
+    - thesis writing guide
+    - thesis at PUGC
+
+- intent: ask_thesis_format
+  examples: |
+    - what is the thesis format
+    - thesis writing guidelines
+    - thesis template
+    - thesis chapters
+    - thesis structure
+    - thesis formatting rules
+    - thesis length requirement
+    - thesis font and margin
+    - thesis submission format
+    - thesis likhne ka tarika
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 19: CONVOCATION & GRADUATION
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_convocation
+  examples: |
+    - when is convocation
+    - convocation date
+    - convocation ceremony details
+    - graduation ceremony
+    - convocation 2025
+    - convocation kab hai
+    - degree distribution ceremony
+    - convocation registration
+    - convocation eligibility
+    - convocation dress code
+    - convocation venue
+    - convocation ticket
+
+- intent: ask_degree_collection
+  examples: |
+    - how to collect degree
+    - degree collection process
+    - when will I get my degree
+    - degree after convocation
+    - degree certificate collection
+    - degree kab aur kahan se milegi
+    - degree collection requirements
+    - degree collection fee
+    - original degree how to get
+    - degree delivery options
+
+- intent: ask_graduation_eligibility
+  examples: |
+    - am I eligible to graduate
+    - graduation eligibility check
+    - how to confirm graduation eligibility
+    - graduation requirements met
+    - how do I know I can graduate
+    - clearance for graduation
+    - graduation checklist
+    - graduation eligibility kaise check karein
+    - can I graduate this semester
+    - who confirms graduation eligibility
+
+# ═══════════════════════════════════════════════════════════════
+# DOMAIN 20: TRANSFER & MIGRATION POLICIES
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_migration_policy
+  examples: |
+    - migration policy at PUGC
+    - how to migrate to another university
+    - migration from PUGC
+    - migration rules
+    - when can I migrate
+    - migration certificate
+    - migration kaise hoti hai
+    - transfer to another university
+    - migration ke liye kya chahiye
+    - migration application process
+
+- intent: ask_noc_process
+  examples: |
+    - how to get NOC
+    - NOC for migration
+    - no objection certificate
+    - NOC from university
+    - NOC application
+    - NOC kaise milega
+    - NOC ke liye kahan apply karein
+    - NOC fee
+    - NOC processing time
+    - NOC for job or higher studies
+
+
+# ═══════════════════════════════════════════════════════════════
+# FINANCIAL & ADMINISTRATIVE DOMAINS
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_fee_structure
+  examples: |
+    - what is the complete fee structure
+    - fee structure PUGC
+    - fee breakdown
+    - complete fee detail
+    - all charges at PUGC
+    - fee structure kya hai
+    - annual fee breakdown
+    - semester wise fee
+    - total cost of degree
+    - program wise fee structure
+    - fee detail for all programs
+    - fee structure download
+    - fee list PUGC
+
+- intent: ask_fee_components
+  examples: |
+    - what does semester fee include
+    - fee components
+    - what charges are in fee
+    - tuition fee vs other charges
+    - library fee
+    - examination fee
+    - sports fee
+    - student welfare fund
+    - lab charges
+    - fee breakdown details
+    - what is included in total fee
+    - additional charges besides tuition
+
+- intent: ask_fee_payment_banks
+  examples: |
+    - which banks accept PUGC fee
+    - where to deposit fee
+    - HBL fee payment
+    - MCB fee payment
+    - bank for fee deposit
+    - fee payment bank list
+    - fee deposit kahan karein
+    - online banking fee payment
+    - which bank to use for fee
+    - fee payment at bank
+    - fee deposit bank branches
+
+- intent: ask_challan_generation
+  examples: |
+    - how to generate fee challan
+    - challan download process
+    - fee challan kaise banaye
+    - challan generation on portal
+    - where to get fee challan
+    - challan form download
+    - fee challan portal link
+    - how to print challan
+    - challan generate karne ka tarika
+    - challan not generating problem
+
+- intent: ask_online_fee_payment
+  examples: |
+    - can I pay fee online
+    - online fee payment method
+    - JazzCash fee payment
+    - EasyPaisa fee payment
+    - internet banking for fee
+    - debit card fee payment
+    - credit card fee payment
+    - fee online kaise jama karein
+    - mobile banking for fee
+    - online payment portal
+    - digital fee payment
+
+- intent: ask_merit_scholarship
+  examples: |
+    - tell me about merit scholarship
+    - merit scholarship details
+    - what CGPA for merit scholarship
+    - merit scholarship percentage
+    - merit scholarship eligibility
+    - how to get merit scholarship
+    - CGPA 3.5 scholarship
+    - CGPA 3.8 scholarship
+    - merit scholarship fee waiver
+    - merit based fee reduction
+    - merit scholarship criteria
+    - merit scholarship amount
+
+- intent: ask_need_based_scholarship
+  examples: |
+    - need based scholarship details
+    - financial hardship scholarship
+    - scholarship for poor students
+    - need based aid
+    - income based scholarship
+    - financial need scholarship
+    - need based scholarship eligibility
+    - how to prove financial need
+    - income certificate for scholarship
+    - need based scholarship application
+    - scholarship for deserving students
+
+- intent: ask_government_scholarship
+  examples: |
+    - government scholarships available
+    - HEC scholarship
+    - Punjab government scholarship
+    - federal scholarship
+    - Ehsaas scholarship
+    - government funded scholarship
+    - national scholarship program
+    - HEC scholarship eligibility
+    - how to apply for HEC scholarship
+    - government scholarship deadline
+    - Ehsaas undergraduate scholarship
+
+- intent: ask_external_scholarship
+  examples: |
+    - external scholarships
+    - private scholarships
+    - NGO scholarships
+    - corporate scholarships
+    - outside scholarship opportunities
+    - third party scholarships
+    - foreign scholarship
+    - overseas scholarship
+    - scholarship from companies
+    - other scholarship sources
+
+- intent: ask_scholarship_application
+  examples: |
+    - how to apply for scholarship
+    - scholarship application form
+    - scholarship application process
+    - scholarship form submission
+    - scholarship application deadline
+    - where to submit scholarship form
+    - scholarship apply karne ka tarika
+    - scholarship documents required
+    - scholarship application portal
+    - scholarship form kahan milega
+
+- intent: ask_scholarship_renewal
+  examples: |
+    - how to renew scholarship
+    - scholarship renewal rules
+    - CGPA for scholarship renewal
+    - scholarship continue karne ki condition
+    - scholarship renewal deadline
+    - scholarship renewal process
+    - can scholarship be cancelled
+    - scholarship renewal criteria
+    - every semester scholarship renewal
+    - scholarship maintain karna
+
+- intent: ask_scholarship_cancellation
+  examples: |
+    - when is scholarship cancelled
+    - scholarship cancellation rules
+    - scholarship lost conditions
+    - scholarship band hone ki wajah
+    - what causes scholarship cancellation
+    - CGPA drop scholarship cancel
+    - attendance and scholarship
+    - scholarship cancellation process
+    - appeal against scholarship cancellation
+
+- intent: ask_financial_aid
+  examples: |
+    - what financial aid is available
+    - financial assistance
+    - financial support for students
+    - help with fee payment
+    - financial aid options
+    - financial help for students
+    - financial problem fee help
+    - financial aid application
+    - who to contact for financial help
+    - financial aid PUGC
+
+- intent: ask_student_loan
+  examples: |
+    - are student loans available
+    - student loan options
+    - HEC student loan
+    - bank loan for education
+    - education loan
+    - loan for fee payment
+    - student loan application
+    - student loan eligibility
+    - education loan interest
+    - student loan kaise milega
+    - student loan repayment
+
+- intent: ask_installment_plan
+  examples: |
+    - can I pay fee in installments
+    - fee installment plan
+    - fee split payment
+    - installment option for fee
+    - fee kist mein pay kar saktay hain
+    - fee payment in parts
+    - installment plan eligibility
+    - how many installments allowed
+    - installment plan application
+    - fee installment policy
+
+- intent: ask_fee_refund_policy
+  examples: |
+    - what is the fee refund policy
+    - can I get fee refund
+    - fee wapas milegi
+    - refund after withdrawal
+    - refund on cancellation
+    - fee refund percentage
+    - refund timeline
+    - refund conditions
+    - fee refund process
+    - partial refund rules
+    - full refund conditions
+
+- intent: ask_document_verification
+  examples: |
+    - how to get documents verified
+    - document attestation
+    - HEC document verification
+    - degree verification
+    - transcript verification
+    - certificate attestation
+    - MOFA attestation
+    - document verification for abroad
+    - attestation process
+    - document verification kaise karein
+    - verification of university documents
+
+# ═══════════════════════════════════════════════════════════════
+# CAMPUS FACILITIES DOMAINS
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_library_general
+  examples: |
+    - tell me about the library
+    - library facilities
+    - library information
+    - PUGC library details
+    - library services available
+    - library kahan hai
+    - library overview
+    - library access
+    - what does library offer
+    - library resources
+
+- intent: ask_library_location
+  examples: |
+    - where is the library
+    - library location
+    - library kahan hai
+    - library building
+    - library block
+    - how to reach library
+    - library room number
+    - library ka address
+    - library floor
+    - where to find library
+
+- intent: ask_library_catalog
+  examples: |
+    - how to search books in library
+    - library catalog
+    - book search system
+    - online catalog
+    - OPAC library
+    - how to find a book in library
+    - library search
+    - book availability check
+    - catalog system library
+    - library book database
+
+- intent: ask_library_reservation
+  examples: |
+    - can I reserve a book
+    - book reservation process
+    - hold a book in library
+    - book reserve karna hai
+    - how to reserve library book
+    - book reservation system
+    - book hold request
+    - reserved book collection
+
+- intent: ask_reading_room
+  examples: |
+    - is there a reading room
+    - reading room timing
+    - study area in library
+    - quiet study area
+    - reading room rules
+    - reading room location
+    - library study area
+    - silent study zone
+    - reading hall availability
+
+- intent: ask_hostel_general
+  examples: |
+    - tell me about hostel
+    - hostel information PUGC
+    - hostel facility details
+    - hostel overview
+    - hostel kahan hai
+    - accommodation at PUGC
+    - hostel services
+    - hostel at university
+    - on campus living
+    - dormitory details
+
+- intent: ask_hostel_types
+  examples: |
+    - what types of rooms in hostel
+    - single room hostel
+    - double sharing room
+    - four sharing room
+    - room types available
+    - room options in hostel
+    - single room available or not
+    - sharing options hostel
+    - room category hostel
+    - double bed room hostel
+    - what is monthly fee without meal
+    - hostel fee without meal plan
+    - no meal hostel charges
+    - hostel fee if i don't want meal
+    - monthly hostel charges no meal
+    - hostel fee without food
+
+- intent: ask_hostel_documents
+  examples: |
+    - what documents for hostel
+    - hostel application documents
+    - papers needed for hostel
+    - hostel admission documents
+    - documents required for hostel allotment
+    - hostel documents checklist
+    - what to bring for hostel
+    - hostel form documents
+    - papers for hostel registration
+
+- intent: ask_hostel_warden
+  examples: |
+    - who is the hostel warden
+    - warden contact
+    - warden office hours
+    - how to contact warden
+    - warden number
+    - warden ki zaroorat hai
+    - hostel warden details
+    - warden for boys hostel
+    - warden for girls hostel
+    - how to report issue to warden
+
+- intent: ask_mess_facility
+  examples: |
+    - what food is served in hostel
+    - hostel mess details
+    - hostel food menu
+    - meals in hostel
+    - hostel mess timings
+    - breakfast lunch dinner hostel
+    - mess quality
+    - hostel khana
+    - mess charges
+    - hostel food quality
+    - meal plan hostel
+
+- intent: ask_hostel_visitor_policy
+  examples: |
+    - can visitors come to hostel
+    - visitor rules hostel
+    - family visit hostel
+    - guest policy hostel
+    - visitor timing hostel
+    - who can visit hostel
+    - parent visit hostel
+    - visitor registration hostel
+    - hostel guest rules
+    - outsider entry hostel
+
+- intent: ask_hostel_security
+  examples: |
+    - what security is at hostel
+    - hostel security details
+    - CCTV in hostel
+    - security guards hostel
+    - safety in hostel
+    - hostel safe hai kya
+    - security camera hostel
+    - night security hostel
+    - security patrol hostel
+    - hostel entry exit control
+
+- intent: ask_hostel_curfew
+  examples: |
+    - what is hostel curfew time
+    - hostel entry timing
+    - hostel exit timing
+    - curfew timing for boys
+    - curfew timing for girls
+    - hostel gate close time
+    - late entry hostel
+    - hostel timing rules
+    - hostel gate timing
+    - curfew kya hai hostel mein
+
+- intent: ask_transport_general
+  examples: |
+    - tell me about transport service
+    - university transport details
+    - bus service PUGC
+    - transport facility information
+    - van service university
+    - transport kaise milega
+    - university bus overview
+    - transport services available
+    - bus routes information
+    - how to use university transport
+
+- intent: ask_transport_registration
+  examples: |
+    - how to register for transport
+    - transport registration process
+    - bus service registration
+    - transport form submission
+    - how to enroll in bus service
+    - transport register karna hai
+    - transport registration deadline
+    - transport registration fee
+    - how to join bus service
+    - transport enrollment
+
+- intent: ask_bus_timing
+  examples: |
+    - what time does bus arrive
+    - bus timing morning
+    - bus timing evening
+    - bus schedule
+    - first bus time
+    - last bus time
+    - bus kab aata hai
+    - morning bus pickup time
+    - evening bus drop time
+    - bus timetable
+
+- intent: ask_cafeteria_menu
+  examples: |
+    - what food is available in cafeteria
+    - cafeteria menu
+    - what to eat at PUGC
+    - food options cafeteria
+    - menu at canteen
+    - food items canteen
+    - breakfast items cafeteria
+    - lunch options
+    - cafeteria ka khaana
+    - food variety cafeteria
+    - special food cafeteria
+
+- intent: ask_cafeteria_prices
+  examples: |
+    - what are the cafeteria prices
+    - food prices at university
+    - canteen prices
+    - cheap food options
+    - affordable food
+    - food kitni mehangee hai
+    - meal cost cafeteria
+    - price range cafeteria
+    - budget food options
+    - average meal cost
+
+- intent: ask_medical_services
+  examples: |
+    - what medical services are available
+    - health services PUGC
+    - doctor at university
+    - medical room PUGC
+    - first aid facility
+    - campus clinic
+    - health center PUGC
+    - medical help available
+    - on campus medical care
+    - health facility details
+
+- intent: ask_emergency_medical
+  examples: |
+    - what to do in medical emergency
+    - emergency medical help campus
+    - ambulance service
+    - hospital near PUGC
+    - nearest hospital
+    - emergency number PUGC
+    - medical emergency contact
+    - who to call in emergency
+    - emergency procedures campus
+    - emergency helpline
+
+- intent: ask_sports_general
+  examples: |
+    - tell me about sports at PUGC
+    - sports facilities overview
+    - sports complex information
+    - what sports are available
+    - sports at PUGC
+    - sports grounds
+    - play sports at university
+    - sports culture at PUGC
+    - extracurricular sports
+    - sports program
+
+- intent: ask_sports_teams_joining
+  examples: |
+    - how to join sports team
+    - sports team tryout
+    - team selection process
+    - cricket team joining
+    - football team tryout
+    - how to play for PUGC team
+    - sports selection criteria
+    - team joining process
+    - sports team registration
+    - sports team kaise join karein
+
+- intent: ask_gym_facility
+  examples: |
+    - is there a gym at PUGC
+    - gymnasium facility
+    - fitness center
+    - workout facility
+    - gym timings
+    - gym access for students
+    - gym charges
+    - gym equipment
+    - fitness room
+    - exercise facility
+
+- intent: ask_computer_lab_general
+  examples: |
+    - tell me about computer labs
+    - computer lab details
+    - IT lab information
+    - how many computers in lab
+    - computer lab facilities
+    - lab overview
+    - computer labs at PUGC
+    - IT lab resources
+    - computing facilities
+    - lab equipment
+
+- intent: ask_lab_software
+  examples: |
+    - what software is in computer lab
+    - lab software list
+    - programming software available
+    - MATLAB in lab
+    - Visual Studio in lab
+    - AutoCAD lab
+    - software tools in IT lab
+    - licensed software in lab
+    - software available in CS lab
+    - lab mein kaunsa software hai
+
+- intent: ask_lab_booking
+  examples: |
+    - how to book computer lab
+    - lab reservation
+    - lab booking for project
+    - how to reserve lab time
+    - lab booking process
+    - extra lab time booking
+    - lab after hours
+    - how to book lab for group work
+    - lab kaise book karein
+    - lab booking form
+
+- intent: ask_wifi_details
+  examples: |
+    - how to connect to PUGC wifi
+    - wifi connection process
+    - wifi network name
+    - wifi password
+    - campus internet connection
+    - how to login to wifi
+    - wifi credentials
+    - connect to university wifi
+    - wifi kaise connect karein
+    - wifi login details
+
+- intent: ask_wifi_problems
+  examples: |
+    - wifi is not working
+    - wifi connection problem
+    - internet not working
+    - wifi slow speed
+    - wifi disconnecting
+    - wifi issue kaise resolve karein
+    - IT helpdesk for wifi
+    - wifi complaint
+    - network problem campus
+    - wifi nahi chal raha
+
+- intent: ask_campus_security
+  examples: |
+    - what security is on campus
+    - campus security details
+    - security guards
+    - CCTV on campus
+    - campus safe hai kya
+    - security measures at PUGC
+    - night security campus
+    - security patrol
+    - campus safety features
+    - security system PUGC
+
+- intent: ask_lost_found
+  examples: |
+    - I lost something on campus
+    - lost and found office
+    - how to report lost item
+    - found something how to report
+    - lost item recovery
+    - lost property office
+    - campus lost and found
+    - something lost in library
+    - cheez gum ho gayi
+    - lost item claim process
+
+- intent: ask_campus_location
+  examples: |
+    - where is PUGC campus located
+    - campus address
+    - PUGC location
+    - how to reach PUGC
+    - campus map
+    - directions to PUGC
+    - PUGC kahan hai
+    - campus Google maps
+    - university location detail
+    - nearby landmarks PUGC
+
+- intent: ask_building_locations
+  examples: |
+    - where is Block C
+    - which block is CS department
+    - building map
+    - where is admin block
+    - how to find Block D
+    - building locations PUGC
+    - block wise departments
+    - campus building map
+    - where is the library building
+    - block locations campus
+
+- intent: ask_parking_details
+  examples: |
+    - where is student parking
+    - parking rules
+    - parking area location
+    - motorcycle parking
+    - car parking on campus
+    - parking sticker
+    - parking fee
+    - parking for visitors
+    - parking zone students
+    - parking availability
+
+- intent: ask_public_transport
+  examples: |
+    - how to reach PUGC by public transport
+    - bus routes to PUGC
+    - wagon service to university
+    - public transport options
+    - rickshaw to PUGC
+    - nearest bus stop
+    - how to come without car
+    - public transport from city center
+    - local transport to PUGC
+    - which bus goes to PUGC
+
+# ═══════════════════════════════════════════════════════════════
+# CAREER & STUDENT DEVELOPMENT DOMAINS
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_career_services
+  examples: |
+    - what career services does PUGC offer
+    - career office details
+    - career guidance
+    - job help from university
+    - career center services
+    - career support for students
+    - career services overview
+    - career planning help
+    - career ki madad kahan se milegi
+    - career development services
+
+- intent: ask_job_placement
+  examples: |
+    - does PUGC help with job placement
+    - job placement services
+    - placement rate PUGC
+    - job after graduation
+    - placement office
+    - career placement support
+    - campus recruitment
+    - job fair PUGC
+    - placement cell
+    - university job referral
+    - job placement record
+
+- intent: ask_cv_building
+  examples: |
+    - help with CV
+    - CV building workshop
+    - how to make professional CV
+    - CV writing assistance
+    - resume help
+    - career office CV help
+    - CV kaise banaye
+    - CV review service
+    - CV template university
+    - resume building workshop
+
+- intent: ask_interview_preparation
+  examples: |
+    - interview preparation help
+    - mock interview
+    - how to prepare for interview
+    - interview skills workshop
+    - interview coaching
+    - career office interview prep
+    - interview practice
+    - interview tips university
+    - mock interview PUGC
+    - interview training
+
+- intent: ask_alumni_network
+  examples: |
+    - how to connect with alumni
+    - alumni network PUGC
+    - alumni association
+    - alumni events
+    - alumni membership
+    - past graduates network
+    - alumni mentoring
+    - how alumni can help students
+    - alumni contact
+    - PUGC alumni
+
+- intent: ask_student_clubs
+  examples: |
+    - what clubs are at PUGC
+    - student clubs list
+    - how to join a club
+    - student societies
+    - clubs and organizations
+    - extracurricular clubs
+    - society list PUGC
+    - club membership
+    - student organization joining
+    - clubs available at university
+
+- intent: ask_cs_society
+  examples: |
+    - tell me about CS society
+    - computer science society
+    - tech club PUGC
+    - coding club
+    - CS society events
+    - how to join CS society
+    - CS society activities
+    - hackathon PUGC
+    - tech events CS society
+    - programming club
+
+- intent: ask_events_general
+  examples: |
+    - what events are coming at PUGC
+    - upcoming events
+    - university events
+    - PUGC events calendar
+    - events this month
+    - upcoming activities
+    - events schedule
+    - events at university
+    - what is happening at PUGC
+    - events aane wale hain
+    - upcoming events at PUGC
+    - can you tell me about upcoming events
+    - which event would be next
+    - what events are coming
+    - any events this month
+    - tell me about events
+    - events schedule PUGC
+
+- intent: ask_event_registration
+  examples: |
+    - how to register for event
+    - event registration process
+    - event sign up
+    - how to participate in event
+    - event registration form
+    - event register karna hai
+    - event me participate kaise karein
+    - event registration deadline
+    - event participation process
+    - how to book event spot
+
+- intent: ask_event_eligibility
+  examples: |
+    - who can participate in events
+    - event eligibility criteria
+    - event open for all students
+    - event participation requirements
+    - event me kon ja sakta hai
+    - eligibility for university event
+    - external student event eligibility
+    - event participation rules
+    - event criteria for participation
+
+- intent: ask_workshop_details
+  examples: |
+    - are there workshops at PUGC
+    - workshop schedule
+    - upcoming workshops
+    - technical workshops
+    - skill development workshops
+    - workshop kab hai
+    - how to join workshop
+    - workshop registration
+    - workshop details
+    - workshops this semester
+
+- intent: ask_seminar_schedule
+  examples: |
+    - seminar schedule PUGC
+    - upcoming seminars
+    - seminar topics
+    - guest lecture seminars
+    - seminar hall
+    - when is next seminar
+    - seminar registration
+    - seminar kab hai
+    - seminar details
+    - industry seminar
+
+- intent: ask_sports_competition
+  examples: |
+    - sports competitions at PUGC
+    - inter university sports
+    - cricket tournament
+    - football competition
+    - sports gala
+    - annual sports day
+    - sports event schedule
+    - sports competition registration
+    - how to participate in sports event
+    - sports tournament PUGC
+
+- intent: ask_cultural_festival
+  examples: |
+    - is there a cultural festival
+    - cultural day at PUGC
+    - annual cultural event
+    - cultural festival details
+    - culture show PUGC
+    - cultural activities
+    - culture day registration
+    - cultural festival when
+    - cultural events this year
+    - fun events at PUGC
+
+- intent: ask_research_opportunities
+  examples: |
+    - research opportunities for students
+    - undergraduate research
+    - how to do research at PUGC
+    - research assistant positions
+    - research projects for students
+    - research funding for students
+    - research kaise karein
+    - research lab joining
+    - student research program
+    - research opportunities PUGC
+
+- intent: ask_exchange_program
+  examples: |
+    - is there international exchange program
+    - study abroad program
+    - student exchange
+    - foreign university exchange
+    - international student program
+    - exchange program eligibility
+    - study in another country program
+    - exchange scholarship
+    - international exchange PUGC
+    - how to apply for exchange program
+
+- intent: ask_industry_partnerships
+  examples: |
+    - does PUGC have industry partners
+    - industry collaboration
+    - company partnerships
+    - corporate tie-ups
+    - industry link PUGC
+    - company internship through PUGC
+    - MOU with companies
+    - industry exposure opportunities
+    - corporate partnerships university
+    - companies visit PUGC
+
+- intent: ask_entrepreneurship
+  examples: |
+    - entrepreneurship support at PUGC
+    - startup incubation
+    - business incubator
+    - startup support
+    - how to start business from university
+    - entrepreneurship program
+    - incubation center PUGC
+    - startup fund
+    - business plan competition
+    - entrepreneurship events
+
+- intent: ask_complaint_system
+  examples: |
+    - how to file a complaint
+    - complaint process PUGC
+    - grievance system
+    - student complaint
+    - complaint against teacher
+    - how to report problem
+    - complaint form PUGC
+    - complaint kahan karein
+    - grievance redressal
+    - who handles student complaints
+    - complaint to higher authority
+    - complaint filing process
+
+# ═══════════════════════════════════════════════════════════════
+# CONTACT INFORMATION DOMAIN
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_main_contact
+  examples: |
+    - main office number PUGC
+    - university contact number
+    - general enquiry number
+    - PUGC phone number
+    - how to contact PUGC
+    - university helpline
+    - main contact PUGC
+    - university reception number
+    - general contact
+    - helpline number PUGC
+
+- intent: ask_admissions_contact
+  examples: |
+    - admissions office number
+    - admissions office contact
+    - admission office email
+    - how to contact admission office
+    - admission office location
+    - admission office hours
+    - admission query contact
+    - admissions desk
+    - where is admissions office
+    - admissions office phone
+
+- intent: ask_exam_office_contact
+  examples: |
+    - examination office contact
+    - exam office number
+    - controller of examinations contact
+    - exam branch phone
+    - examination cell contact
+    - exam office email
+    - where is exam office
+    - exam office hours
+    - exam query contact
+    - controller examination PUGC
+
+- intent: ask_accounts_contact
+  examples: |
+    - accounts office contact
+    - finance office number
+    - accounts office phone
+    - fee related contact
+    - finance office email
+    - accounts office hours
+    - fee query contact
+    - where is accounts office
+    - finance department contact
+    - accounts office location
+
+- intent: ask_it_support_contact
+  examples: |
+    - IT support contact
+    - IT helpdesk number
+    - portal issue contact
+    - technical support PUGC
+    - IT department phone
+    - IT support email
+    - portal not working who to contact
+    - computer issue helpdesk
+    - IT help contact
+    - technical help contact
+
+- intent: ask_emergency_contacts
+  examples: |
+    - emergency numbers PUGC
+    - emergency helpline
+    - who to call in emergency
+    - security emergency number
+    - medical emergency campus
+    - emergency contact PUGC
+    - campus emergency number
+    - urgent help contact
+    - 24 hour emergency number
+    - safety emergency number
+
+# ═══════════════════════════════════════════════════════════════
+# DEPARTMENT DOMAIN
+# ═══════════════════════════════════════════════════════════════
+
+- intent: ask_department_list
+  examples: |
+    - list all departments
+    - departments at PUGC
+    - how many departments
+    - department names
+    - all faculties
+    - departments list
+    - which departments are there
+    - PUGC department list
+    - department overview
+    - all departments and programs
+    - which are main departments in PUGC
+    - list the departments
+    - main departments at university
+    - how many departments are there
+    - tell me department names
+    - departments in PUGC
+    - what departments exist
+
+- intent: ask_department_programs
+  examples: |
+    - what programs does this department offer
+    - department wise programs
+    - programs in CS department
+    - programs in management department
+    - department programs list
+    - courses offered by department
+    - which degrees in this department
+    - department programs detail
+
+- intent: ask_research_areas
+  examples: |
+    - what are the research areas
+    - research fields at PUGC
+    - research specializations
+    - faculty research areas
+    - research topics
+    - research work at PUGC
+    - current research projects
+    - ongoing research PUGC
+    - research domain PUGC
+    - research interest areas
+
+- intent: ask_department_events
+  examples: |
+    - department events
+    - events organized by CS department
+    - department seminar
+    - department workshop
+    - department activities
+    - departmental events calendar
+    - department event schedule
+    - upcoming department events
+    - department programming events
+
+- intent: ask_department_office_hours
+  examples: |
+    - department office hours
+    - when is department office open
+    - department office timing
+    - chairman office hours
+    - department ki timing kya hai
+    - office hours for department
+    - when to visit department office
+    - department staff timing
+    - department open time
+    - when can I visit department
+
+- intent: ask_student_portal_help
+  examples: |
+    - student portal login problem
+    - portal not opening
+    - forgot portal password
+    - portal account issue
+    - how to reset portal password
+    - portal access problem
+    - portal login kaise karein
+    - student portal help
+    - portal credentials reset
+    - account locked portal
+    - portal technical issue
+
+- intent: ask_online_resources
+  examples: |
+    - online study resources
+    - e-learning resources
+    - online lectures
+    - recorded lectures available
+    - LMS access
+    - Moodle or LMS
+    - online course material
+    - study material online
+    - digital resources for study
+    - online academic resources
+
+- intent: ask_id_card_replacement
+  examples: |
+    - lost my ID card
+    - how to get duplicate ID card
+    - ID card replacement
+    - lost ID card process
+    - duplicate student card
+    - ID card replacement fee
+    - ID card lost kya karein
+    - new ID card after loss
+    - ID card replacement time
+    - student ID replacement procedure
+
+- intent: ask_clearance_process
+  examples: |
+    - what is clearance process
+    - how to get clearance certificate
+    - clearance for degree
+    - clearance process PUGC
+    - clearance from library
+    - clearance from finance
+    - clearance form
+    - no dues certificate
+    - clearance kaise milti hai
+    - clearance certificate process
+
+- intent: ask_no_dues_certificate
+  examples: |
+    - how to get no dues certificate
+    - no dues process
+    - no objection from library
+    - finance clearance
+    - no dues for degree collection
+    - no dues certificate kahan se milega
+    - no dues certificate fee
+    - no dues required documents
+    - no dues processing time
+    - who issues no dues certificate

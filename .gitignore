@@ -1,0 +1,8 @@
+venv/
+backend/node_modules/
+.env
+rasa-bot/models/
+__pycache__/
+*.pyc
+.rasa/
+*.log

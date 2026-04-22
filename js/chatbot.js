@@ -3,27 +3,65 @@
 // 1. Logic for API calling (The part that shifts to Node.js/React later)
 const ChatService = {
     async sendMessageToAI(userMessage) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const lowerMsg = userMessage.toLowerCase();
+        try {
+            // Get last 6 messages from history for context
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            let recentHistory = [];
 
-                if (["hello", "hi", "hey"].includes(lowerMsg)) {
-                    resolve("Hello! 👋 How can I help you today?");
-                } else if (lowerMsg.includes("admission")) {
-                    resolve("The PUGC admissions for Spring 2026 are currently open. You can apply through the university portal.");
-                } else if (lowerMsg.includes("event")) {
-                    resolve("You can check events using the Events feature if unlocked.");
-                } else {
-                    resolve(
-                        "I understand you're asking about '" +
-                        userMessage +
-                        "'. As an AI, I am processing your request based on PUGC data..."
-                    );
-                }
-            }, 1000);
-        });
+            if (currentUser?.email) {
+                const history = JSON.parse(
+                    localStorage.getItem(`chatHistory_${currentUser.email}`) || '[]'
+                );
+                recentHistory = history.slice(-6);
+            }
+
+            const response = await fetch('http://localhost:3000/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: userMessage,
+                    history: recentHistory
+                })
+            });
+
+            if (!response.ok) {
+                return 'Sorry, I am having trouble connecting. Please try again.';
+            }
+
+            const data = await response.json();
+            return data.reply;
+
+        } catch (error) {
+            console.error('Chat error:', error);
+            return 'Sorry, I could not connect to the server. Make sure the backend is running.';
+        }
     }
 };
+
+
+// const ChatService = {
+//     async sendMessageToAI(userMessage) {
+//         return new Promise((resolve) => {
+//             setTimeout(() => {
+//                 const lowerMsg = userMessage.toLowerCase();
+
+//                 if (["hello", "hi", "hey"].includes(lowerMsg)) {
+//                     resolve("Hello! 👋 How can I help you today?");
+//                 } else if (lowerMsg.includes("admission")) {
+//                     resolve("The PUGC admissions for Spring 2026 are currently open. You can apply through the university portal.");
+//                 } else if (lowerMsg.includes("event")) {
+//                     resolve("You can check events using the Events feature if unlocked.");
+//                 } else {
+//                     resolve(
+//                         "I understand you're asking about '" +
+//                         userMessage +
+//                         "'. As an AI, I am processing your request based on PUGC data..."
+//                     );
+//                 }
+//             }, 1000);
+//         });
+//     }
+// };
 
 // ==============================
 // FEATURE ACCESS (CORE LOGIC)
@@ -61,13 +99,91 @@ function updateFeatureLocks() {
 }
 
 // ==============================
+// Formatting Functions
+// ==============================
+
+function formatResponse(text) {
+    // If already contains HTML tags leave it as is
+    if (text.includes('<b>') || text.includes('<ul>') || text.includes('<br>')) {
+        return text;
+    }
+
+    let lines = text.split(/(?<=\.)\s+(?=[A-Z])/);
+    
+    // Detect if text has a title (ends with colon)
+    let html = '';
+    let firstLine = lines[0];
+    
+    // Extract title if present (text before first colon)
+    if (firstLine.includes(':')) {
+        let colonIndex = firstLine.indexOf(':');
+        let title = firstLine.substring(0, colonIndex);
+        let rest = firstLine.substring(colonIndex + 1).trim();
+        html += `<b>${title}</b><br><br>`;
+        if (rest) lines[0] = rest;
+        else lines.shift();
+    }
+
+    // Check if content has list-like items separated by dots
+    let fullText = lines.join(' ');
+    
+    // Pattern: "Name (description). Name (description)."
+    let listPattern = /([A-Z][^.()]+)\s*\(([^)]+)\)/g;
+    let listMatches = fullText.match(listPattern);
+    
+    if (listMatches && listMatches.length >= 3) {
+        // Build as list
+        html += '<ul>';
+        let remaining = fullText;
+        remaining.replace(listPattern, (match, name, desc) => {
+            html += `<li><b>${name.trim()}</b> — ${desc}</li>`;
+        });
+        html += '</ul>';
+        
+        // Add any remaining text after list items
+        let afterList = fullText.replace(listPattern, '').replace(/\.\s*/g, '').trim();
+        if (afterList && afterList.length > 10) {
+            html += `<br>${afterList}`;
+        }
+    } else {
+        // Build as paragraphs with line breaks
+        lines.forEach(line => {
+            line = line.trim();
+            if (!line) return;
+            
+            // Bold phone numbers
+            line = line.replace(/(0\d{2}-\d{7,8})/g, '<b>$1</b>');
+            // Bold Rs amounts
+            line = line.replace(/(Rs\.?\s*[\d,]+)/g, '<b>$1</b>');
+            // Bold percentages
+            line = line.replace(/(\d+(\.\d+)?%)/g, '<b>$1</b>');
+            // Bold step patterns
+            line = line.replace(/(Step\s*\d+:)/gi, '<b>$1</b>');
+            // Bold section headers (word followed by colon)
+            line = line.replace(/^([A-Z][a-zA-Z\s]+):/g, '<b>$1:</b>');
+            
+            html += line + '<br>';
+        });
+    }
+
+    return html;
+}
+
+// ==============================
 // Utility Functions
 // ==============================
 function appendMessage(sender, text, className = '') {
     const chatWindow = document.getElementById('chat-window');
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${sender} ${className}`;
-    msgDiv.innerText = text;
+
+       // Format response if it is a bot message
+    if (sender === 'bot') {
+        msgDiv.innerHTML = formatResponse(text);
+    } else {
+        msgDiv.innerHTML = text;
+    }
+   
     chatWindow.appendChild(msgDiv);
     chatWindow.scrollTop = chatWindow.scrollHeight;
 
