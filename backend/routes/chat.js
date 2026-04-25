@@ -138,6 +138,54 @@ const RELATED_QUESTION_MAP = {
         'Which programs does the department offer?',
         'What departments are present at PUGC?'
     ],
+    ask_admissions_contact: [
+        'What are the admission requirements?',
+        'What is the admission schedule?',
+        'What documents are required for admission?',
+        'Is there an entry test for admission?'
+    ],
+    ask_exam_office_contact: [
+        'What is the exam schedule?',
+        'When will the result be announced?',
+        'How can I apply for transcript?',
+        'How do I contact the admissions office?'
+    ],
+    ask_accounts_contact: [
+        'What is the tuition fee?',
+        'When is the fee deadline?',
+        'Is there any late fee?',
+        'How can I pay the fee?'
+    ],
+    ask_it_support_contact: [
+        'How do I access the student portal?',
+        'How can I reset my portal password?',
+        'The portal is not working, what should I do?',
+        'How do I contact the admissions office?'
+    ],
+    ask_main_contact: [
+        'How do I contact the admissions office?',
+        'What is the university address?',
+        'How do I access the student portal?',
+        'What departments are present at PUGC?'
+    ],
+    ask_university_address: [
+        'How do I contact the university?',
+        'How do I access the student portal?',
+        'What departments are present at PUGC?',
+        'How do I contact the admissions office?'
+    ],
+    ask_student_portal: [
+        'How do I contact IT support?',
+        'How can I reset my portal password?',
+        'What is the university website?',
+        'How do I contact the admissions office?'
+    ],
+    ask_emergency_contacts: [
+        'How do I contact the university?',
+        'Where is PUGC located?',
+        'Who is the hostel warden?',
+        'How do I contact IT support?'
+    ],
     ask_hostel_availability: [
         'What is the hostel fee?',
         'Who is the hostel warden?',
@@ -224,6 +272,14 @@ const RELATED_QUESTION_MAP = {
     ]
 };
 
+const EXCLUDED_SUGGESTION_INTENTS = new Set([
+    'greet',
+    'goodbye',
+    'thank_you',
+    'bot_introduction',
+    'fallback_help'
+]);
+
 async function getAnswerFromDB(intent, pool) {
     const result = await pool.request()
         .input('intent', sql.VarChar, intent)
@@ -269,6 +325,29 @@ function dedupeQuestions(questions = [], currentMessage = '') {
     });
 }
 
+function isSuggestionCandidate(text = '') {
+    const value = String(text || '').trim();
+    if (!value) return false;
+
+    const normalized = value.toLowerCase();
+    if (normalized.length < 12) return false;
+    if (normalized.split(/\s+/).length < 3) return false;
+
+    const blockedPatterns = [
+        /^(hello|hi|hey|good morning|good evening|assalamualaikum|salam|thanks?|thank you|bye|goodbye)$/i,
+        /^(what'?s up|how are you|who are you)$/i
+    ];
+
+    return !blockedPatterns.some(pattern => pattern.test(normalized));
+}
+
+function filterSuggestionExamples(examples = []) {
+    return examples.filter(item =>
+        !EXCLUDED_SUGGESTION_INTENTS.has(item.intent_name) &&
+        isSuggestionCandidate(item.example_text)
+    );
+}
+
 async function buildSuggestedQuestions(pool, primaryIntent, currentMessage, fallbackIntents = []) {
     const intentOrder = [primaryIntent, ...fallbackIntents].filter(Boolean);
     const mapped = intentOrder.flatMap(intent => RELATED_QUESTION_MAP[intent] || []);
@@ -278,7 +357,7 @@ async function buildSuggestedQuestions(pool, primaryIntent, currentMessage, fall
     }
 
     for (const intent of intentOrder) {
-        const examples = await getTrainingExampleSuggestions(pool, intent, 6);
+        const examples = filterSuggestionExamples(await getTrainingExampleSuggestions(pool, intent, 6));
         const questions = dedupeQuestions(
             examples.map(item => item.example_text),
             currentMessage
@@ -288,7 +367,7 @@ async function buildSuggestedQuestions(pool, primaryIntent, currentMessage, fall
         }
     }
 
-    const genericExamples = await getTrainingExampleSuggestions(pool, null, 8);
+    const genericExamples = filterSuggestionExamples(await getTrainingExampleSuggestions(pool, null, 20));
     return dedupeQuestions(
         genericExamples.map(item => item.example_text),
         currentMessage

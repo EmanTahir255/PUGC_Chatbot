@@ -90,6 +90,18 @@ body {
     margin: 6px 0;
 }
 
+.message.bot .bot-link {
+    color: #9a6b00;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    word-break: break-word;
+}
+
+.message.bot .bot-link:hover {
+    color: #7b5200;
+}
+
 .suggestion-chips {
     display: flex;
     flex-wrap: wrap;
@@ -215,6 +227,10 @@ body {
 
     .chat-window {
         min-height: 300px;
+    }
+
+    .suggestion-chips {
+        max-width: 100%;
     }
 
     .chat-input input {

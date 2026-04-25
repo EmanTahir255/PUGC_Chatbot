@@ -195,13 +195,94 @@ function highlightImportantValues(text) {
         .replace(/\b(\d+\s*(days?|semesters?|years?|books?|hours?))\b/gi, '<b>$1</b>');
 }
 
+function normalizePhoneNumber(value) {
+    return String(value || '').replace(/[^\d+]/g, '');
+}
+
+const PUGC_OFFICIAL_WEBSITE = 'https://www.campus.gujranwala.pu.edu.pk/';
+const PUGC_MAIN_WEBSITE = 'https://www.pu.edu.pk/';
+const PUGC_MAP_QUERY = 'Punjab University Gujranwala Campus Alipur Chowk Rawalpindi Bypass Gujranwala';
+
+function linkifyResponseHtml(html) {
+    let linked = String(html || '');
+
+    // Make URLs clickable and open them in a new tab.
+    linked = linked.replace(
+        /(?<!["'>])(https?:\/\/[^\s<]+)/gi,
+        '<a class="bot-link" href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+    );
+
+    // Make emails clickable via the default mail app.
+    linked = linked.replace(
+        /(?<!["'>])([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/gi,
+        '<a class="bot-link" href="mailto:$1">$1</a>'
+    );
+
+    // Make plain phone numbers clickable via the default dialer app.
+    linked = linked.replace(
+        /(?<!["'>])(\b0\d{2}-\d{7,8}\b)/g,
+        (match) => `<a class="bot-link" href="tel:${normalizePhoneNumber(match)}">${match}</a>`
+    );
+
+    // Make phone numbers clickable even after they have been wrapped in <b> tags.
+    linked = linked.replace(
+        /<b>(0\d{2}-\d{7,8})<\/b>/g,
+        (_, phone) => `<a class="bot-link" href="tel:${normalizePhoneNumber(phone)}"><b>${phone}</b></a>`
+    );
+
+    // Make named references to the campus website and student portal clickable even if no raw URL was included.
+    linked = linked.replace(
+        /(?<!["'>])(student portal|portal website|online portal|university website|campus website|official website)(?![^<]*<\/a>)/gi,
+        (match) => {
+            const lower = match.toLowerCase();
+            const href = lower.includes('student portal') || lower.includes('portal')
+                ? PUGC_OFFICIAL_WEBSITE
+                : (lower.includes('official') || lower.includes('university website')
+                    ? PUGC_MAIN_WEBSITE
+                    : PUGC_OFFICIAL_WEBSITE);
+            return `<a class="bot-link" href="${href}" target="_blank" rel="noopener noreferrer">${match}</a>`;
+        }
+    );
+
+    // Make Address/Location values open in Google Maps.
+    linked = linked.replace(
+        /(<b>(?:Address|Location):<\/b>\s*)([^<\n][^<]*?)(?=(<br>|<\/li>|$))/gi,
+        (_, prefix, value, suffix = '') => {
+            const place = value.trim();
+            const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`;
+            return `${prefix}<a class="bot-link" href="${url}" target="_blank" rel="noopener noreferrer">${place}</a>${suffix}`;
+        }
+    );
+
+    // If the reply talks about PUGC location in plain text, make that phrase clickable.
+    linked = linked.replace(
+        /(?<!["'>])(where is pugc|pugc location|university location|campus location|pugc is located near alipur chowk[^<]*|located near alipur chowk[^<]*)(?![^<]*<\/a>)/gi,
+        (match) => {
+            const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(PUGC_MAP_QUERY)}`;
+            return `<a class="bot-link" href="${url}" target="_blank" rel="noopener noreferrer">${match}</a>`;
+        }
+    );
+
+    // For any response that discusses location/address/directions but still has no map link,
+    // append a direct campus map link so location answers always help the user navigate.
+    if (
+        /\b(address|location|located|directions|near alipur chowk|rawalpindi bypass|campus map)\b/i.test(linked) &&
+        !/google\.com\/maps|maps\/search\/\?api=1/i.test(linked)
+    ) {
+        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(PUGC_MAP_QUERY)}`;
+        linked += `<br><br><a class="bot-link" href="${mapUrl}" target="_blank" rel="noopener noreferrer">Open PUGC on Google Maps</a>`;
+    }
+
+    return linked;
+}
+
 function formatResponse(text) {
     const rawText = String(text || '').trim();
     if (!rawText) return '';
 
     // Groq/DB may already return safe HTML formatting; preserve it.
     if (/<(b|ul|ol|li|br)\b/i.test(rawText)) {
-        return rawText;
+        return linkifyResponseHtml(rawText);
     }
 
     const normalized = rawText
@@ -253,7 +334,7 @@ function formatResponse(text) {
             .join('<br><br>');
     }
 
-    return html;
+    return linkifyResponseHtml(html);
 }
 
 // ==============================
@@ -280,6 +361,24 @@ function createSuggestionChips(suggestions = []) {
     return wrapper;
 }
 
+function enhanceBotLinks(container) {
+    if (!container) return;
+
+    container.querySelectorAll('a.bot-link[href^="mailto:"]').forEach(link => {
+        link.addEventListener('click', (event) => {
+            event.preventDefault();
+            window.location.href = link.getAttribute('href');
+        });
+    });
+
+    container.querySelectorAll('a.bot-link[href^="tel:"]').forEach(link => {
+        link.addEventListener('click', (event) => {
+            event.preventDefault();
+            window.location.href = link.getAttribute('href');
+        });
+    });
+}
+
 function appendMessage(sender, text, className = '', suggestions = []) {
     const chatWindow = document.getElementById('chat-window');
     const msgDiv = document.createElement('div');
@@ -290,6 +389,10 @@ function appendMessage(sender, text, className = '', suggestions = []) {
         msgDiv.innerHTML = formatResponse(text);
     } else {
         msgDiv.innerHTML = text;
+    }
+
+    if (sender === 'bot') {
+        enhanceBotLinks(msgDiv);
     }
    
     chatWindow.appendChild(msgDiv);
