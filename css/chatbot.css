@@ -90,6 +90,32 @@ body {
     margin: 6px 0;
 }
 
+.suggestion-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: -4px 0 4px 0;
+    max-width: 78%;
+}
+
+.suggestion-chip {
+    border: 1px solid #e6af1a;
+    background: #fffdf6;
+    color: #6a5400;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 0.88rem;
+    line-height: 1.25;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.suggestion-chip:hover {
+    background: #e6af1a;
+    color: #fff;
+    border-color: #d49f1a;
+}
+
 /* Typing animation dots */
 .typing-dots {
     display: flex;

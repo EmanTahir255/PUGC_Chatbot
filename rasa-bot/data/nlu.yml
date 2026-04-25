@@ -142,6 +142,12 @@ nlu:
     - when do I have to pay tuition fee
     - fee challan last date
     - when does fee expire
+    - fee deadline for BS computer science
+    - BBA fee due date
+    - when is BSCS fee due
+    - what is the due date for MBA fee
+    - semester fee deadline for commerce
+    - fee due date for my program
 
 - intent: ask_tuition_fee
   examples: |
@@ -187,6 +193,12 @@ nlu:
     - fee breakdown details
     - what is included in total fee
     - additional charges besides tuition
+    - fee of BS computer science
+    - fee structure of BBA
+    - semester fee for MBA
+    - total semester fee for BS mathematics
+    - what is the fee of BS commerce
+    - show fee structure from table
 
 - intent: ask_cs_fee
   examples: |
@@ -207,6 +219,12 @@ nlu:
     - CS program cost
     - SE fee
     - BS SE fee
+    - total fee for BS computer science
+    - fee breakdown for BSCS
+    - semester charges of BS software engineering
+    - what are the charges for BS information technology
+    - show me computer science fee structure
+    - how much is BSCS per semester
 
 - intent: ask_bba_fee
   examples: |
@@ -222,6 +240,12 @@ nlu:
     - MS management fee
     - what does BBA cost
     - fee for business program
+    - total fee for BBA
+    - semester fee of MBA
+    - BBA fee structure with breakdown
+    - how much is BS commerce per semester
+    - business program fee per semester
+    - show business administration fee
 
 - intent: ask_late_fee
   examples: |
@@ -239,6 +263,11 @@ nlu:
     - late fee kitni hai
     - how much is the late fee
     - fine after deadline
+    - late fee for BSCS
+    - how much late fee per day for BBA
+    - what is the penalty if MBA fee is late
+    - grace period after fee deadline
+    - late fee charges for commerce
 
 - intent: ask_fee_payment_method
   examples: |
@@ -373,6 +402,12 @@ nlu:
     - financial aid application
     - who to contact for financial help
     - financial aid PUGC
+    - active scholarships at PUGC
+    - current scholarship offers
+    - scholarship list for this semester
+    - what scholarships are available right now
+    - merit scholarship with CGPA requirement
+    - scholarship benefit percentage
 
 - intent: ask_scholarship_deadline
   examples: |
@@ -383,6 +418,10 @@ nlu:
     - scholarship form last date
     - how long do I have to apply for scholarship
     - scholarship submission date
+    - active scholarship deadline
+    - deadline for merit scholarship this semester
+    - last date to apply for current scholarship
+    - scholarship application closing date
 
 - intent: ask_fee_refund
   examples: |
@@ -420,6 +459,11 @@ nlu:
     - room charges
     - boarding fee
     - hostel fee structure
+    - boys hostel fee with meal
+    - girls hostel charges without meal
+    - security deposit for hostel
+    - monthly fee of hostel
+    - hostel meal plan charges
 
 - intent: ask_transport_fee
   examples: |
@@ -432,6 +476,11 @@ nlu:
     - bus service fee
     - route fee
     - transport charges
+    - bus fee for model town route
+    - monthly fee for kamoke route
+    - transport charges for satellite town
+    - route fee for civil lines
+    - transport fee for GT road route
 
 - intent: ask_admission_requirements
   examples: |
@@ -713,6 +762,12 @@ nlu:
     - all bachelor programs PUGC
     - BS level study
     - what can I do after intermediate
+    - list all BS programs
+    - list all MS programs
+    - what PhD programs are available
+    - show current programs from each department
+    - which active programs does PUGC offer
+    - program list with departments
     - where can I find course outline
     - course outline kahan milega
     - syllabus for my course
@@ -846,6 +901,12 @@ nlu:
     - 2 year program
     - course length
     - program kitne saal ka hai
+    - duration of BS computer science
+    - how many years is BBA
+    - total semesters in MBA
+    - how long is BS mathematics
+    - duration of MS computer science
+    - semesters in BS commerce
 
 - intent: ask_credit_hours
   examples: |
@@ -868,6 +929,12 @@ nlu:
     - how many credit hours in BS CS
     - total credit load
     - minimum credits to graduate
+    - credit hours of BS computer science
+    - how many credits in BBA
+    - total credit hours for MBA
+    - credits required for BS mathematics
+    - program credit hours for BS commerce
+    - how many credit hours does BS IT have
 
 - intent: ask_elective_courses
   examples: |
@@ -1312,6 +1379,12 @@ nlu:
     - book issue process
     - book return policy
     - how many books allowed
+    - undergraduate borrowing limit
+    - postgraduate borrowing limit
+    - how long can I keep borrowed books
+    - reference books can be issued or not
+    - borrowing period for faculty books
+    - what are the library resource rules
 
 - intent: ask_library_fine
   examples: |
@@ -1324,6 +1397,11 @@ nlu:
     - library fine amount
     - fine per day library
     - library charges for late return
+    - library fine per day
+    - when does library fine start
+    - overdue fine after how many days
+    - fine on undergraduate books
+    - penalty for keeping books extra days
 
 - intent: ask_digital_library
   examples: |
@@ -1378,6 +1456,12 @@ nlu:
     - hostel fee if i don't want meal
     - monthly hostel charges no meal
     - hostel fee without food
+    - girls hostel availability
+    - boys hostel availability
+    - available rooms in hostel
+    - how many hostel rooms are free
+    - room availability in girls hostel
+    - hostel vacancy status
 
 - intent: ask_hostel_application
   examples: |
@@ -1466,6 +1550,11 @@ nlu:
     - mess charges
     - hostel food quality
     - meal plan hostel
+    - facilities in girls hostel
+    - what amenities are available in boys hostel
+    - hostel warden and facilities
+    - does hostel have wifi and laundry
+    - hostel security and mess details
 
 - intent: ask_department_list
   examples: |
@@ -1501,6 +1590,11 @@ nlu:
     - tell me department names
     - departments in PUGC
     - what departments exist
+    - which department heads are there
+    - show departments with HOD names
+    - department list with locations
+    - what academic departments are active
+    - PUGC department names and blocks
 
 - intent: ask_cs_department
   examples: |
@@ -1513,6 +1607,11 @@ nlu:
     - IT department
     - software engineering department
     - CS faculty
+    - computer science and IT department details
+    - where is computer science department
+    - office hours of CS department
+    - HOD of computer science and IT
+    - contact number of CS department
 
 - intent: ask_bba_department
   examples: |
@@ -1523,6 +1622,11 @@ nlu:
     - BBA faculty
     - who heads BBA department
     - BBA department contact
+    - business administration department details
+    - where is BBA department
+    - office hours of business administration department
+    - HOD of business administration
+    - contact number of BBA department
 
 - intent: ask_hod_contact
   examples: |
@@ -1533,6 +1637,11 @@ nlu:
     - HOD office hours
     - HOD appointment
     - department head information
+    - HOD of CS department
+    - HOD of BBA department
+    - who is head of mathematics department
+    - head of physics department contact
+    - office hours of economics department head
 
 - intent: ask_dean_contact
   examples: |
@@ -1955,6 +2064,11 @@ nlu:
     - transport registration fee
     - how to join bus service
     - transport enrollment
+    - tell me transport details
+    - university bus information
+    - transport routes and fee
+    - bus pickup and drop details
+    - transport service overview
 
 - intent: ask_transport_routes
   examples: |
@@ -1977,6 +2091,12 @@ nlu:
     - morning bus pickup time
     - evening bus drop time
     - bus timetable
+    - which route covers satellite town
+    - is there a bus for model town
+    - route for kamoke students
+    - bus route for civil lines
+    - transport route covering GT road
+    - which bus goes to hafizabad road
 
 - intent: ask_parking
   examples: |
@@ -3527,6 +3647,11 @@ nlu:
     - department staff timing
     - department open time
     - when can I visit department
+    - office hours of computer science department
+    - business administration department timing
+    - mathematics department office hours
+    - when is chemistry department office open
+    - economics department timing
 
 - intent: ask_online_resources
   examples: |

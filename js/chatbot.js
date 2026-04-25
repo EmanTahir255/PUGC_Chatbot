@@ -25,15 +25,24 @@ const ChatService = {
             });
 
             if (!response.ok) {
-                return 'Sorry, I am having trouble connecting. Please try again.';
+                return {
+                    reply: 'Sorry, I am having trouble connecting. Please try again.',
+                    suggestedQuestions: []
+                };
             }
 
             const data = await response.json();
-            return data.reply;
+            return {
+                reply: data.reply,
+                suggestedQuestions: Array.isArray(data.suggestedQuestions) ? data.suggestedQuestions : []
+            };
 
         } catch (error) {
             console.error('Chat error:', error);
-            return 'Sorry, I could not connect to the server. Make sure the backend is running.';
+            return {
+                reply: 'Sorry, I could not connect to the server. Make sure the backend is running.',
+                suggestedQuestions: []
+            };
         }
     }
 };
@@ -250,7 +259,28 @@ function formatResponse(text) {
 // ==============================
 // Utility Functions
 // ==============================
-function appendMessage(sender, text, className = '') {
+function createSuggestionChips(suggestions = []) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'suggestion-chips';
+
+    suggestions.forEach(question => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'suggestion-chip';
+        chip.textContent = question;
+        chip.addEventListener('click', () => {
+            const input = document.getElementById('user-input');
+            if (!input) return;
+            input.value = question;
+            document.getElementById('send-btn')?.click();
+        });
+        wrapper.appendChild(chip);
+    });
+
+    return wrapper;
+}
+
+function appendMessage(sender, text, className = '', suggestions = []) {
     const chatWindow = document.getElementById('chat-window');
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${sender} ${className}`;
@@ -263,6 +293,12 @@ function appendMessage(sender, text, className = '') {
     }
    
     chatWindow.appendChild(msgDiv);
+
+    // Show guided next-step questions under bot replies so the conversation keeps moving naturally.
+    if (sender === 'bot' && suggestions.length > 0 && !className.includes('loading-text')) {
+        chatWindow.appendChild(createSuggestionChips(suggestions.slice(0, 4)));
+    }
+
     chatWindow.scrollTop = chatWindow.scrollHeight;
 
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -396,7 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appendMessage('bot', 'AI is thinking...', 'loading-text');
         const response = await ChatService.sendMessageToAI(text);
         document.querySelector('.loading-text')?.remove();
-        appendMessage('bot', response);
+        appendMessage('bot', response.reply, '', response.suggestedQuestions || []);
     });
 
     input.addEventListener('keypress', (e) => {
