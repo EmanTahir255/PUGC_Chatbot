@@ -195,6 +195,25 @@ function highlightImportantValues(text) {
         .replace(/\b(\d+\s*(days?|semesters?|years?|books?|hours?))\b/gi, '<b>$1</b>');
 }
 
+function normalizePlainBotText(text) {
+    return String(text || '')
+        .replace(/\r/g, '')
+        .replace(/^\s*#{1,6}\s*/gm, '')
+        .replace(/^\s*[*-]\s+/gm, '@@BULLET@@ ')
+        .replace(/^\s*\d+\.\s+/gm, '@@BULLET@@ ')
+        .replace(/^\s*BULLET\s+/gm, '@@BULLET@@ ')
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\b__([^_\n]+)__\b/g, '$1')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
+function normalizeBotPlaceholdersInHtml(html) {
+    return String(html || '')
+        .replace(/@@BULLET@@\s*/g, '<br>&bull; ')
+        .replace(/\bBULLET\s+/g, '<br>&bull; ');
+}
+
 function normalizePhoneNumber(value) {
     return String(value || '').replace(/[^\d+]/g, '');
 }
@@ -277,12 +296,12 @@ function linkifyResponseHtml(html) {
 }
 
 function formatResponse(text) {
-    const rawText = String(text || '').trim();
+    const rawText = normalizePlainBotText(text);
     if (!rawText) return '';
 
     // Groq/DB may already return safe HTML formatting; preserve it.
     if (/<(b|ul|ol|li|br)\b/i.test(rawText)) {
-        return linkifyResponseHtml(rawText);
+        return linkifyResponseHtml(normalizeBotPlaceholdersInHtml(rawText));
     }
 
     const normalized = rawText
@@ -313,12 +332,21 @@ function formatResponse(text) {
             .map(line => line.trim())
             .filter(Boolean);
 
-    let html = `<b>${escapeHtml(heading)}</b><br><br>`;
-    const labelLines = sentenceLines.filter(line => /^[A-Za-z][A-Za-z /&()]{2,45}:\s+/.test(line));
+    const normalizedSentenceLines = sentenceLines.map(line =>
+        line
+            .replace(/^@@BULLET@@\s*/i, '')
+            .replace(/^\*\s+/, '')
+            .replace(/^-\s+/, '')
+            .trim()
+    ).filter(Boolean);
 
-    if (labelLines.length >= 2 || sentenceLines.length >= 4) {
+    let html = `<b>${escapeHtml(heading)}</b><br><br>`;
+    const labelLines = normalizedSentenceLines.filter(line => /^[A-Za-z][A-Za-z /&()]{2,45}:\s+/.test(line));
+    const bulletLikeLines = sentenceLines.filter(line => /^@@BULLET@@\s+/i.test(line) || /^BULLET\s+/i.test(line));
+
+    if (bulletLikeLines.length > 0 || labelLines.length >= 2 || normalizedSentenceLines.length >= 3) {
         html += '<ul>';
-        sentenceLines.forEach(line => {
+        normalizedSentenceLines.forEach(line => {
             const escaped = highlightImportantValues(escapeHtml(line));
             const labelMatch = escaped.match(/^([^:]{2,45}):\s*(.+)$/);
             if (labelMatch) {
@@ -329,7 +357,7 @@ function formatResponse(text) {
         });
         html += '</ul>';
     } else {
-        html += sentenceLines
+        html += normalizedSentenceLines
             .map(line => highlightImportantValues(escapeHtml(line)))
             .join('<br><br>');
     }

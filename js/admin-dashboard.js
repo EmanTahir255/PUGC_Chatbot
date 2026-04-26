@@ -16,14 +16,12 @@ const state = {
         feeTypes: [],
         scholarshipTypes: []
     },
-    faqAnswers: [],
     departments: [],
     programs: [],
     feeStructures: [],
     scholarships: [],
     events: [],
     filters: {
-        faqs: { search: '', status: 'all', category: 'all' },
         departments: { search: '' },
         programs: { search: '', status: 'all', department: 'all' },
         feeStructures: { search: '', status: 'all', program: 'all', feeType: 'all' },
@@ -31,7 +29,6 @@ const state = {
         events: { search: '', status: 'all', type: 'all', registration: 'all' }
     },
     editing: {
-        faqs: null,
         departments: null,
         programs: null,
         feeStructures: null,
@@ -39,7 +36,6 @@ const state = {
         events: null
     },
     modes: {
-        faqs: 'home',
         departments: 'home',
         programs: 'home',
         feeStructures: 'home',
@@ -47,7 +43,6 @@ const state = {
         events: 'home'
     },
     notices: {
-        faqs: null,
         departments: null,
         programs: null,
         feeStructures: null,
@@ -380,24 +375,6 @@ function buildProgramFollowUpNotice(programPayload, mode = 'create') {
     };
 }
 
-function buildFaqFollowUpNotice(faqPayload, mode = 'create') {
-    const actionLabel = mode === 'update' ? 'updated' : 'added';
-
-    return {
-        title: `FAQ answer ${actionLabel} successfully`,
-        intro: `The FAQ answer for ${faqPayload.intent_label || 'the selected intent'} has been saved. Please review the related areas below to keep answers consistent.`,
-        adminTasks: [
-            'Review whether this intent still needs only one active FAQ answer, especially if older answers exist for similar wording.',
-            'Review training examples if the new answer covers a newly emerging phrasing or student question pattern.',
-            'Review related FAQ answers if this answer changes a policy, contact detail, or process that appears elsewhere.'
-        ],
-        developerTasks: [
-            'Developer review may be needed if this FAQ answer assumes new intent behavior that is not yet reflected in Rasa training data.',
-            'Developer review may be needed if backend dynamic-query logic should now answer this topic instead of a static FAQ.'
-        ]
-    };
-}
-
 function buildDepartmentFollowUpNotice(departmentPayload, mode = 'create') {
     const label = departmentPayload.dept_name || 'this department';
     const actionLabel = mode === 'update' ? 'updated' : 'added';
@@ -472,255 +449,6 @@ function buildScholarshipFollowUpNotice(payload, mode = 'create') {
             'Developer review may be needed if scholarship-type coverage in dynamic answers should be broadened later.'
         ]
     };
-}
-
-function getFaqCategories() {
-    return [...new Set(state.meta.intents.map(intent => intent.category_name))].sort((a, b) => a.localeCompare(b));
-}
-
-function getFilteredFaqAnswers() {
-    const { search, status, category } = state.filters.faqs;
-    return state.faqAnswers.filter(item => {
-        const matchesSearch = !search || [item.intent_name, item.category_name, item.answer_text]
-            .join(' ')
-            .toLowerCase()
-            .includes(search.toLowerCase());
-        const matchesStatus = status === 'all' || (status === 'active' ? item.is_active : !item.is_active);
-        const matchesCategory = category === 'all' || item.category_name === category;
-        return matchesSearch && matchesStatus && matchesCategory;
-    });
-}
-
-function renderFaqSection(formErrors = {}, globalError = '') {
-    const section = document.getElementById('faqs');
-    const editingId = state.editing.faqs;
-    const currentRecord = editingId ? state.faqAnswers.find(item => item.answer_id === editingId) : null;
-    const filteredItems = getFilteredFaqAnswers();
-    const mode = state.modes.faqs;
-    const showToolbar = mode === 'browse';
-    const showForm = mode === 'add' || (mode === 'edit' && currentRecord);
-    const showList = ['browse', 'edit', 'deactivate'].includes(mode);
-    const notice = state.notices.faqs;
-
-    section.innerHTML = `
-        <div class="card section-card">
-            <div class="section-header">
-                <div>
-                    <h2>FAQ Answers</h2>
-                    <p>Manage pre-written chatbot answers linked to intents. Deleting here safely deactivates the answer.</p>
-                </div>
-                <div class="section-meta">
-                    <span>${state.faqAnswers.length} total answers</span>
-                </div>
-            </div>
-            ${globalError ? `<div class="error-banner">${escapeHtml(globalError)}</div>` : ''}
-            ${renderCrudModeChooser('faqs', {
-                homeText: 'Pick an action for FAQ answers first. We will keep the workspace focused so everything is not shown together.',
-                browseTitle: 'Browse Records',
-                browseText: 'See all FAQ answers and narrow them down with search and filters in one workspace.',
-                addText: 'Open only the add form for creating a new FAQ answer.',
-                editText: 'First choose a record to edit, then we will open its form separately.',
-                deactivateText: 'Open only the deactivate actions for active FAQ answers.'
-            })}
-            ${notice ? `
-            <div class="followup-notice">
-                <div class="followup-notice__header">
-                    <div>
-                        <h3>${escapeHtml(notice.title)}</h3>
-                        <p>${escapeHtml(notice.intro)}</p>
-                    </div>
-                    <button type="button" class="ghost-btn" id="dismissFaqNotice">Dismiss</button>
-                </div>
-                <div class="followup-grid">
-                    <div class="followup-card">
-                        <h4>Admin Should Review</h4>
-                        <ul>${notice.adminTasks.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
-                    </div>
-                    <div class="followup-card followup-card--soft">
-                        <h4>Developer Awareness</h4>
-                        <ul>${notice.developerTasks.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
-                    </div>
-                </div>
-            </div>` : ''}
-            ${showToolbar ? `
-            <form class="section-toolbar" id="faqSearchForm">
-                <div class="toolbar-group">
-                    ${buildSearchControl('faqSearch', state.filters.faqs.search, 'Search by intent, category, or answer text')}
-                    <label>
-                        <span>Status</span>
-                        <select id="faqStatusFilter">
-                            <option value="all" ${state.filters.faqs.status === 'all' ? 'selected' : ''}>All</option>
-                            <option value="active" ${state.filters.faqs.status === 'active' ? 'selected' : ''}>Active</option>
-                            <option value="inactive" ${state.filters.faqs.status === 'inactive' ? 'selected' : ''}>Inactive</option>
-                        </select>
-                    </label>
-                    <label>
-                        <span>Category</span>
-                        <select id="faqCategoryFilter">
-                            <option value="all">All Categories</option>
-                            ${getFaqCategories().map(category => `
-                                <option value="${escapeHtml(category)}" ${state.filters.faqs.category === category ? 'selected' : ''}>${escapeHtml(category)}</option>
-                            `).join('')}
-                        </select>
-                    </label>
-                </div>
-            </form>` : ''}
-            ${showForm ? `<form id="faqForm" class="crud-form">
-                <div class="form-header">
-                    <h3>${currentRecord ? 'Edit FAQ Answer' : 'Add FAQ Answer'}</h3>
-                    ${currentRecord ? '<button type="button" class="ghost-btn" id="faqCancelEdit">Cancel Edit</button>' : ''}
-                </div>
-                ${renderFieldErrors(formErrors)}
-                <div class="form-grid">
-                    <label class="field full-width">
-                        <span>Intent</span>
-                        <select id="faqIntent" required>
-                            <option value="">Select intent</option>
-                            ${state.meta.intents.map(intent => `
-                                <option value="${intent.intent_id}" ${(currentRecord?.intent_id || '') === intent.intent_id ? 'selected' : ''}>
-                                    ${escapeHtml(`${intent.intent_name} (${intent.category_name})`)}
-                                </option>
-                            `).join('')}
-                        </select>
-                    </label>
-                    <label class="field full-width">
-                        <span>Answer Text</span>
-                        <textarea id="faqAnswerText" rows="5" placeholder="Write the answer that the chatbot should use.">${escapeHtml(currentRecord?.answer_text || '')}</textarea>
-                    </label>
-                    <label class="field inline-field">
-                        <span>Active</span>
-                        <input type="checkbox" id="faqIsActive" ${currentRecord ? (currentRecord.is_active ? 'checked' : '') : 'checked'}>
-                    </label>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="primary-btn">${currentRecord ? 'Save Changes' : 'Add FAQ Answer'}</button>
-                </div>
-            </form>` : ''}
-            ${mode === 'home' ? '' : showList ? `<div class="admin-list">
-                ${filteredItems.length === 0 ? '<div class="empty-state">No FAQ answers match the current filters.</div>' : filteredItems.map(item => `
-                    <div class="record-card">
-                        <div class="record-main">
-                            <div class="record-topline">
-                                <h3>${escapeHtml(item.intent_name)}</h3>
-                                ${activeBadge(item.is_active)}
-                            </div>
-                            <p><strong>Category:</strong> ${escapeHtml(item.category_name)}</p>
-                            <p class="record-text">${escapeHtml(item.answer_text)}</p>
-                            <p class="record-meta">Updated: ${escapeHtml(formatDateTime(item.updated_at))}</p>
-                        </div>
-                        ${mode === 'edit' ? `
-                        <div class="record-actions">
-                            <button type="button" class="secondary-btn" data-faq-edit="${item.answer_id}">Edit</button>
-                        </div>` : mode === 'deactivate' ? `
-                        <div class="record-actions">
-                            <button type="button" class="danger-btn" data-faq-delete="${item.answer_id}">${item.is_active ? 'Deactivate' : 'Keep Inactive'}</button>
-                        </div>` : ''}
-                    </div>
-                `).join('')}
-            </div>` : '<div class="empty-state">Choose an action above to continue.</div>'}
-        </div>
-    `;
-
-    attachCrudModeHandlers(section, 'faqs', renderFaqSection);
-
-    if (notice) {
-        section.querySelector('#dismissFaqNotice').addEventListener('click', () => {
-            state.notices.faqs = null;
-            renderFaqSection();
-        });
-    }
-
-    if (showToolbar) {
-        section.querySelector('#faqSearchForm').addEventListener('submit', event => {
-            event.preventDefault();
-            state.filters.faqs.search = section.querySelector('#faqSearch').value.trim();
-            renderFaqSection();
-        });
-        section.querySelector('#faqStatusFilter').addEventListener('change', event => {
-            state.filters.faqs.status = event.target.value;
-            renderFaqSection();
-        });
-        section.querySelector('#faqCategoryFilter').addEventListener('change', event => {
-            state.filters.faqs.category = event.target.value;
-            renderFaqSection();
-        });
-    }
-
-    if (showForm && currentRecord) {
-        section.querySelector('#faqCancelEdit').addEventListener('click', () => {
-            state.editing.faqs = null;
-            renderFaqSection();
-        });
-    }
-
-    if (showForm) {
-        section.querySelector('#faqForm').addEventListener('submit', handleFaqSubmit);
-    }
-
-    if (mode === 'edit') {
-        section.querySelectorAll('[data-faq-edit]').forEach(button => {
-            button.addEventListener('click', () => {
-                state.editing.faqs = Number(button.dataset.faqEdit);
-                renderFaqSection();
-            });
-        });
-    }
-
-    if (mode === 'deactivate') {
-        section.querySelectorAll('[data-faq-delete]').forEach(button => {
-            button.addEventListener('click', () => handleFaqDelete(Number(button.dataset.faqDelete)));
-        });
-    }
-}
-
-async function handleFaqSubmit(event) {
-    event.preventDefault();
-    const isEditMode = Boolean(state.editing.faqs);
-    const intentSelect = document.getElementById('faqIntent');
-    const payload = {
-        intent_id: Number(intentSelect.value),
-        answer_text: document.getElementById('faqAnswerText').value.trim(),
-        is_active: document.getElementById('faqIsActive').checked,
-        intent_label: getSelectedText(intentSelect, 'the selected intent')
-    };
-
-    try {
-        if (isEditMode) {
-            await apiRequest(`/faq-answers/${state.editing.faqs}`, {
-                method: 'PUT',
-                body: JSON.stringify(payload)
-            });
-        } else {
-            await apiRequest('/faq-answers', {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            });
-        }
-
-        state.editing.faqs = null;
-        state.notices.faqs = buildFaqFollowUpNotice(payload, isEditMode ? 'update' : 'create');
-        state.modes.faqs = 'home';
-        await loadFaqAnswers();
-        renderFaqSection();
-    } catch (error) {
-        renderFaqSection(error.details, error.message);
-    }
-}
-
-async function handleFaqDelete(answerId) {
-    const record = state.faqAnswers.find(item => item.answer_id === answerId);
-    if (!record) return;
-    const confirmed = window.confirm(`Deactivate the FAQ answer for "${record.intent_name}"?`);
-    if (!confirmed) return;
-
-    try {
-        await apiRequest(`/faq-answers/${answerId}`, { method: 'DELETE' });
-        if (state.editing.faqs === answerId) state.editing.faqs = null;
-        await loadFaqAnswers();
-        renderFaqSection();
-    } catch (error) {
-        renderFaqSection({}, error.message);
-    }
 }
 
 function getFilteredDepartments() {
@@ -2059,10 +1787,6 @@ async function loadMeta() {
     state.meta = await apiRequest('/meta');
 }
 
-async function loadFaqAnswers() {
-    state.faqAnswers = await apiRequest('/faq-answers');
-}
-
 async function loadDepartmentsAndPrograms() {
     const [departments, programs] = await Promise.all([
         apiRequest('/departments'),
@@ -2095,7 +1819,6 @@ async function loadEvents() {
 async function loadAdminData() {
     await loadMeta();
     await Promise.all([
-        loadFaqAnswers(),
         loadDepartmentsAndPrograms(),
         loadFeeStructures(),
         loadScholarships(),
@@ -2107,7 +1830,6 @@ function renderAllSections() {
     renderUsersSection();
     renderSubscriptionsSection();
     renderFeedbackSection();
-    renderFaqSection();
     renderDepartmentsSection();
     renderProgramsSection();
     renderFeeStructuresSection();
@@ -2126,7 +1848,6 @@ async function initializeAdminDashboard() {
         await loadAdminData();
         renderAllSections();
     } catch (error) {
-        renderSectionError('faqs', error.message || 'Failed to load FAQ answers.');
         renderSectionError('departments', error.message || 'Failed to load departments.');
         renderSectionError('programs', error.message || 'Failed to load programs.');
         renderSectionError('feeStructures', error.message || 'Failed to load fee structure records.');
