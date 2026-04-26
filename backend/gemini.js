@@ -1,8 +1,16 @@
 const Groq = require("groq-sdk");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
+
+const geminiClient = process.env.GEMINI_API_KEY
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  : null;
+
+const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
 
 const SUPPORTED_INTENTS = [
   "greet", "goodbye", "bot_introduction", "thank_you", "fallback_help", "ask_fee_deadline",
@@ -40,12 +48,82 @@ const SUPPORTED_INTENTS = [
 
 const SUPPORTED_INTENT_SET = new Set(SUPPORTED_INTENTS);
 
+function historyToTranscript(conversationHistory = []) {
+  if (!Array.isArray(conversationHistory) || conversationHistory.length === 0) {
+    return "";
+  }
+
+  return conversationHistory
+    .map(item => {
+      const role = item.role === "assistant" ? "Assistant" : "User";
+      return `${role}: ${item.content}`;
+    })
+    .join("\n");
+}
+
+async function runGroqChat(messages, maxTokens, temperature) {
+  const completion = await groq.chat.completions.create({
+    model: GROQ_MODEL,
+    messages,
+    max_tokens: maxTokens,
+    temperature
+  });
+
+  return completion.choices?.[0]?.message?.content?.trim() || null;
+}
+
+async function runGeminiChat(messages, maxTokens, temperature) {
+  if (!geminiClient) {
+    return null;
+  }
+
+  const model = geminiClient.getGenerativeModel({ model: GEMINI_MODEL });
+  const systemPrompt = messages
+    .filter(message => message.role === "system")
+    .map(message => message.content)
+    .join("\n\n");
+  const transcript = messages
+    .filter(message => message.role !== "system")
+    .map(message => `${message.role === "assistant" ? "Assistant" : "User"}: ${message.content}`)
+    .join("\n");
+
+  const prompt = `${systemPrompt}\n\nConversation:\n${transcript}\n\nReply exactly as instructed above.`;
+  const result = await model.generateContent({
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature,
+      maxOutputTokens: maxTokens
+    }
+  });
+
+  return result.response?.text()?.trim() || null;
+}
+
+async function runChatWithFallback(messages, maxTokens, temperature, errorLabel) {
+  try {
+    return await runGroqChat(messages, maxTokens, temperature);
+  } catch (error) {
+    console.error(`${errorLabel} (Groq):`, error.message);
+
+    if (!geminiClient) {
+      return null;
+    }
+
+    try {
+      console.log(`${errorLabel}: trying Gemini fallback...`);
+      return await runGeminiChat(messages, maxTokens, temperature);
+    } catch (geminiError) {
+      console.error(`${errorLabel} (Gemini):`, geminiError.message);
+      return null;
+    }
+  }
+}
+
 // Extract intent keyword from question using Groq
 async function extractIntentFromQuestion(userMessage) {
   try {
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [
+    const result = await runChatWithFallback(
+      [
         {
           role: "system",
           content: `You are an intent classifier for PUGC university chatbot. 
@@ -60,11 +138,12 @@ If the question does not match any intent, return: NONE`,
           content: userMessage,
         },
       ],
-      max_tokens: 50,
-      temperature: 0.1,
-    });
+      50,
+      0.1,
+      "Intent extraction error"
+    );
 
-    const result = completion.choices[0].message.content.trim();
+    if (!result) return null;
     return result === "NONE" || !SUPPORTED_INTENT_SET.has(result) ? null : result;
   } catch (error) {
     console.error("Intent extraction error:", error.message);
@@ -104,15 +183,7 @@ IMPORTANT FORMATTING RULES:
                 content: userMessage
             }
         ];
-
-        const completion = await groq.chat.completions.create({
-            model: 'llama-3.3-70b-versatile',
-            messages: messages,
-            max_tokens: 500,
-            temperature: 0.7
-        });
-
-        return completion.choices[0].message.content;
+        return await runChatWithFallback(messages, 500, 0.7, 'General AI response error');
 
     } catch (error) {
         console.error('Groq error:', error.message);
@@ -123,9 +194,8 @@ IMPORTANT FORMATTING RULES:
 async function isAnswerRelevant(userMessage, dbAnswer, conversationHistory = []) {
     try {
         // Gate broad DB answers so follow-up questions can be answered more precisely.
-        const completion = await groq.chat.completions.create({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
+        const result = await runChatWithFallback(
+            [
                 {
                     role: 'system',
                     content: `Decide whether the candidate answer directly answers the user's latest question.
@@ -142,11 +212,15 @@ Candidate answer:
 ${dbAnswer}`
                 }
             ],
-            max_tokens: 5,
-            temperature: 0
-        });
+            5,
+            0,
+            'Answer relevance error'
+        );
 
-        const result = completion.choices[0].message.content.trim().toUpperCase();
+        if (!result) return true;
+        const normalized = result.trim().toUpperCase();
+        if (normalized.includes('YES')) return true;
+        if (normalized.includes('NO')) return false;
         return result === 'YES';
     } catch (error) {
         console.error('Answer relevance error:', error.message);
@@ -157,9 +231,8 @@ ${dbAnswer}`
 async function refineAnswerWithDBContext(userMessage, dbAnswer, conversationHistory = []) {
     try {
         // Reword only when the stored answer is related but does not directly answer the latest question.
-        const completion = await groq.chat.completions.create({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
+        return await runChatWithFallback(
+            [
                 {
                     role: 'system',
                     content: `You are PUGC SmartBot, a helpful virtual assistant for Punjab University Gujranwala Campus (PUGC).
@@ -187,11 +260,10 @@ Related PUGC database information:
 ${dbAnswer}`
                 }
             ],
-            max_tokens: 350,
-            temperature: 0.2
-        });
-
-        return completion.choices[0].message.content;
+            350,
+            0.2,
+            'Answer refinement error'
+        );
     } catch (error) {
         console.error('Answer refinement error:', error.message);
         return null;
@@ -201,9 +273,8 @@ ${dbAnswer}`
 async function getGroundedGroqResponse(userMessage, dbAnswer, conversationHistory = []) {
     try {
         // Strict fallback: use nearby DB context, but do not invent missing PUGC facts.
-        const completion = await groq.chat.completions.create({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
+        return await runChatWithFallback(
+            [
                 {
                     role: 'system',
                     content: `You are PUGC SmartBot.
@@ -230,11 +301,10 @@ Nearest PUGC database information:
 ${dbAnswer}`
                 }
             ],
-            max_tokens: 350,
-            temperature: 0.1
-        });
-
-        return completion.choices[0].message.content;
+            350,
+            0.1,
+            'Grounded Groq error'
+        );
     } catch (error) {
         console.error('Grounded Groq error:', error.message);
         return null;

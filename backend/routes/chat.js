@@ -424,6 +424,307 @@ function buildBulletList(items) {
     return `<ul>${items.map(item => `<li>${item}</li>`).join('')}</ul>`;
 }
 
+const LOOKUP_STOP_WORDS = new Set([
+    'the', 'a', 'an', 'of', 'for', 'to', 'is', 'are', 'in', 'at', 'on', 'with', 'and',
+    'or', 'do', 'does', 'did', 'can', 'i', 'we', 'you', 'it', 'this', 'that', 'these',
+    'those', 'about', 'please', 'tell', 'me', 'what', 'which', 'who', 'when', 'where',
+    'how', 'many', 'much', 'any', 'there', 'from', 'by', 'be', 'my', 'their', 'our',
+    'its', 'have', 'has', 'had', 'offer', 'offered', 'available'
+]);
+
+function normalizeLookupText(value = '') {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function compactLookupText(value = '') {
+    return normalizeLookupText(value).replace(/\s+/g, '');
+}
+
+function extractMeaningfulTokens(value = '') {
+    return normalizeLookupText(value)
+        .split(' ')
+        .filter(token => token && token.length > 1 && !LOOKUP_STOP_WORDS.has(token));
+}
+
+function addAlias(set, value) {
+    const normalized = normalizeLookupText(value);
+    if (normalized) {
+        set.add(normalized);
+        set.add(compactLookupText(normalized));
+    }
+}
+
+function buildAcronym(words = []) {
+    return words
+        .filter(Boolean)
+        .map(word => word[0])
+        .join('')
+        .toLowerCase();
+}
+
+function buildProgramAliases(name = '') {
+    const aliases = new Set();
+    const normalized = normalizeLookupText(name);
+    const words = normalized.split(' ').filter(Boolean);
+
+    addAlias(aliases, name);
+
+    if (words.length > 1) {
+        addAlias(aliases, words.join(' '));
+        addAlias(aliases, words.slice(1).join(' '));
+        addAlias(aliases, `${words[0]} ${words.slice(1).join(' ')}`);
+
+        const acronym = buildAcronym(words);
+        if (acronym.length >= 2) aliases.add(acronym);
+
+        const trimmedWords = words.filter(word => !['bs', 'ms', 'phd'].includes(word));
+        if (trimmedWords.length > 0) {
+            addAlias(aliases, trimmedWords.join(' '));
+            const trimmedAcronym = buildAcronym(trimmedWords);
+            if (trimmedAcronym.length >= 2) aliases.add(trimmedAcronym);
+        }
+    }
+
+    return Array.from(aliases).filter(Boolean);
+}
+
+function buildDepartmentAliases(name = '') {
+    const aliases = new Set();
+    const normalized = normalizeLookupText(name);
+    const words = normalized.split(' ').filter(Boolean);
+
+    addAlias(aliases, name);
+    if (words.length > 1) {
+        addAlias(aliases, words.join(' '));
+        addAlias(aliases, words.filter(word => word !== 'department').join(' '));
+        const acronym = buildAcronym(words.filter(word => !['and'].includes(word)));
+        if (acronym.length >= 2) aliases.add(acronym);
+    }
+
+    return Array.from(aliases).filter(Boolean);
+}
+
+function buildGenericAliases(name = '') {
+    const aliases = new Set();
+    addAlias(aliases, name);
+    const words = normalizeLookupText(name).split(' ').filter(Boolean);
+    if (words.length > 1) {
+        aliases.add(buildAcronym(words));
+    }
+    return Array.from(aliases).filter(Boolean);
+}
+
+function buildFeeTypeAliases(name = '') {
+    const aliases = new Set();
+    const normalized = normalizeLookupText(name);
+    const words = normalized.split(' ').filter(Boolean);
+
+    addAlias(aliases, name);
+
+    if (words.length > 1) {
+        addAlias(aliases, words.join(' '));
+        addAlias(aliases, words.filter(word => !['fee', 'charges', 'charge', 'fund', 'deposit'].includes(word)).join(' '));
+        const acronym = buildAcronym(words);
+        if (acronym.length >= 2) aliases.add(acronym);
+    }
+
+    if (normalized.includes('admission')) {
+        addAlias(aliases, 'admission fee');
+        addAlias(aliases, 'admission charges');
+    }
+    if (normalized.includes('security')) {
+        addAlias(aliases, 'security fee');
+        addAlias(aliases, 'security deposit');
+        addAlias(aliases, 'security');
+    }
+    if (normalized.includes('tuition')) {
+        addAlias(aliases, 'tuition fee');
+        addAlias(aliases, 'tuition');
+    }
+    if (normalized.includes('exam')) {
+        addAlias(aliases, 'exam fee');
+        addAlias(aliases, 'examination fee');
+        addAlias(aliases, 'exam');
+    }
+    if (normalized.includes('library')) {
+        addAlias(aliases, 'library fee');
+        addAlias(aliases, 'library');
+    }
+    if (normalized.includes('lab')) {
+        addAlias(aliases, 'lab fee');
+        addAlias(aliases, 'lab charges');
+        addAlias(aliases, 'laboratory fee');
+    }
+    if (normalized.includes('sports')) {
+        addAlias(aliases, 'sports fee');
+        addAlias(aliases, 'sports fund');
+    }
+    if (normalized.includes('welfare')) {
+        addAlias(aliases, 'student welfare');
+        addAlias(aliases, 'welfare fee');
+    }
+
+    return Array.from(aliases).filter(Boolean);
+}
+
+function scoreAliasMatch(message, alias) {
+    if (!alias) return 0;
+    const normalizedMessage = normalizeLookupText(message);
+    const compactMessage = compactLookupText(message);
+    const normalizedAlias = normalizeLookupText(alias);
+    const compactAlias = compactLookupText(alias);
+    const messageTokens = new Set(extractMeaningfulTokens(message));
+    const aliasTokens = extractMeaningfulTokens(alias);
+
+    if (normalizedAlias && normalizedMessage.includes(normalizedAlias)) {
+        return 100 + normalizedAlias.split(' ').length;
+    }
+
+    if (compactAlias && compactAlias.length > 2 && compactMessage.includes(compactAlias)) {
+        return 90 + compactAlias.length;
+    }
+
+    const overlap = aliasTokens.filter(token => messageTokens.has(token)).length;
+    if (overlap > 0) {
+        return 40 + overlap * 10;
+    }
+
+    return 0;
+}
+
+function findBestCatalogMatch(message, items = [], aliasBuilder = buildGenericAliases, minimumScore = 50) {
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (const item of items) {
+        const aliases = aliasBuilder(item.name || item.program_name || item.dept_name || item.type_name || item.event_name || '');
+        const score = aliases.reduce((highest, alias) => Math.max(highest, scoreAliasMatch(message, alias)), 0);
+        if (score > bestScore) {
+            bestScore = score;
+            bestMatch = item;
+        }
+    }
+
+    return bestScore >= minimumScore ? bestMatch : null;
+}
+
+async function loadStructuredCatalog(pool) {
+    const [departments, programs, feeTypes, scholarshipTypes, eventTypes, eventNames] = await Promise.all([
+        pool.request().query(`SELECT department_id, dept_name FROM departments ORDER BY dept_name`),
+        pool.request().query(`
+            SELECT p.program_id, p.program_name, p.program_level, p.department_id, d.dept_name
+            FROM programs p
+            JOIN departments d ON p.department_id = d.department_id
+            WHERE p.is_active = 1
+            ORDER BY p.program_name
+        `),
+        pool.request().query(`SELECT fee_type_id, fee_type_name FROM fee_types ORDER BY fee_type_name`),
+        pool.request().query(`
+            SELECT scholarship_type_id, type_name, funding_source, min_cgpa_required,
+                   max_family_income, benefit_percentage, is_renewable
+            FROM scholarship_types
+            ORDER BY type_name
+        `),
+        pool.request().query(`SELECT event_type_id, type_name FROM event_types ORDER BY type_name`),
+        pool.request().query(`
+            SELECT TOP 100 e.event_id, e.event_name, et.type_name
+            FROM events e
+            JOIN event_types et ON e.event_type_id = et.event_type_id
+            WHERE e.is_active = 1
+            ORDER BY e.event_date DESC
+        `)
+    ]);
+
+    return {
+        departments: departments.recordset,
+        programs: programs.recordset,
+        feeTypes: feeTypes.recordset,
+        scholarshipTypes: scholarshipTypes.recordset,
+        eventTypes: eventTypes.recordset,
+        eventNames: eventNames.recordset
+    };
+}
+
+function detectDepartmentField(message = '') {
+    const text = normalizeLookupText(message);
+    if (/\b(program|programs|offer|offered)\b/.test(text)) return 'programs';
+    if (/\b(head|hod|chair|dean)\b/.test(text)) return 'head_name';
+    if (/\b(contact|phone|number|call|helpline)\b/.test(text)) return 'contact_number';
+    if (/\b(email|mail)\b/.test(text)) return 'email';
+    if (/\b(room|office room)\b/.test(text)) return 'room_number';
+    if (/\b(hours|timing|timings|open)\b/.test(text)) return 'office_hours';
+    if (/\b(block|location|where|located|building)\b/.test(text)) return 'block_location';
+    return 'summary';
+}
+
+function detectProgramField(message = '') {
+    const text = normalizeLookupText(message);
+    if (/\bfee|fees\b/.test(text)) return 'fees';
+    if (/\bcredit\b/.test(text)) return 'total_credit_hrs';
+    if (/\bsemester|semesters\b/.test(text)) return 'total_semesters';
+    if (/\bduration|years|how long|year\b/.test(text)) return 'duration_years';
+    if (/\bseat|seats|capacity|intake\b/.test(text)) return 'total_seats';
+    if (/\bdepartment|which department\b/.test(text)) return 'department';
+    if (/\blevel|undergraduate|graduate|postgraduate\b/.test(text)) return 'program_level';
+    if (/\bdescription|overview|details|about\b/.test(text)) return 'description';
+    if (/\bprogram|programs|offer|available\b/.test(text)) return 'list';
+    return 'summary';
+}
+
+function detectFeeField(message = '', feeTypes = []) {
+    const text = normalizeLookupText(message);
+    const matchedFeeType = findBestCatalogMatch(
+        text,
+        feeTypes.map(type => ({ ...type, name: type.fee_type_name })),
+        item => buildFeeTypeAliases(item.fee_type_name),
+        40
+    );
+
+    if (matchedFeeType) {
+        return { kind: 'specific_fee_type', feeType: matchedFeeType };
+    }
+    if (/\beffective from|from when|starts from\b/.test(text)) return { kind: 'effective_from' };
+    if (/\beffective to|valid till|until\b/.test(text)) return { kind: 'effective_to' };
+    if (/\btotal|overall|semester fee|complete fee|full fee\b/.test(text)) return { kind: 'total' };
+    return { kind: 'breakdown' };
+}
+
+function detectScholarshipField(message = '') {
+    const text = normalizeLookupText(message);
+    if (/\bdeadline|last date|apply by\b/.test(text)) return 'application_deadline';
+    if (/\binterview\b/.test(text)) return 'interview_date';
+    if (/\bannouncement|announce|result\b/.test(text)) return 'announcement_date';
+    if (/\bbenefit|percentage|coverage|amount\b/.test(text)) return 'benefit_percentage';
+    if (/\bcgpa|criteria|eligibility\b/.test(text)) return 'min_cgpa_required';
+    if (/\bincome|family income\b/.test(text)) return 'max_family_income';
+    if (/\brenewable|renew\b/.test(text)) return 'is_renewable';
+    if (/\bbeneficiaries|students\b/.test(text)) return 'max_beneficiaries';
+    if (/\bfunding|funding source|sponsor\b/.test(text)) return 'funding_source';
+    if (/\bsemester\b/.test(text)) return 'semester_name';
+    return 'summary';
+}
+
+function detectEventField(message = '') {
+    const text = normalizeLookupText(message);
+    if (/\bvenue|where|held\b/.test(text)) return 'venue';
+    if (/\bend|ends|finish\b/.test(text)) return 'event_end_date';
+    if (/\bdate|when\b/.test(text)) return 'event_date';
+    if (/\bregistration deadline|register by|last date to register\b/.test(text)) return 'registration_deadline';
+    if (/\bregister|registration|required\b/.test(text)) return 'registration_required';
+    if (/\bdescription|details|about\b/.test(text)) return 'description';
+    if (/\bsemester\b/.test(text)) return 'semester_name';
+    return 'summary';
+}
+
+function formatFieldValue(label, value, formatter = null, suffix = '') {
+    const formatted = formatter ? formatter(value) : escapeHtml(value ?? 'Not listed');
+    return `<b>${label}:</b> ${formatted}${suffix}`;
+}
+
 function getProgramMappings() {
     return [
         { keywords: ['bscs', 'bs cs', 'computer science'], program: 'BS Computer Science' },
@@ -543,8 +844,16 @@ function detectEventCategory(intent, message = '') {
     return null;
 }
 
-async function getDepartmentAnswer(intent, message, pool) {
-    const departmentName = detectDepartmentName(message);
+async function getDepartmentAnswer(intent, message, pool, catalog = null) {
+    const liveCatalog = catalog || await loadStructuredCatalog(pool);
+    const departmentMatch = findBestCatalogMatch(
+        message,
+        liveCatalog.departments.map(department => ({ ...department, name: department.dept_name })),
+        item => buildDepartmentAliases(item.dept_name),
+        50
+    );
+    const departmentName = departmentMatch?.dept_name || detectDepartmentName(message);
+    const field = detectDepartmentField(message);
 
     if (departmentName) {
         const result = await pool.request()
@@ -558,17 +867,56 @@ async function getDepartmentAnswer(intent, message, pool) {
         if (result.recordset.length === 0) return null;
 
         const dept = result.recordset[0];
+
+        if (field === 'programs') {
+            const programResult = await pool.request()
+                .input('departmentName', sql.VarChar, departmentName)
+                .query(`
+                    SELECT p.program_name, p.program_level, p.duration_years, p.total_semesters
+                    FROM programs p
+                    JOIN departments d ON p.department_id = d.department_id
+                    WHERE d.dept_name = @departmentName
+                      AND p.is_active = 1
+                    ORDER BY p.program_level, p.program_name
+                `);
+
+            if (programResult.recordset.length === 0) {
+                return `<b>${escapeHtml(dept.dept_name)} Department Programs</b><br><br>${buildBulletList([
+                    'No active programs are currently listed for this department in the database.'
+                ])}`;
+            }
+
+            return `<b>${escapeHtml(dept.dept_name)} Department Programs</b><br><br>${buildBulletList(
+                programResult.recordset.map(program =>
+                    `<b>${escapeHtml(program.program_name)}:</b> ${escapeHtml(program.program_level)}, ${escapeHtml(program.duration_years)} years, ${escapeHtml(program.total_semesters)} semesters`
+                )
+            )}`;
+        }
+
+        const fieldMap = {
+            head_name: formatFieldValue('Head of Department', dept.head_name),
+            contact_number: formatFieldValue('Contact Number', dept.contact_number),
+            email: formatFieldValue('Email', dept.email),
+            block_location: formatFieldValue('Location', `${dept.block_location || 'Block N/A'}${dept.room_number ? `, Room ${dept.room_number}` : ''}`),
+            room_number: formatFieldValue('Room Number', dept.room_number),
+            office_hours: formatFieldValue('Office Hours', dept.office_hours)
+        };
+
+        if (field !== 'summary' && fieldMap[field]) {
+            return `<b>${escapeHtml(dept.dept_name)} Department</b><br><br>${buildBulletList([fieldMap[field]])}`;
+        }
+
         return `<b>${escapeHtml(dept.dept_name)} Department</b><br><br>${buildBulletList([
-            `<b>Head:</b> ${escapeHtml(dept.head_name || 'Not listed')}`,
-            `<b>Contact:</b> ${escapeHtml(dept.contact_number || 'Not listed')}`,
-            `<b>Email:</b> ${escapeHtml(dept.email || 'Not listed')}`,
-            `<b>Location:</b> ${escapeHtml(`${dept.block_location || 'Block N/A'}${dept.room_number ? `, Room ${dept.room_number}` : ''}`)}`,
-            `<b>Office Hours:</b> ${escapeHtml(dept.office_hours || 'Not listed')}`
+            formatFieldValue('Head of Department', dept.head_name),
+            formatFieldValue('Contact Number', dept.contact_number),
+            formatFieldValue('Email', dept.email),
+            formatFieldValue('Location', `${dept.block_location || 'Block N/A'}${dept.room_number ? `, Room ${dept.room_number}` : ''}`),
+            formatFieldValue('Office Hours', dept.office_hours)
         ])}`;
     }
 
     const result = await pool.request().query(`
-        SELECT dept_name, head_name, block_location, room_number
+        SELECT dept_name, head_name, contact_number, block_location, room_number
         FROM departments
         ORDER BY dept_name
     `);
@@ -577,49 +925,87 @@ async function getDepartmentAnswer(intent, message, pool) {
 
     return `<b>PUGC Departments</b><br><br>${buildBulletList(
         result.recordset.map(dept =>
-            `<b>${escapeHtml(dept.dept_name)}:</b> HOD ${escapeHtml(dept.head_name || 'Not listed')}, ${escapeHtml(dept.block_location || 'Location N/A')}${dept.room_number ? `, Room ${escapeHtml(dept.room_number)}` : ''}`
+            `<b>${escapeHtml(dept.dept_name)}:</b> HOD ${escapeHtml(dept.head_name || 'Not listed')}, ${escapeHtml(dept.block_location || 'Location N/A')}${dept.room_number ? `, Room ${escapeHtml(dept.room_number)}` : ''}${dept.contact_number ? `, Contact ${escapeHtml(dept.contact_number)}` : ''}`
         )
     )}`;
 }
 
-async function getProgramsAnswer(intent, message, pool) {
-    const programName = detectProgramName(message);
+async function getProgramsAnswer(intent, message, pool, catalog = null) {
+    const liveCatalog = catalog || await loadStructuredCatalog(pool);
+    const programMatch = findBestCatalogMatch(
+        message,
+        liveCatalog.programs.map(program => ({ ...program, name: program.program_name })),
+        item => buildProgramAliases(item.program_name),
+        50
+    );
+    const departmentMatch = findBestCatalogMatch(
+        message,
+        liveCatalog.departments.map(department => ({ ...department, name: department.dept_name })),
+        item => buildDepartmentAliases(item.dept_name),
+        50
+    );
+    const programName = programMatch?.program_name || detectProgramName(message);
     const level = detectProgramLevel(message);
+    const field = detectProgramField(message);
 
-    if (programName || ['ask_program_duration', 'ask_credit_hours', 'ask_bs_cs_details', 'ask_bba_details'].includes(intent)) {
+    if (programName) {
         const result = await pool.request()
-            .input('programName', sql.VarChar, programName || '')
+            .input('programName', sql.VarChar, programName)
             .query(`
                 SELECT TOP 1 p.program_name, p.program_level, p.duration_years, p.total_semesters,
                        p.total_credit_hrs, p.total_seats, p.description, d.dept_name
                 FROM programs p
                 JOIN departments d ON p.department_id = d.department_id
                 WHERE p.is_active = 1
-                  AND (@programName = '' OR p.program_name = @programName)
-                ORDER BY p.program_name
+                  AND p.program_name = @programName
             `);
 
         if (result.recordset.length > 0) {
             const program = result.recordset[0];
+
+            if (field === 'fees') {
+                return getFeesAnswer(message, pool, liveCatalog);
+            }
+
+            const fieldMap = {
+                program_level: formatFieldValue('Level', program.program_level),
+                duration_years: formatFieldValue('Duration', program.duration_years, null, ' years'),
+                total_semesters: formatFieldValue('Total Semesters', program.total_semesters),
+                total_credit_hrs: formatFieldValue('Credit Hours', program.total_credit_hrs),
+                total_seats: formatFieldValue('Seats', program.total_seats),
+                department: formatFieldValue('Department', program.dept_name),
+                description: formatFieldValue('Overview', program.description)
+            };
+
+            if (field !== 'summary' && fieldMap[field]) {
+                return `<b>${escapeHtml(program.program_name)}</b><br><br>${buildBulletList([fieldMap[field]])}`;
+            }
+
             return `<b>${escapeHtml(program.program_name)}</b><br><br>${buildBulletList([
-                `<b>Level:</b> ${escapeHtml(program.program_level)}`,
-                `<b>Department:</b> ${escapeHtml(program.dept_name)}`,
-                `<b>Duration:</b> ${escapeHtml(program.duration_years)} years`,
-                `<b>Total Semesters:</b> ${escapeHtml(program.total_semesters)}`,
-                `<b>Credit Hours:</b> ${escapeHtml(program.total_credit_hrs)}`,
-                `<b>Seats:</b> ${escapeHtml(program.total_seats)}`,
-                `<b>Overview:</b> ${escapeHtml(program.description || 'Not listed')}`
+                formatFieldValue('Level', program.program_level),
+                formatFieldValue('Department', program.dept_name),
+                formatFieldValue('Duration', program.duration_years, null, ' years'),
+                formatFieldValue('Total Semesters', program.total_semesters),
+                formatFieldValue('Credit Hours', program.total_credit_hrs),
+                formatFieldValue('Seats', program.total_seats),
+                formatFieldValue('Overview', program.description)
             ])}`;
         }
     }
 
     const request = pool.request();
     let query = `
-        SELECT p.program_name, p.program_level, d.dept_name
+        SELECT p.program_name, p.program_level, p.duration_years, p.total_semesters,
+               p.total_credit_hrs, p.total_seats, d.dept_name
         FROM programs p
         JOIN departments d ON p.department_id = d.department_id
         WHERE p.is_active = 1
     `;
+
+    if (departmentMatch?.dept_name) {
+        request.input('departmentName', sql.VarChar, departmentMatch.dept_name);
+        query += ' AND d.dept_name = @departmentName';
+    }
 
     if (level) {
         request.input('level', sql.VarChar, level);
@@ -630,48 +1016,99 @@ async function getProgramsAnswer(intent, message, pool) {
     const result = await request.query(query);
     if (result.recordset.length === 0) return null;
 
-    const heading = level ? `${level} Programs at PUGC` : 'Programs at PUGC';
+    const heading = departmentMatch?.dept_name
+        ? `${departmentMatch.dept_name} Programs`
+        : level ? `${level} Programs at PUGC` : 'Programs at PUGC';
+
     return `<b>${escapeHtml(heading)}</b><br><br>${buildBulletList(
         result.recordset.map(program =>
-            `<b>${escapeHtml(program.program_name)}:</b> ${escapeHtml(program.program_level)} program in ${escapeHtml(program.dept_name)}`
+            `<b>${escapeHtml(program.program_name)}:</b> ${escapeHtml(program.program_level)}, ${escapeHtml(program.duration_years)} years, ${escapeHtml(program.total_semesters)} semesters, ${escapeHtml(program.total_credit_hrs)} credit hours${program.total_seats !== null ? `, ${escapeHtml(program.total_seats)} seats` : ''}, ${escapeHtml(program.dept_name)}`
         )
     )}`;
 }
 
-async function getFeesAnswer(message, pool) {
-    const programName = detectProgramName(message);
+async function getFeesAnswer(message, pool, catalog = null) {
+    const liveCatalog = catalog || await loadStructuredCatalog(pool);
+    const programMatch = findBestCatalogMatch(
+        message,
+        liveCatalog.programs.map(program => ({ ...program, name: program.program_name })),
+        item => buildProgramAliases(item.program_name),
+        50
+    );
+    const departmentMatch = findBestCatalogMatch(
+        message,
+        liveCatalog.departments.map(department => ({ ...department, name: department.dept_name })),
+        item => buildDepartmentAliases(item.dept_name),
+        50
+    );
+    const programName = programMatch?.program_name || detectProgramName(message);
+    const feeField = detectFeeField(message, liveCatalog.feeTypes);
 
     if (programName) {
         const result = await pool.request()
             .input('programName', sql.VarChar, programName)
             .query(`
-                SELECT p.program_name, ft.fee_type_name, fs.amount
+                SELECT p.program_name, ft.fee_type_id, ft.fee_type_name, fs.amount, fs.effective_from, fs.effective_to
                 FROM fee_structure fs
                 JOIN programs p ON fs.program_id = p.program_id
                 JOIN fee_types ft ON fs.fee_type_id = ft.fee_type_id
                 WHERE p.program_name = @programName
-                  AND fs.effective_to IS NULL
+                  AND (fs.effective_to IS NULL OR fs.effective_to >= CAST(GETDATE() AS date))
                 ORDER BY ft.fee_type_name
             `);
 
         if (result.recordset.length === 0) return null;
 
         const total = result.recordset.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+
+        if (feeField.kind === 'specific_fee_type' && feeField.feeType) {
+            const feeTypeRow = result.recordset.find(row => row.fee_type_id === feeField.feeType.fee_type_id);
+            if (feeTypeRow) {
+                return `<b>${escapeHtml(programName)} Fee Detail</b><br><br>${buildBulletList([
+                    `<b>${escapeHtml(feeTypeRow.fee_type_name)}:</b> ${formatCurrency(feeTypeRow.amount)}`,
+                    `<b>Effective From:</b> ${formatDate(feeTypeRow.effective_from)}`,
+                    `<b>Effective To:</b> ${feeTypeRow.effective_to ? formatDate(feeTypeRow.effective_to) : 'Current / Open'}`
+                ])}`;
+            }
+        }
+
+        if (feeField.kind === 'total') {
+            return `<b>${escapeHtml(programName)} Total Fee</b><br><br>${buildBulletList([
+                `<b>Total Semester Fee:</b> ${formatCurrency(total)}`
+            ])}`;
+        }
+
+        if (feeField.kind === 'effective_from' || feeField.kind === 'effective_to') {
+            const values = result.recordset.map(row =>
+                `<b>${escapeHtml(row.fee_type_name)}:</b> ${feeField.kind === 'effective_from' ? formatDate(row.effective_from) : row.effective_to ? formatDate(row.effective_to) : 'Current / Open'}`
+            );
+            return `<b>${escapeHtml(programName)} Fee Effective Dates</b><br><br>${buildBulletList(values)}`;
+        }
+
         return `<b>${escapeHtml(programName)} Fee Structure</b><br><br>${buildBulletList([
             ...result.recordset.map(row => `<b>${escapeHtml(row.fee_type_name)}:</b> ${formatCurrency(row.amount)}`),
             `<b>Total Semester Fee:</b> ${formatCurrency(total)}`
         ])}`;
     }
 
-    const result = await pool.request().query(`
-        SELECT TOP 8 program_name, program_level, dept_name, total_semester_fee
+    const request = pool.request();
+    let query = `
+        SELECT TOP 12 program_name, program_level, dept_name, total_semester_fee
         FROM vw_total_fee_per_program
-        ORDER BY program_level, program_name
-    `);
+        WHERE 1 = 1
+    `;
+
+    if (departmentMatch?.dept_name) {
+        request.input('departmentName', sql.VarChar, departmentMatch.dept_name);
+        query += ' AND dept_name = @departmentName';
+    }
+
+    query += ' ORDER BY program_level, program_name';
+    const result = await request.query(query);
 
     if (result.recordset.length === 0) return null;
 
-    return `<b>PUGC Fee Overview</b><br><br>${buildBulletList(
+    return `<b>${escapeHtml(departmentMatch?.dept_name ? `${departmentMatch.dept_name} Fee Overview` : 'PUGC Fee Overview')}</b><br><br>${buildBulletList(
         result.recordset.map(row =>
             `<b>${escapeHtml(row.program_name)}:</b> ${formatCurrency(row.total_semester_fee)} per semester (${escapeHtml(row.dept_name)})`
         )
@@ -706,20 +1143,60 @@ async function getFeeScheduleAnswer(intent, message, pool) {
     )}`;
 }
 
-async function getScholarshipAnswer(pool) {
-    const result = await pool.request().query(`
-        SELECT TOP 6 type_name, funding_source, benefit_percentage,
-               min_cgpa_required, max_family_income, semester_name,
-               application_deadline, max_beneficiaries
-        FROM vw_active_scholarships
-        ORDER BY application_deadline DESC
-    `);
+async function getScholarshipAnswer(message, pool, catalog = null) {
+    const liveCatalog = catalog || await loadStructuredCatalog(pool);
+    const scholarshipTypeMatch = findBestCatalogMatch(
+        message,
+        liveCatalog.scholarshipTypes.map(type => ({ ...type, name: type.type_name })),
+        item => buildGenericAliases(item.type_name),
+        50
+    );
+    const field = detectScholarshipField(message);
+    const request = pool.request();
+    let query = `
+        SELECT TOP 10 s.scholarship_id, st.type_name, st.funding_source, st.benefit_percentage,
+               st.min_cgpa_required, st.max_family_income, st.is_renewable,
+               sem.semester_name, sem.year, s.application_deadline, s.interview_date,
+               s.announcement_date, s.max_beneficiaries
+        FROM scholarships s
+        JOIN scholarship_types st ON s.scholarship_type_id = st.scholarship_type_id
+        JOIN semesters sem ON s.semester_id = sem.semester_id
+        WHERE s.is_active = 1
+    `;
+
+    if (scholarshipTypeMatch?.type_name) {
+        request.input('typeName', sql.VarChar, scholarshipTypeMatch.type_name);
+        query += ' AND st.type_name = @typeName';
+    }
+
+    query += ' ORDER BY s.application_deadline ASC';
+    const result = await request.query(query);
 
     if (result.recordset.length === 0) return null;
 
+    if (scholarshipTypeMatch?.type_name) {
+        const row = result.recordset[0];
+        const fieldMap = {
+            application_deadline: formatFieldValue('Application Deadline', row.application_deadline, formatDate),
+            interview_date: formatFieldValue('Interview Date', row.interview_date, formatDate),
+            announcement_date: formatFieldValue('Announcement Date', row.announcement_date, formatDate),
+            benefit_percentage: formatFieldValue('Benefit', row.benefit_percentage, null, '%'),
+            min_cgpa_required: formatFieldValue('Minimum CGPA', row.min_cgpa_required),
+            max_family_income: formatFieldValue('Maximum Family Income', row.max_family_income, formatCurrency),
+            is_renewable: formatFieldValue('Renewable', row.is_renewable ? 'Yes' : 'No'),
+            max_beneficiaries: formatFieldValue('Max Beneficiaries', row.max_beneficiaries),
+            funding_source: formatFieldValue('Funding Source', row.funding_source),
+            semester_name: formatFieldValue('Semester', `${row.semester_name} ${row.year}`)
+        };
+
+        if (field !== 'summary' && fieldMap[field]) {
+            return `<b>${escapeHtml(row.type_name)} Scholarship</b><br><br>${buildBulletList([fieldMap[field]])}`;
+        }
+    }
+
     return `<b>Scholarship Opportunities</b><br><br>${buildBulletList(
         result.recordset.map(row =>
-            `<b>${escapeHtml(row.type_name)}:</b> ${row.benefit_percentage ? `${escapeHtml(row.benefit_percentage)}% benefit, ` : ''}deadline ${formatDate(row.application_deadline)}, semester ${escapeHtml(row.semester_name)}, minimum CGPA ${escapeHtml(row.min_cgpa_required ?? 'Not listed')}`
+            `<b>${escapeHtml(row.type_name)}:</b> ${row.benefit_percentage ? `${escapeHtml(row.benefit_percentage)}% benefit, ` : ''}deadline ${formatDate(row.application_deadline)}, semester ${escapeHtml(`${row.semester_name} ${row.year}`)}, minimum CGPA ${escapeHtml(row.min_cgpa_required ?? 'Not listed')}, renewable ${row.is_renewable ? 'Yes' : 'No'}`
         )
     )}`;
 }
@@ -780,17 +1257,66 @@ async function getHostelAnswer(intent, message, pool) {
     )}`;
 }
 
-async function getEventsAnswer(intent, message, pool) {
+async function getEventsAnswer(intent, message, pool, catalog = null) {
+    const liveCatalog = catalog || await loadStructuredCatalog(pool);
+    const eventMatch = findBestCatalogMatch(
+        message,
+        liveCatalog.eventNames.map(event => ({ ...event, name: event.event_name })),
+        item => buildGenericAliases(item.event_name),
+        50
+    );
+    const eventTypeMatch = findBestCatalogMatch(
+        message,
+        liveCatalog.eventTypes.map(type => ({ ...type, name: type.type_name })),
+        item => buildGenericAliases(item.type_name),
+        50
+    );
     const category = detectEventCategory(intent, message);
+    const field = detectEventField(message);
+
+    if (eventMatch?.event_id) {
+        const result = await pool.request()
+            .input('eventId', sql.Int, eventMatch.event_id)
+            .query(`
+                SELECT TOP 1 e.event_name, et.type_name AS event_type, e.event_date, e.event_end_date,
+                       e.venue, e.description, e.registration_required, e.registration_deadline,
+                       sem.semester_name
+                FROM events e
+                JOIN event_types et ON e.event_type_id = et.event_type_id
+                LEFT JOIN semesters sem ON e.semester_id = sem.semester_id
+                WHERE e.event_id = @eventId
+            `);
+
+        if (result.recordset.length > 0) {
+            const row = result.recordset[0];
+            const fieldMap = {
+                venue: formatFieldValue('Venue', row.venue),
+                event_date: formatFieldValue('Date', row.event_date, formatDate),
+                event_end_date: formatFieldValue('End Date', row.event_end_date, formatDate),
+                registration_required: formatFieldValue('Registration', row.registration_required ? 'Required' : 'Not required'),
+                registration_deadline: formatFieldValue('Registration Deadline', row.registration_deadline, formatDate),
+                description: formatFieldValue('Details', row.description),
+                semester_name: formatFieldValue('Semester', row.semester_name)
+            };
+
+            if (field !== 'summary' && fieldMap[field]) {
+                return `<b>${escapeHtml(row.event_name)}</b><br><br>${buildBulletList([fieldMap[field]])}`;
+            }
+        }
+    }
+
     const upcomingRequest = pool.request();
     let upcomingQuery = `
-        SELECT TOP 6 event_name, event_type, event_date, event_end_date, venue,
+        SELECT TOP 8 event_name, event_type, event_date, event_end_date, venue,
                description, registration_required, registration_deadline, semester_name
         FROM vw_upcoming_events
         WHERE 1 = 1
     `;
 
-    if (category?.type) {
+    if (eventTypeMatch?.type_name) {
+        upcomingRequest.input('eventType', sql.VarChar, eventTypeMatch.type_name);
+        upcomingQuery += ' AND event_type = @eventType';
+    } else if (category?.type) {
         upcomingRequest.input('eventType', sql.VarChar, category.type);
         upcomingQuery += ' AND event_type = @eventType';
     }
@@ -800,7 +1326,7 @@ async function getEventsAnswer(intent, message, pool) {
         upcomingQuery += ' AND event_name LIKE @eventNameLike';
     }
 
-    if (intent === 'ask_event_registration' || intent === 'ask_event_eligibility') {
+    if (intent === 'ask_event_registration' || intent === 'ask_event_eligibility' || field === 'registration_required' || field === 'registration_deadline') {
         upcomingQuery += ' AND registration_required = 1';
     }
 
@@ -808,17 +1334,16 @@ async function getEventsAnswer(intent, message, pool) {
     const upcomingResult = await upcomingRequest.query(upcomingQuery);
 
     if (upcomingResult.recordset.length > 0) {
-        const heading = intent === 'ask_orientation' ? 'Upcoming Orientation Events' : 'Upcoming PUGC Events';
-        return `<b>${heading}</b><br><br>${buildBulletList(
+        return `<b>${escapeHtml(intent === 'ask_orientation' ? 'Upcoming Orientation Events' : eventTypeMatch?.type_name ? `${eventTypeMatch.type_name} Events` : 'Upcoming PUGC Events')}</b><br><br>${buildBulletList(
             upcomingResult.recordset.map(row => {
                 const details = [
-                    `<b>Date:</b> ${formatDate(row.event_date)}`,
-                    row.event_end_date && String(row.event_end_date) !== String(row.event_date) ? `<b>Ends:</b> ${formatDate(row.event_end_date)}` : null,
-                    `<b>Type:</b> ${escapeHtml(row.event_type)}`,
-                    row.venue ? `<b>Venue:</b> ${escapeHtml(row.venue)}` : null,
-                    row.semester_name ? `<b>Semester:</b> ${escapeHtml(row.semester_name)}` : null,
+                    formatFieldValue('Date', row.event_date, formatDate),
+                    row.event_end_date && String(row.event_end_date) !== String(row.event_date) ? formatFieldValue('Ends', row.event_end_date, formatDate) : null,
+                    formatFieldValue('Type', row.event_type),
+                    row.venue ? formatFieldValue('Venue', row.venue) : null,
+                    row.semester_name ? formatFieldValue('Semester', row.semester_name) : null,
                     row.registration_required ? `<b>Registration:</b> Required${row.registration_deadline ? ` by ${formatDate(row.registration_deadline)}` : ''}` : '<b>Registration:</b> Not required',
-                    row.description ? `<b>Details:</b> ${escapeHtml(row.description)}` : null
+                    row.description ? formatFieldValue('Details', row.description) : null
                 ].filter(Boolean).join('<br>');
 
                 return `<b>${escapeHtml(row.event_name)}:</b><br>${details}`;
@@ -826,47 +1351,8 @@ async function getEventsAnswer(intent, message, pool) {
         )}`;
     }
 
-    // If there are no future rows, show the user that current event data is outdated instead of presenting old events as upcoming.
-    const historyRequest = pool.request();
-    let historyQuery = `
-        SELECT TOP 3 e.event_name, et.type_name AS event_type, e.event_date, e.venue, e.registration_required
-        FROM events e
-        JOIN event_types et ON e.event_type_id = et.event_type_id
-        WHERE e.is_active = 1
-    `;
-
-    if (category?.type) {
-        historyRequest.input('historyEventType', sql.VarChar, category.type);
-        historyQuery += ' AND et.type_name = @historyEventType';
-    }
-
-    if (category?.nameLike) {
-        historyRequest.input('historyNameLike', sql.VarChar, category.nameLike);
-        historyQuery += ' AND e.event_name LIKE @historyNameLike';
-    }
-
-    if (intent === 'ask_event_registration' || intent === 'ask_event_eligibility') {
-        historyQuery += ' AND e.registration_required = 1';
-    }
-
-    historyQuery += ' ORDER BY e.event_date DESC';
-    const historyResult = await historyRequest.query(historyQuery);
-
-    const latestDate = historyResult.recordset[0]?.event_date;
-    const latestDateText = latestDate ? formatDate(latestDate) : 'N/A';
-    const categoryLabel = category?.type ? `${category.type.toLowerCase()} ` : '';
-
-    if (historyResult.recordset.length > 0) {
-        return `<b>No Upcoming ${escapeHtml(categoryLabel ? `${category.type} Events` : 'Events')}</b><br><br>${buildBulletList([
-            `There are no upcoming ${escapeHtml(categoryLabel)}event records in the current database as of <b>${formatDate(new Date())}</b>.`,
-            `The latest matching event record in the database is from <b>${latestDateText}</b>, so I am not showing it as an upcoming event.`,
-            `<b>Latest stored records:</b><br>${historyResult.recordset.map(row => `${escapeHtml(row.event_name)} (${formatDate(row.event_date)})`).join('<br>')}`,
-            `Please update the <b>events</b> table from the admin side or contact PUGC at <b>055-9200001</b> for the latest event schedule.`
-        ])}`;
-    }
-
     return `<b>No Event Data Available</b><br><br>${buildBulletList([
-        `There are no matching event records in the current database as of <b>${formatDate(new Date())}</b>.`,
+        `There are no matching upcoming event records in the current database as of <b>${formatDate(new Date())}</b>.`,
         `Please update the <b>events</b> table from the admin side before using dynamic event answers.`,
         `For confirmation, contact PUGC at <b>055-9200001</b>.`
     ])}`;
@@ -919,27 +1405,92 @@ async function getTransportAnswer(message, pool) {
     )}`;
 }
 
+async function getFaqSearchAnswer(message, pool) {
+    const tokens = extractMeaningfulTokens(message);
+    if (tokens.length === 0) return null;
+
+    const result = await pool.request().query(`
+        SELECT answer_text, intent_name, category_name
+        FROM vw_faq_complete
+        WHERE is_active = 1
+    `);
+
+    const normalizedMessage = normalizeLookupText(message);
+    let best = null;
+    let bestScore = 0;
+
+    for (const row of result.recordset) {
+        const haystack = normalizeLookupText(`${row.intent_name} ${row.category_name} ${row.answer_text}`);
+        const tokenMatches = tokens.filter(token => haystack.includes(token)).length;
+        const phraseBoost = haystack.includes(normalizedMessage) ? 10 : 0;
+        const score = tokenMatches * 2 + phraseBoost;
+
+        if (score > bestScore) {
+            bestScore = score;
+            best = row;
+        }
+    }
+
+    return bestScore >= 4 ? best.answer_text : null;
+}
+
+async function getSchemaAwareFallbackAnswer(message, pool) {
+    const catalog = await loadStructuredCatalog(pool);
+    const normalized = normalizeLookupText(message);
+
+    if (/\bfee|fees|tuition|charges|cost\b/.test(normalized)) {
+        const feeAnswer = await getFeesAnswer(message, pool, catalog);
+        if (feeAnswer) return feeAnswer;
+    }
+
+    if (/\bscholarship|cgpa|benefit|renewable|funding\b/.test(normalized)) {
+        const scholarshipAnswer = await getScholarshipAnswer(message, pool, catalog);
+        if (scholarshipAnswer) return scholarshipAnswer;
+    }
+
+    if (/\bevent|orientation|workshop|seminar|registration|venue\b/.test(normalized)) {
+        const eventAnswer = await getEventsAnswer('ask_semester_events', message, pool, catalog);
+        if (eventAnswer) return eventAnswer;
+    }
+
+    if (findBestCatalogMatch(message, catalog.programs.map(program => ({ ...program, name: program.program_name })), item => buildProgramAliases(item.program_name), 50)
+        || /\bprogram|semester|credit|duration|seat|seats\b/.test(normalized)) {
+        const programAnswer = await getProgramsAnswer('ask_available_programs', message, pool, catalog);
+        if (programAnswer) return programAnswer;
+    }
+
+    if (findBestCatalogMatch(message, catalog.departments.map(department => ({ ...department, name: department.dept_name })), item => buildDepartmentAliases(item.dept_name), 50)
+        || /\bdepartment|hod|head|office hours|room|block|location\b/.test(normalized)) {
+        const departmentAnswer = await getDepartmentAnswer('ask_department_list', message, pool, catalog);
+        if (departmentAnswer) return departmentAnswer;
+    }
+
+    return getFaqSearchAnswer(message, pool);
+}
+
 async function getDynamicAnswer(intent, message, pool) {
     const handler = DYNAMIC_INTENT_HANDLERS[intent];
     if (!handler) return null;
 
+    const catalog = await loadStructuredCatalog(pool);
+
     switch (handler) {
         case 'departments':
         case 'department_details':
-            return getDepartmentAnswer(intent, message, pool);
+            return getDepartmentAnswer(intent, message, pool, catalog);
         case 'programs':
         case 'program_details':
-            return getProgramsAnswer(intent, message, pool);
+            return getProgramsAnswer(intent, message, pool, catalog);
         case 'fees':
-            return getFeesAnswer(message, pool);
+            return getFeesAnswer(message, pool, catalog);
         case 'fee_schedule':
             return getFeeScheduleAnswer(intent, message, pool);
         case 'scholarships':
-            return getScholarshipAnswer(pool);
+            return getScholarshipAnswer(message, pool, catalog);
         case 'hostels':
             return getHostelAnswer(intent, message, pool);
         case 'events':
-            return getEventsAnswer(intent, message, pool);
+            return getEventsAnswer(intent, message, pool, catalog);
         case 'library':
             return getLibraryAnswer(intent, pool);
         case 'transport':
@@ -1031,9 +1582,8 @@ async function sendDBAnswerOrRefinedResponse(
     primaryIntent = null,
     fallbackIntents = []
 ) {
-    // Prefer database facts, then let Groq present them in a friendlier form.
-    const relevant = await isAnswerRelevant(message, dbAnswer, conversationHistory);
     const suggestedQuestions = await buildSuggestedQuestions(pool, primaryIntent, message, fallbackIntents);
+    const relevant = await isAnswerRelevant(message, dbAnswer, conversationHistory);
 
     if (relevant) {
         console.log(`Source: ${source}, refining DB answer for presentation`);
@@ -1126,6 +1676,20 @@ router.post('/chat', async (req, res) => {
                 );
             }
 
+            const rasaSchemaAnswer = await getSchemaAwareFallbackAnswer(enrichedMessage, pool);
+            if (rasaSchemaAnswer) {
+                return await sendDBAnswerOrRefinedResponse(
+                    pool,
+                    res,
+                    enrichedMessage,
+                    rasaSchemaAnswer,
+                    conversationHistory,
+                    'rasa_schema',
+                    true,
+                    intent
+                );
+            }
+
             // Rasa confident but no DB answer
             if (confidence >= 0.50) {
                 console.log('Rasa confident but no DB answer, Groq general...');
@@ -1138,6 +1702,20 @@ router.post('/chat', async (req, res) => {
         }
 
         // LAYER 3: Groq extracts intent → DB lookup
+        const schemaAwareAnswer = await getSchemaAwareFallbackAnswer(enrichedMessage, pool);
+        if (schemaAwareAnswer) {
+            return await sendDBAnswerOrRefinedResponse(
+                pool,
+                res,
+                enrichedMessage,
+                schemaAwareAnswer,
+                conversationHistory,
+                'schema_dynamic',
+                true,
+                intent
+            );
+        }
+
         console.log('Trying Groq intent extraction...');
         extractedIntent = await extractIntentFromQuestion(enrichedMessage);
         console.log(`Groq extracted intent: ${extractedIntent}`);
