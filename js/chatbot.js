@@ -98,6 +98,7 @@ function updateFeatureLocks() {
 
         const lockIcon = btn.querySelector('.lock-icon');
         const featureName = featureMap[btnId];
+        if (!lockIcon) return;
 
         if (hasFeatureAccess(featureName)) {
             lockIcon.style.display = 'none'; // ✅ unlocked
@@ -589,7 +590,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     faqBtn?.addEventListener('click', showFAQ);
     eventsBtn?.addEventListener('click', showEvents);
-    historyBtn?.addEventListener('click', loadHistory);
+    historyBtn?.addEventListener('click', (event) => {
+        event.preventDefault();
+        if (window.location.hash !== '#history') {
+            window.history.replaceState(null, '', '#history');
+        }
+        loadHistory();
+    });
+
+    if (window.location.hash === '#history') {
+        loadHistory();
+    }
 
     feedbackBtn?.addEventListener('click', () => {
         if (!hasFeatureAccess("Feedback & Ratings")) {

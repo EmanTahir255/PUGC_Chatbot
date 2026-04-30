@@ -17,63 +17,86 @@
 
 <div class="dashboard-layout">
 
-    <!-- SIDEBAR -->
     <aside class="sidebar">
         <div class="sidebar-header">
-            <i class="fas fa-robot"></i>
-            <span>PUGC SmartBot</span>
+            <div class="sidebar-brand">
+                <i class="fas fa-robot"></i>
+                <span class="brand-label">PUGC SmartBot</span>
+            </div>
+            <button type="button" class="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="true">
+                <i class="fas fa-bars"></i>
+            </button>
         </div>
 
-        <nav class="sidebar-menu">
+        <nav class="sidebar-menu" aria-label="Admin navigation">
             <div class="menu-links">
-                <a href="index.html">
-                <i class="fas fa-home"></i> Home
+                <a href="index.html" title="Home">
+                    <i class="fas fa-home"></i>
+                    <span class="nav-label">Home</span>
                 </a>
-                <a href="#" class="active" data-section="overview">
-                    <i class="fas fa-chart-pie"></i> Overview
+                <a href="#" class="active" data-section="overview" title="Overview">
+                    <i class="fas fa-chart-pie"></i>
+                    <span class="nav-label">Overview</span>
                 </a>
-                <a href="#" data-section="users">
-                    <i class="fas fa-users"></i> Users
+                <a href="#" data-section="users" title="Users">
+                    <i class="fas fa-users"></i>
+                    <span class="nav-label">Users</span>
                 </a>
-                <a href="#" data-section="subscriptions">
-                    <i class="fas fa-credit-card"></i> Subscriptions
+                <a href="#" data-section="subscriptions" title="Subscriptions">
+                    <i class="fas fa-credit-card"></i>
+                    <span class="nav-label">Subscriptions</span>
                 </a>
-                <a href="#" data-section="departments">
-                    <i class="fas fa-building"></i> Departments
+                <a href="#" data-section="departments" title="Departments">
+                    <i class="fas fa-building"></i>
+                    <span class="nav-label">Departments</span>
                 </a>
-                <a href="#" data-section="programs">
-                    <i class="fas fa-graduation-cap"></i> Programs
+                <a href="#" data-section="programs" title="Programs">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span class="nav-label">Programs</span>
                 </a>
-                <a href="#" data-section="feeStructures">
-                    <i class="fas fa-money-check-dollar"></i> Fee Structure
+                <a href="#" data-section="feeStructures" title="Fee Structure">
+                    <i class="fas fa-money-check-dollar"></i>
+                    <span class="nav-label">Fee Structure</span>
                 </a>
-                <a href="#" data-section="scholarships">
-                    <i class="fas fa-award"></i> Scholarships
+                <a href="#" data-section="scholarships" title="Scholarships">
+                    <i class="fas fa-award"></i>
+                    <span class="nav-label">Scholarships</span>
                 </a>
-                <a href="#" data-section="events">
-                    <i class="fas fa-calendar-alt"></i> Events
+                <a href="#" data-section="events" title="Events">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span class="nav-label">Events</span>
                 </a>
-                <a href="#" data-section="feedback">
-                    <i class="fas fa-star"></i> Feedback
+                <a href="#" data-section="feedback" title="Feedback">
+                    <i class="fas fa-star"></i>
+                    <span class="nav-label">Feedback</span>
                 </a>
             </div>
-
-            <a href="login.html" class="logout">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
         </nav>
+
+        <div class="sidebar-footer">
+            <button type="button" class="sidebar-profile-button" aria-haspopup="true">
+                <span class="profile-avatar" data-profile-initials>AD</span>
+                <span class="profile-details">
+                    <span class="profile-name" data-profile-name>Admin</span>
+                    <span class="profile-email" data-profile-email>admin</span>
+                </span>
+                <i class="fas fa-chevron-up profile-chevron"></i>
+            </button>
+            <div class="sidebar-profile-menu">
+                <button type="button" class="profile-menu-item" data-profile-action="profile">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Profile</span>
+                </button>
+                <button type="button" class="profile-menu-item danger" data-profile-action="logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <main class="main-content">
-
-        <header class="topbar">
-            <h1>Admin Dashboard</h1>
-            <div class="user-info">
-                <i class="fas fa-user-shield"></i>
-                <span>Admin</span>
-            </div>
-        </header>
 
         <section class="content">
 
@@ -173,5 +196,6 @@
 </div>
 
 <script src="js/admin-dashboard.js"></script>
+<script src="js/sidebar.js"></script>
 </body>
 </html>
