@@ -34,6 +34,22 @@ function isUserLoggedIn() {
     );
 }
 
+function getStoredUserRole() {
+    let currentUser = null;
+
+    try {
+        currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+    } catch (error) {
+        currentUser = null;
+    }
+
+    const storedRole = localStorage.getItem("userRole") || currentUser?.role;
+    if (storedRole) return storedRole;
+
+    const email = currentUser?.email || localStorage.getItem("userEmail") || "";
+    return email.toLowerCase().includes("admin") ? "admin" : "student";
+}
+
 // ==============================
 // SIGNUP VALIDATION
 // ==============================
@@ -160,7 +176,11 @@ if (loginForm) {
 // ==============================
 document.addEventListener("DOMContentLoaded", () => {
     const loggedIn = isUserLoggedIn();
-    const role = localStorage.getItem("userRole");
+    const role = getStoredUserRole();
+
+    if (loggedIn && role && !localStorage.getItem("userRole")) {
+        localStorage.setItem("userRole", role);
+    }
 
     // Protect pages
     if (document.body.classList.contains("protected-page") && !loggedIn) {

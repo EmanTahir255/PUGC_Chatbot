@@ -130,28 +130,60 @@ function registrationBadge(value) {
     return `<span class="status-badge ${value ? 'info' : 'muted'}">${value ? 'Registration On' : 'Walk-in / Not Required'}</span>`;
 }
 
-function setSection(sectionId) {
+const ADMIN_SECTION_IDS = new Set([
+    'overview',
+    'users',
+    'subscriptions',
+    'departments',
+    'programs',
+    'feeStructures',
+    'scholarships',
+    'events',
+    'feedback'
+]);
+
+function getSectionFromHash() {
+    const hash = window.location.hash.replace('#', '');
+    return ADMIN_SECTION_IDS.has(hash) ? hash : 'overview';
+}
+
+function setSection(sectionId, options = {}) {
+    const nextSection = ADMIN_SECTION_IDS.has(sectionId) ? sectionId : 'overview';
+
     document.querySelectorAll('.sidebar-menu a[data-section]').forEach(link => {
-        link.classList.toggle('active', link.dataset.section === sectionId);
+        link.classList.toggle('active', link.dataset.section === nextSection);
     });
 
     document.querySelectorAll('.section').forEach(section => {
-        section.classList.toggle('active', section.id === sectionId);
+        section.classList.toggle('active', section.id === nextSection);
     });
+
+    if (options.updateHash) {
+        const baseUrl = window.location.href.split('#')[0];
+        const nextUrl = nextSection === 'overview'
+            ? baseUrl
+            : `${baseUrl}#${nextSection}`;
+
+        window.history.replaceState(null, '', nextUrl);
+    }
 }
 
 function attachNavigation() {
     document.querySelectorAll('.sidebar-menu a[data-section]').forEach(link => {
         link.addEventListener('click', event => {
             event.preventDefault();
-            setSection(link.dataset.section);
+            setSection(link.dataset.section, { updateHash: true });
         });
     });
 
     document.querySelectorAll('.action-card[data-action]').forEach(card => {
         card.addEventListener('click', () => {
-            setSection(card.dataset.action);
+            setSection(card.dataset.action, { updateHash: true });
         });
+    });
+
+    window.addEventListener('hashchange', () => {
+        setSection(getSectionFromHash(), { updateHash: false });
     });
 }
 
@@ -1839,6 +1871,7 @@ function renderAllSections() {
 
 async function initializeAdminDashboard() {
     attachNavigation();
+    setSection(getSectionFromHash(), { updateHash: false });
     setOverviewCounts();
     renderUsersSection();
     renderSubscriptionsSection();

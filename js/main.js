@@ -18,10 +18,18 @@ async function loadLayout() {
 }
 
 function toggleNavbarButtons() {
-    const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+    const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true' || localStorage.getItem('isLoggedIn') === 'true';
     const role = localStorage.getItem('userRole') || '';
-    const user = JSON.parse(localStorage.getItem('currentUser')) || {};
+    let user = {};
+
+    try {
+        user = JSON.parse(localStorage.getItem('currentUser') || '{}') || {};
+    } catch (error) {
+        user = {};
+    }
+
     const email = (user.email || '').toLowerCase();
+    const isAdmin = role === 'admin' || email.includes('admin');
 
     const signinBtn = document.querySelector('.btn-login.signin');
     const signupBtn = document.querySelector('.btn-login.signup'); // Sign Up button
@@ -59,12 +67,12 @@ function toggleNavbarButtons() {
         }
     }
 
-    // Show/hide Student Dashboard (any logged-in user)
-    if (studentBtn) studentBtn.style.display = loggedIn ? 'flex' : 'none';
+    // Show/hide Student Dashboard (student users only)
+    if (studentBtn) studentBtn.style.display = (loggedIn && !isAdmin) ? 'flex' : 'none';
 
     // Show/hide Admin Dashboard (only admin users)
     if (adminBtn) {
-        adminBtn.style.display = (loggedIn && (role === 'admin' || email.includes('admin'))) ? 'flex' : 'none';
+        adminBtn.style.display = (loggedIn && isAdmin) ? 'flex' : 'none';
     }
 }
 
