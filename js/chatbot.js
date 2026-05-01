@@ -47,6 +47,22 @@ const ChatService = {
     }
 };
 
+function getChatbotCurrentUser() {
+    try {
+        return JSON.parse(localStorage.getItem('currentUser') || 'null') || {};
+    } catch (error) {
+        return {};
+    }
+}
+
+function isChatbotAdminUser() {
+    const currentUser = getChatbotCurrentUser();
+    const role = currentUser.role || localStorage.getItem('userRole') || '';
+    const email = currentUser.email || localStorage.getItem('userEmail') || '';
+
+    return role === 'admin' || email.toLowerCase().includes('admin');
+}
+
 
 // const ChatService = {
 //     async sendMessageToAI(userMessage) {
@@ -85,9 +101,10 @@ function hasFeatureAccess(featureName) {
     ]);
 
     if (!premiumOnly.has(featureName)) return true;
+    if (isChatbotAdminUser()) return true;
     if (window.SubscriptionService) return SubscriptionService.isPremium();
 
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    const currentUser = getChatbotCurrentUser();
     if (!currentUser || !currentUser.email) return false;
     return Array.isArray(currentUser.features) && currentUser.features.includes(featureName);
 }
@@ -436,7 +453,7 @@ function appendMessage(sender, text, className = '', suggestions = []) {
 
     // Show guided next-step questions under bot replies so the conversation keeps moving naturally.
     if (sender === 'bot' && suggestions.length > 0 && !className.includes('loading-text')) {
-        const suggestionLimit = window.SubscriptionService && !SubscriptionService.isPremium() ? 2 : 4;
+        const suggestionLimit = window.SubscriptionService && !SubscriptionService.isPremium() && !isChatbotAdminUser() ? 2 : 4;
         chatWindow.appendChild(createSuggestionChips(suggestions.slice(0, suggestionLimit)));
     }
 
@@ -531,12 +548,16 @@ function loadHistory() {
     const historyNote = document.getElementById('history-drawer-note');
     const history = getCurrentUserHistory();
     const premium = window.SubscriptionService ? SubscriptionService.isPremium() : hasFeatureAccess("Full Chat History");
-    const visibleHistory = premium ? history : history.slice(-5);
+    const adminPreview = isChatbotAdminUser();
+    const fullHistory = premium || adminPreview;
+    const visibleHistory = fullHistory ? history : history.slice(-5);
 
     if (!historyList) return;
 
     if (historyNote) {
-        historyNote.textContent = premium
+        historyNote.textContent = adminPreview
+            ? 'Admin preview mode shows your saved test messages for this account.'
+            : premium
             ? 'Premium access is active, so your full saved chat history is shown here.'
             : 'Free users can review the last 5 saved messages. Upgrade to premium for full chat history.';
     }
@@ -636,7 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (window.SubscriptionService) {
+        if (window.SubscriptionService && !isChatbotAdminUser()) {
             const usage = SubscriptionService.canSendChatMessage();
 
             if (!usage.allowed) {
@@ -653,7 +674,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         appendMessage('user', text);
         input.value = '';
-        window.SubscriptionService?.recordChatMessage();
+        if (!isChatbotAdminUser()) {
+            window.SubscriptionService?.recordChatMessage();
+        }
 
         if (text.toLowerCase() === '/faq') return showFAQ();
         if (text.toLowerCase() === '/events') return showEvents();

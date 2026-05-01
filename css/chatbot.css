@@ -75,6 +75,11 @@ body {
     color: #1e7a45;
 }
 
+.chatbot-meta-row .status-badge.admin {
+    background: #e8f0ff;
+    color: #3357a5;
+}
+
 .new-chat-btn {
     min-height: 32px;
     display: inline-flex;
