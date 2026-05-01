@@ -76,6 +76,17 @@ const ChatService = {
 // FEATURE ACCESS (CORE LOGIC)
 // ==============================
 function hasFeatureAccess(featureName) {
+    const premiumOnly = new Set([
+        "Event Reminders",
+        "Full Chat History",
+        "Fee Challan Generator",
+        "Smart Transcript Request Form Generator",
+        "Higher Chat Limit"
+    ]);
+
+    if (!premiumOnly.has(featureName)) return true;
+    if (window.SubscriptionService) return SubscriptionService.isPremium();
+
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     if (!currentUser || !currentUser.email) return false;
     return Array.isArray(currentUser.features) && currentUser.features.includes(featureName);
@@ -86,10 +97,7 @@ function hasFeatureAccess(featureName) {
 // ==============================
 function updateFeatureLocks() {
     const featureMap = {
-        "faq-btn": "FAQ Auto Suggestions",
         "events-btn": "Event Reminders",
-        "history-btn": "Chat History",
-        "feedback-btn": "Feedback & Ratings"
     };
 
     Object.keys(featureMap).forEach(btnId => {
@@ -428,14 +436,15 @@ function appendMessage(sender, text, className = '', suggestions = []) {
 
     // Show guided next-step questions under bot replies so the conversation keeps moving naturally.
     if (sender === 'bot' && suggestions.length > 0 && !className.includes('loading-text')) {
-        chatWindow.appendChild(createSuggestionChips(suggestions.slice(0, 4)));
+        const suggestionLimit = window.SubscriptionService && !SubscriptionService.isPremium() ? 2 : 4;
+        chatWindow.appendChild(createSuggestionChips(suggestions.slice(0, suggestionLimit)));
     }
 
     chatWindow.scrollTop = chatWindow.scrollHeight;
 
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     // Loading placeholders are visual only; saving them pollutes follow-up context.
-    if (currentUser?.email && !className.includes('loading-text')) {
+    if (currentUser?.email && !className.includes('loading-text') && !className.includes('history-replay')) {
         const historyKey = `chatHistory_${currentUser.email}`;
         const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
         history.push({ sender, text });
@@ -443,46 +452,127 @@ function appendMessage(sender, text, className = '', suggestions = []) {
     }
 }
 
-// ==============================
-// Load Chat History (Premium)
-// ==============================
-function loadHistory() {
-    if (!hasFeatureAccess("Chat History")) {
-        appendMessage('bot', "🔒 Chat History is locked. Subscribe to unlock this feature.");
-        return;
-    }
+function getChatEmptyStateHtml() {
+    return `
+        <div class="chat-empty-state">
+            <i class="fas fa-robot"></i>
+            <strong>PUGC SmartBot is ready</strong>
+            <span>Admissions, programs, fees, events, departments, and campus services.</span>
+        </div>
+    `;
+}
 
+function startNewChat() {
+    const chatWindow = document.getElementById('chat-window');
+    const input = document.getElementById('user-input');
+    if (!chatWindow) return;
+
+    chatWindow.innerHTML = getChatEmptyStateHtml();
+    input?.focus();
+}
+
+function getCurrentUserHistory() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    const history = JSON.parse(
-        localStorage.getItem(`chatHistory_${currentUser.email}`) || '[]'
-    );
+    if (!currentUser?.email) return [];
 
-    if (history.length === 0) {
-        appendMessage('bot', "🕑 No chat history yet. Start chatting!");
-    } else {
-        appendMessage('bot', "🕑 Your Chat History:");
-        history.forEach(msg => appendMessage(msg.sender, msg.text));
+    return JSON.parse(localStorage.getItem(`chatHistory_${currentUser.email}`) || '[]');
+}
+
+function getPlainHistoryText(text) {
+    return String(text || '')
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/@@BULLET@@/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function renderHistoryItem(message, index) {
+    const sender = message.sender === 'user' ? 'user' : 'bot';
+    const senderLabel = sender === 'user' ? 'You' : 'PUGC SmartBot';
+    const icon = sender === 'user' ? 'fa-user' : 'fa-robot';
+    const text = getPlainHistoryText(message.text) || 'No message text';
+
+    return `
+        <article class="history-item ${sender}">
+            <div class="history-item-header">
+                <span class="history-sender"><i class="fas ${icon}"></i> ${senderLabel}</span>
+                <span class="history-time">#${index + 1}</span>
+            </div>
+            <p class="history-text">${escapeHtml(text)}</p>
+        </article>
+    `;
+}
+
+function openHistoryDrawer() {
+    const drawer = document.getElementById('history-drawer');
+    if (!drawer) return;
+
+    drawer.classList.add('active');
+    drawer.setAttribute('aria-hidden', 'false');
+}
+
+function closeHistoryDrawer() {
+    const drawer = document.getElementById('history-drawer');
+    if (!drawer) return;
+
+    drawer.classList.remove('active');
+    drawer.setAttribute('aria-hidden', 'true');
+
+    if (window.location.hash === '#history') {
+        window.history.replaceState(null, '', window.location.pathname);
     }
 }
 
 // ==============================
-// FAQ Feature (Premium)
+// Load Chat History
 // ==============================
-function showFAQ() {
-    if (!hasFeatureAccess("FAQ Auto Suggestions")) {
-        appendMessage('bot', "🔒 FAQ is locked. Please subscribe to unlock it.");
-        return;
+function loadHistory() {
+    const historyList = document.getElementById('history-list');
+    const historyNote = document.getElementById('history-drawer-note');
+    const history = getCurrentUserHistory();
+    const premium = window.SubscriptionService ? SubscriptionService.isPremium() : hasFeatureAccess("Full Chat History");
+    const visibleHistory = premium ? history : history.slice(-5);
+
+    if (!historyList) return;
+
+    if (historyNote) {
+        historyNote.textContent = premium
+            ? 'Premium access is active, so your full saved chat history is shown here.'
+            : 'Free users can review the last 5 saved messages. Upgrade to premium for full chat history.';
     }
 
+    if (visibleHistory.length === 0) {
+        historyList.innerHTML = `
+            <div class="history-empty">
+                <div>
+                    <strong>No chat history yet</strong>
+                    <span>Start a conversation and your saved messages will appear here.</span>
+                </div>
+            </div>
+        `;
+    } else {
+        historyList.innerHTML = visibleHistory
+            .map((message, index) => renderHistoryItem(message, index))
+            .join('');
+    }
+
+    openHistoryDrawer();
+}
+
+// ==============================
+// FAQ Feature
+// ==============================
+function showFAQ() {
     const faqList = JSON.parse(localStorage.getItem('adminFAQs') || '[]');
 
     if(faqList.length === 0){
-        appendMessage('bot', "📌 No FAQs available yet.");
+        appendMessage('bot', "No FAQs available yet.");
         return;
     }
 
-    let faqText = "📌 Frequently Asked Questions:\n\n";
+    let faqText = "FAQ Suggestions:\n\n";
     faqList.forEach(f => faqText += `Q: ${f.q}\nA: ${f.a}\n\n`);
+
     appendMessage('bot', faqText.trim());
 }
 
@@ -508,25 +598,21 @@ function showEvents() {
 }
 
 // ==============================
-// Feedback & Rating (Premium)
+// Feedback & Rating
 // ==============================
 function submitFeedback(rating, message) {
-    if (!hasFeatureAccess("Feedback & Ratings")) {
-        appendMessage('bot', "🔒 Feedback & Ratings are locked. Subscribe to unlock.");
-        return;
-    }
-
     const feedback = JSON.parse(localStorage.getItem('feedback') || '[]');
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
 
     feedback.push({
         userEmail: currentUser.email,
         rating,
-        message
+        message,
+        createdAt: new Date().toISOString()
     });
 
     localStorage.setItem('feedback', JSON.stringify(feedback));
-    appendMessage('bot', "🙏 Thank you for your feedback!");
+    appendMessage('bot', "Thank you for your feedback.");
 }
 
 // ==============================
@@ -544,12 +630,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const text = input.value.trim();
         if (!text) return;
 
+        if (text.toLowerCase() === '/history') {
+            input.value = '';
+            loadHistory();
+            return;
+        }
+
+        if (window.SubscriptionService) {
+            const usage = SubscriptionService.canSendChatMessage();
+
+            if (!usage.allowed) {
+                appendMessage('bot', "Daily free chat limit reached. Upgrade to premium to continue chatting today.");
+                SubscriptionService.addNotification(
+                    'warning',
+                    'Chat limit reached',
+                    'You used all 20 free messages for today. Premium unlocks a higher chat limit.',
+                    'premium.html'
+                );
+                return;
+            }
+        }
+
         appendMessage('user', text);
         input.value = '';
+        window.SubscriptionService?.recordChatMessage();
 
         if (text.toLowerCase() === '/faq') return showFAQ();
         if (text.toLowerCase() === '/events') return showEvents();
-        if (text.toLowerCase() === '/history') return loadHistory();
 
         if (text.toLowerCase().startsWith('/feedback')) {
             const parts = text.split('|');
@@ -582,6 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const faqBtn = document.getElementById('faq-btn');
     const eventsBtn = document.getElementById('events-btn');
     const historyBtn = document.getElementById('history-btn');
+    const newChatBtn = document.getElementById('new-chat-btn');
     const feedbackBtn = document.getElementById('feedback-btn');
 
     const feedbackModal = document.getElementById('feedback-modal');
@@ -598,15 +706,17 @@ document.addEventListener('DOMContentLoaded', () => {
         loadHistory();
     });
 
+    newChatBtn?.addEventListener('click', startNewChat);
+
+    document.querySelectorAll('[data-history-close]').forEach(button => {
+        button.addEventListener('click', closeHistoryDrawer);
+    });
+
     if (window.location.hash === '#history') {
         loadHistory();
     }
 
     feedbackBtn?.addEventListener('click', () => {
-        if (!hasFeatureAccess("Feedback & Ratings")) {
-            appendMessage('bot', "🔒 Feedback & Ratings are locked. Subscribe to unlock.");
-            return;
-        }
         feedbackModal.style.display = 'flex';
     });
 
@@ -631,6 +741,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('click', (e) => {
         if (e.target === feedbackModal) feedbackModal.style.display = 'none';
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeHistoryDrawer();
+        }
     });
 });
 

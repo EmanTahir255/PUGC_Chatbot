@@ -79,31 +79,48 @@
         <section class="content">
 
             <div class="card chatbot-card">
-                <h2>Ask PUGC SmartBot</h2>
-                <p>Type your questions about courses, admissions, events, and more.</p>
-
-                <!-- Feature Buttons -->
-                <div class="chatbot-buttons">
-                    <button id="faq-btn">
-                        <i class="fas fa-question-circle"></i> FAQ
-                        <span class="lock-icon" data-premium="true">🔒</span>
-                    </button>
-                    <button id="events-btn">
-                        <i class="fas fa-calendar-alt"></i> Events
-                        <span class="lock-icon" data-premium="true">🔒</span>
-                    </button>
-                    <button id="feedback-btn">
-                        <i class="fas fa-star"></i> Feedback
-                        <span class="lock-icon" data-premium="true">🔒</span>
-                    </button>
+                <div class="chatbot-header">
+                    <div class="chatbot-meta-row">
+                        <span class="chatbot-kicker">Academic assistant</span>
+                        <span class="status-badge" data-subscription-status>Free</span>
+                        <button type="button" id="new-chat-btn" class="new-chat-btn">
+                            <i class="fas fa-plus"></i> New Chat
+                        </button>
+                    </div>
+                    <h2>Ask PUGC SmartBot</h2>
                 </div>
 
-
-                <div id="chat-window" class="chat-window"></div>
+                <div id="chat-window" class="chat-window">
+                    <div class="chat-empty-state">
+                        <i class="fas fa-robot"></i>
+                        <strong>PUGC SmartBot is ready</strong>
+                        <span>Admissions, programs, fees, events, departments, and campus services.</span>
+                    </div>
+                </div>
 
                 <div class="chat-input">
+                    <details class="chat-tools-menu">
+                        <summary aria-label="Open chat tools">
+                            <i class="fas fa-plus"></i>
+                        </summary>
+                        <div class="chatbot-buttons">
+                            <button id="faq-btn">
+                                <i class="fas fa-question-circle"></i> FAQ
+                            </button>
+                            <button id="events-btn">
+                                <i class="fas fa-calendar-alt"></i> Events
+                                <span class="lock-icon" data-premium="true"><i class="fas fa-lock"></i></span>
+                            </button>
+                            <button id="feedback-btn">
+                                <i class="fas fa-star"></i> Feedback
+                            </button>
+                            <a class="tool-upgrade-link" href="premium.html">
+                                <i class="fas fa-crown"></i> Upgrade
+                            </a>
+                        </div>
+                    </details>
                     <input type="text" id="user-input" placeholder="Type your message..." />
-                    <button id="send-btn"><i class="fas fa-paper-plane"></i></button>
+                    <button id="send-btn" aria-label="Send message"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
 
@@ -111,6 +128,26 @@
 
     </main>
 
+</div>
+
+<!-- History Drawer -->
+<div id="history-drawer" class="history-drawer" aria-hidden="true">
+    <div class="history-drawer-backdrop" data-history-close></div>
+    <aside class="history-drawer-panel" role="dialog" aria-modal="true" aria-labelledby="history-drawer-title">
+        <div class="history-drawer-header">
+            <div>
+                <span class="history-kicker">Saved conversations</span>
+                <h2 id="history-drawer-title">Chat History</h2>
+            </div>
+            <button type="button" class="history-close-btn" data-history-close aria-label="Close history">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <p class="history-drawer-note" id="history-drawer-note">
+            Free users can review recent history. Premium users can access full chat history.
+        </p>
+        <div id="history-list" class="history-list"></div>
+    </aside>
 </div>
 
 <!-- Feedback Modal -->
@@ -136,6 +173,7 @@
 
 <script src="js/auth-validation.js"></script>
 <script src="js/sidebar.js"></script>
+<script src="js/subscription.js"></script>
 <script src="js/chatbot.js"></script>
 
 </body>

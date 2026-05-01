@@ -1,69 +1,110 @@
-// Back button to Premium page
-document.getElementById('back-button').addEventListener('click', () => {
-    window.location.href = 'premium.html';
-});
+document.addEventListener('DOMContentLoaded', () => {
+    const backButton = document.getElementById('back-button');
+    const nameInput = document.getElementById('name');
+    const emailInput = document.getElementById('email');
+    const planSummary = document.getElementById('plan-summary');
+    const totalAmount = document.getElementById('total-amount');
+    const confirmPayment = document.getElementById('confirm-payment');
+    const paymentMessage = document.getElementById('payment-message');
+    const manualPaymentBox = document.getElementById('manual-payment-box');
+    const manualMethodTitle = document.getElementById('manual-method-title');
 
-// Get form fields
-const nameInput = document.getElementById('name');
-const emailInput = document.getElementById('email');
-const featuresContainer = document.getElementById('selected-features');
-const totalAmount = document.getElementById('total-amount');
+    const currentUser = SubscriptionService.getCurrentUser();
+    const selectedPlan = JSON.parse(localStorage.getItem('selectedSubscriptionPlan') || 'null') || SubscriptionService.PLANS.monthly;
 
-// Load current user from localStorage
-const currentUser = JSON.parse(localStorage.getItem('currentUser')) || {name: '', email: '', features: []};
-nameInput.value = currentUser.name || '';
-emailInput.value = currentUser.email || '';
-
-// Load selected features from localStorage
-let purchasedFeatures = JSON.parse(localStorage.getItem('purchasedFeatures')) || currentUser.features || [];
-
-// Map of feature prices
-const featurePrices = {
-    "FAQ Auto Suggestions": 5,
-    "Chat History": 3,
-    "Event Reminders": 4,
-    "Feedback & Ratings": 2
-};
-
-// Render features and total
-function renderFeatures() {
-    featuresContainer.innerHTML = '';
-    let total = 0;
-
-    purchasedFeatures.forEach(feature => {
-        const price = featurePrices[feature] || 0;
-        total += price;
-
-        const div = document.createElement('div');
-        div.className = 'feature-item';
-        div.innerHTML = `
-            <h4>${feature}</h4>
-            <span>$${price}</span>
-        `;
-        featuresContainer.appendChild(div);
+    backButton?.addEventListener('click', () => {
+        window.location.href = 'premium.html';
     });
 
-    totalAmount.textContent = total;
-}
+    nameInput.value = currentUser.name || '';
+    emailInput.value = currentUser.email || '';
 
-renderFeatures();
-
-// Confirm payment button
-document.getElementById('confirm-payment').addEventListener('click', () => {
-    if(purchasedFeatures.length === 0){
-        alert('Please select at least one feature to proceed!');
-        return;
+    function renderPlan() {
+        planSummary.innerHTML = `
+            <div class="plan-summary-row">
+                <div>
+                    <h4>${selectedPlan.name}</h4>
+                    <p>${selectedPlan.durationDays} days premium access, high chat limit, full history, event reminders, fee challan generator, and smart transcript request form generator.</p>
+                </div>
+                <strong>Rs. ${selectedPlan.price}</strong>
+            </div>
+        `;
+        totalAmount.textContent = selectedPlan.price;
     }
 
-    // Save purchased features to currentUser
-    currentUser.features = purchasedFeatures;
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    function setPaymentMessage(message, type = '') {
+        paymentMessage.textContent = message;
+        paymentMessage.className = `payment-message ${type}`.trim();
+    }
 
-    // ✅ Update the global users array
-    let users = JSON.parse(localStorage.getItem('users') || '[]');
-    users = users.map(u => u.email === currentUser.email ? currentUser : u);
-    localStorage.setItem('users', JSON.stringify(users));
+    function getSelectedPaymentMethod() {
+        return document.querySelector('input[name="payment-method"]:checked')?.value || 'Demo Payment';
+    }
 
-    alert('Subscription confirmed! Features unlocked.');
-    window.location.href = 'chatbot.html';
+    function updatePaymentMethodUI() {
+        const method = getSelectedPaymentMethod();
+        const isManual = method === 'Easypaisa' || method === 'JazzCash';
+
+        manualPaymentBox.hidden = !isManual;
+        manualMethodTitle.textContent = `${method} Manual Payment`;
+
+        if (isManual) {
+            setPaymentMessage('Manual methods are ready for admin verification later. For this FYP demo, payment will activate after you confirm.');
+        } else {
+            setPaymentMessage('Demo Payment activates the subscription instantly.');
+        }
+    }
+
+    document.querySelectorAll('input[name="payment-method"]').forEach(input => {
+        input.addEventListener('change', updatePaymentMethodUI);
+    });
+
+    confirmPayment?.addEventListener('click', async () => {
+        if (!nameInput.value.trim()) {
+            setPaymentMessage('Please enter your full name.', 'error');
+            nameInput.focus();
+            return;
+        }
+
+        if (!emailInput.value.trim()) {
+            setPaymentMessage('Login email is required before subscription.', 'error');
+            return;
+        }
+
+        confirmPayment.disabled = true;
+        confirmPayment.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing';
+        setPaymentMessage('Processing demo payment and sending confirmation email...');
+
+        const paymentMethod = getSelectedPaymentMethod();
+        const emailResult = await SubscriptionService.runDemoPayment(selectedPlan.id, paymentMethod);
+        const subscription = SubscriptionService.activateSubscription(
+            selectedPlan.id,
+            paymentMethod,
+            emailResult.payment || {}
+        );
+
+        SubscriptionService.addNotification(
+            'success',
+            'Subscription activated',
+            `${subscription.planName} is active until ${SubscriptionService.formatDate(subscription.expiresAt)}.`,
+            'premium.html'
+        );
+
+        if (emailResult.email?.sent) {
+            setPaymentMessage('Payment successful. Confirmation email sent.', 'success');
+        } else if (emailResult.email?.skipped) {
+            setPaymentMessage('Payment successful. Email is ready but SMTP settings are missing in backend .env.', 'success');
+        } else {
+            setPaymentMessage('Payment successful. Email could not be sent because the backend/email service is not reachable.', 'success');
+        }
+
+        localStorage.removeItem('selectedSubscriptionPlan');
+
+        window.setTimeout(() => {
+            window.location.href = 'chatbot.html';
+        }, 1400);
+    });
+
+    renderPlan();
+    updatePaymentMethodUI();
 });

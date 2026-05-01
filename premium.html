@@ -80,61 +80,65 @@
         <!-- Premium Content -->
         <section class="content full-screen-content">
 
-            <!-- Intro Card -->
             <div class="card premium-intro">
-                <h2><i class="fas fa-gift golden-icon"></i> Unlock Premium</h2>
-                <p>Select the features you want and confirm your subscription.</p>
+                <div>
+                    <h2><i class="fas fa-crown golden-icon"></i> Subscription</h2>
+                    <p>Upgrade your free account to remove daily limits and unlock advanced chatbot tools.</p>
+                </div>
+                <div class="subscription-pill">
+                    <span data-subscription-status>Free</span>
+                    <small>Expires: <strong data-subscription-expiry>Upgrade anytime</strong></small>
+                </div>
             </div>
 
-            <!-- Features Grid -->
-            <div class="features-grid">
-
-                <div class="card feature-card">
-                    <i class="fas fa-question-circle golden-icon"></i>
-                    <h3>FAQ Auto Suggestions</h3>
-                    <p>Get instant answers to common queries.</p>
-                    <p class="price">Price: $5</p>
-                    <label>
-                        <input type="checkbox" class="feature-checkbox" value="FAQ Auto Suggestions" data-price="5"> Select Feature
-                    </label>
+            <div class="plan-comparison">
+                <div class="card plan-card free-plan">
+                    <div class="plan-header">
+                        <i class="fas fa-user"></i>
+                        <div>
+                            <h3>Free User</h3>
+                            <p>For normal daily questions.</p>
+                        </div>
+                    </div>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-message"></i> 20 chatbot messages per day</li>
+                        <li><i class="fas fa-question-circle"></i> FAQ suggestions</li>
+                        <li><i class="fas fa-history"></i> Last 5 chat history messages</li>
+                        <li><i class="fas fa-star-half-alt"></i> Feedback and ratings</li>
+                    </ul>
                 </div>
 
-                <div class="card feature-card">
-                    <i class="fas fa-history golden-icon"></i>
-                    <h3>Chat History</h3>
-                    <p>Access previous conversations anytime.</p>
-                    <p class="price">Price: $3</p>
-                    <label>
-                        <input type="checkbox" class="feature-checkbox" value="Chat History" data-price="3"> Select Feature
-                    </label>
+                <div class="card plan-card premium-plan">
+                    <div class="plan-header">
+                        <i class="fas fa-gem"></i>
+                        <div>
+                            <h3>Premium User</h3>
+                            <p>For full chatbot access.</p>
+                        </div>
+                    </div>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-infinity"></i> High chat limit</li>
+                        <li><i class="fas fa-clock-rotate-left"></i> Full chat history</li>
+                        <li><i class="fas fa-calendar-check"></i> Event reminders</li>
+                        <li><i class="fas fa-file-invoice-dollar"></i> Fee challan generator</li>
+                        <li><i class="fas fa-file-signature"></i> Smart transcript request form generator</li>
+                    </ul>
                 </div>
-
-                <div class="card feature-card">
-                    <i class="fas fa-calendar-check golden-icon"></i>
-                    <h3>Event Reminders</h3>
-                    <p>Stay updated with events, deadlines, and exams.</p>
-                    <p class="price">Price: $4</p>
-                    <label>
-                        <input type="checkbox" class="feature-checkbox" value="Event Reminders" data-price="4"> Select Feature
-                    </label>
-                </div>
-
-                <div class="card feature-card">
-                    <i class="fas fa-star golden-icon"></i>
-                    <h3>Feedback & Ratings</h3>
-                    <p>Provide feedback to improve AI responses.</p>
-                    <p class="price">Price: $2</p>
-                    <label>
-                        <input type="checkbox" class="feature-checkbox" value="Feedback & Ratings" data-price="2"> Select Feature
-                    </label>
-                </div>
-
             </div>
 
-            <!-- Confirm Subscription -->
-            <div class="subscribe-section">
-                <button id="confirm-subscription" class="subscribe-btn">
-                    <i class="fas fa-check-circle"></i> Confirm Subscription
+            <div class="pricing-grid">
+                <button type="button" class="card pricing-card" data-plan-id="weekly">
+                    <span class="plan-badge">Weekly</span>
+                    <strong>Rs. 199</strong>
+                    <small>7 days premium access</small>
+                    <span class="choose-plan">Choose Weekly</span>
+                </button>
+
+                <button type="button" class="card pricing-card highlighted" data-plan-id="monthly">
+                    <span class="plan-badge">Monthly</span>
+                    <strong>Rs. 499</strong>
+                    <small>30 days premium access</small>
+                    <span class="choose-plan">Choose Monthly</span>
                 </button>
             </div>
 
@@ -146,6 +150,7 @@
 
 <script src="js/auth-validation.js"></script>
 <script src="js/sidebar.js"></script>
+<script src="js/subscription.js"></script>
 <script src="js/premium.js"></script>
 </body>
 </html>
