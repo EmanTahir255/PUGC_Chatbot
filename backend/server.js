@@ -9,8 +9,10 @@ app.use(express.json());
 // Import routes
 const chatRoutes = require('./routes/chat');
 const adminRoutes = require('./routes/admin');
+const subscriptionRoutes = require('./routes/subscription');
 app.use('/api', chatRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/subscription', subscriptionRoutes);
 
 // Start server
 const PORT = process.env.PORT || 3000;

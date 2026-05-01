@@ -14,7 +14,7 @@
   <!-- Checkout Styles -->
   <link rel="stylesheet" href="css/checkout.css">
 </head>
-<body>
+<body class="protected-page student-page">
 
   <div class="checkout-wrapper">
 
@@ -25,60 +25,104 @@
 
     <!-- Checkout Card -->
     <div class="checkout-card">
-      <h2><i class="fas fa-credit-card"></i> Complete Your Subscription</h2>
-      <p class="checkout-intro">
-        Review your selected features and confirm payment.
-      </p>
-
-      <!-- Student Info -->
-      <form class="checkout-form">
-        <div class="form-group">
-          <label for="name">Full Name</label>
-          <input type="text" id="name" required>
+      <aside class="checkout-receipt">
+        <div class="receipt-brand">
+          <span class="brand-mark"><i class="fas fa-crown"></i></span>
+          <div>
+            <span class="checkout-kicker">PUGC SmartBot</span>
+            <h2>Premium Receipt</h2>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="email">Email Address</label>
-          <input type="email" id="email" required readonly>
+
+        <p class="receipt-copy">
+          Review your subscription package before activating premium access.
+        </p>
+
+        <div class="plan-summary" id="plan-summary">
+          <!-- JS dynamically populates selected plan -->
         </div>
-      </form>
 
-      <!-- Payment Method -->
-<div class="form-group payment-group">
-    <label class="payment-label">Payment Method</label>
-    <div class="payment-options">
-        <label>
-            <input type="radio" name="payment-method" value="DebitCard" checked>
-            DebitCard
-        </label>
-        <label>
-            <input type="radio" name="payment-method" value="Easypaisa">
-            Easypaisa
-        </label>
-        <label>
-            <input type="radio" name="payment-method" value="JazzCash">
-            JazzCash
-        </label>
-    </div>
-</div>
+        <ul class="receipt-features">
+          <li><i class="fas fa-check"></i> Higher chat limit</li>
+          <li><i class="fas fa-check"></i> Full chat history</li>
+          <li><i class="fas fa-check"></i> Event reminders</li>
+          <li><i class="fas fa-check"></i> Fee challan and transcript tools</li>
+        </ul>
 
+        <div class="receipt-total">
+          <span>Total payable</span>
+          <strong>Rs. <span id="total-amount">0</span></strong>
+        </div>
 
-      <!-- Selected Features -->
-      <div class="features-list" id="selected-features">
-        <!-- JS dynamically populates features -->
+        <div class="receipt-note">
+          <i class="fas fa-envelope-circle-check"></i>
+          <span>Confirmation email and website notification are created after activation.</span>
+        </div>
+      </aside>
+
+      <section class="checkout-form-panel">
+        <div class="checkout-header">
+          <span class="checkout-kicker">Secure checkout</span>
+          <h1>Complete Your Subscription</h1>
+          <p class="checkout-intro">Choose a payment method and activate premium access.</p>
+        </div>
+
+        <!-- Student Info -->
+        <form class="checkout-form">
+          <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" required readonly>
+          </div>
+        </form>
+
+        <div class="form-group payment-group">
+          <label class="payment-label">Payment Method</label>
+          <div class="payment-options">
+            <label>
+              <input type="radio" name="payment-method" value="Demo Payment" checked>
+              Demo Payment
+            </label>
+            <label>
+              <input type="radio" name="payment-method" value="Easypaisa">
+              Easypaisa
+            </label>
+            <label>
+              <input type="radio" name="payment-method" value="JazzCash">
+              JazzCash
+            </label>
+          </div>
+        </div>
+
+        <div class="manual-payment-box" id="manual-payment-box" hidden>
+          <strong id="manual-method-title">Manual Payment</strong>
+          <p>Send payment to the demo merchant number and upload a screenshot for admin approval later.</p>
+          <div class="merchant-row">
+            <span>Merchant No.</span>
+            <strong>0300-0000000</strong>
+          </div>
+          <label class="upload-field">
+            <span>Payment screenshot</span>
+            <input type="file" id="payment-proof" accept="image/*">
+          </label>
+        </div>
+
+        <div class="payment-action">
+          <div class="payment-message" id="payment-message" role="status"></div>
+
+          <button id="confirm-payment" class="checkout-btn">
+            <i class="fas fa-check-circle"></i> Pay & Activate
+          </button>
+        </div>
+      </section>
       </div>
-
-      <!-- Total -->
-      <div class="total-price">
-        Total: $<span id="total-amount">0</span>
-      </div>
-
-      <!-- Confirm Payment -->
-      <button id="confirm-payment" class="checkout-btn">
-        <i class="fas fa-check-circle"></i> Confirm Payment
-      </button>
-    </div>
   </div>
 
+  <script src="js/auth-validation.js"></script>
+  <script src="js/subscription.js"></script>
   <script src="js/checkout.js"></script>
 </body>
 </html>

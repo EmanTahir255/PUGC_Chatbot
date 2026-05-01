@@ -71,6 +71,7 @@ if (signupForm) {
             name: name.value.trim(),
             email: email.value.trim(),
             features: [], // initially empty
+            subscription: { status: "free" },
             role: role
         };
         localStorage.setItem("currentUser", JSON.stringify(user));
@@ -127,6 +128,7 @@ if (loginForm) {
         let currentUser = {
             email: email.value.trim(),
             features: [],
+            subscription: { status: "free" },
             role: role
         };
 
@@ -138,6 +140,7 @@ if (loginForm) {
             const foundUser = users.find(u => u.email === email.value.trim());
             currentUser.name = foundUser ? foundUser.name : ""; // use name if exists, else blank
             currentUser.features = foundUser ? foundUser.features || [] : [];
+            currentUser.subscription = foundUser ? foundUser.subscription || { status: "free" } : { status: "free" };
         }
 
         localStorage.setItem("currentUser", JSON.stringify(currentUser));

@@ -1,6 +1,9 @@
 /* Premium Page Styles */
 .premium-intro {
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
     margin-bottom: 30px;
 }
 
@@ -13,88 +16,162 @@
     color: #555;
 }
 
-/* Features Grid */
-.features-grid {
+.subscription-pill {
+    display: grid;
+    gap: 4px;
+    padding: 12px 16px;
+    border: 1px solid #e8edf5;
+    border-radius: 10px;
+    background: #f9fbff;
+    min-width: 180px;
+    text-align: left;
+}
+
+.subscription-pill span {
+    color: var(--primary);
+    font-weight: 800;
+}
+
+.subscription-pill span.premium {
+    color: #1a7c4a;
+}
+
+.subscription-pill small {
+    color: #657386;
+}
+
+.plan-comparison,
+.pricing-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 20px;
 }
 
-.feature-card {
-    text-align: center;
+.plan-card {
+    text-align: left;
     display: flex;
     flex-direction: column;
+    gap: 18px;
+}
+
+.plan-header {
+    display: flex;
     align-items: center;
-    padding: 25px;
-    border-radius: 14px;
-    background: #fff;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-    transition: all 0.3s ease;
+    gap: 14px;
 }
 
-.feature-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.12);
-}
-
-.feature-card i {
-    font-size: 2rem;
-    margin-bottom: 10px;
+.plan-header i {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(212, 160, 23, 0.14);
     color: #e6af1a;
-}
-
-.feature-card h3 {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-size: 1.2rem;
-    margin-bottom: 8px;
 }
 
-.feature-card p {
-    margin: 5px 0;
+.plan-header h3 {
+    font-size: 1.2rem;
+    margin-bottom: 4px;
+    color: var(--primary);
 }
 
-.feature-card .price {
-    font-weight: 600;
+.plan-header p {
+    margin: 0;
+    color: #657386;
 }
 
-.feature-card label {
-    margin-top: 10px;
+.feature-list {
+    list-style: none;
+    display: grid;
+    gap: 12px;
+    padding: 0;
+    margin: 0;
 }
 
-/* Subscribe Button */
-.subscribe-section {
+.feature-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #344255;
+    line-height: 1.45;
+}
+
+.feature-list i {
+    color: #1f7a53;
+    width: 18px;
     text-align: center;
-    margin-top: 20px;
 }
 
-.subscribe-btn {
-    display: inline-block;
-    background: #e6af1a;
-    color: #fff;
-    padding: 12px 25px;
-    border-radius: 50px;
-    font-weight: 700;
-    font-size: 1rem;
-    border: none;
+.pricing-grid {
+    margin-top: 5px;
+}
+
+.pricing-card {
+    text-align: left;
+    border: 1px solid #e8edf5;
     cursor: pointer;
-    transition: all 0.3s ease;
+    color: inherit;
+    align-items: flex-start;
 }
 
-.subscribe-btn i {
-    margin-right: 8px;
+.pricing-card.highlighted {
+    border-color: #e6af1a;
+    box-shadow: 0 12px 28px rgba(212, 160, 23, 0.16);
 }
 
-.subscribe-btn:hover {
-    background: #d49e18;
+.pricing-card:hover {
     transform: translateY(-2px);
+}
+
+.plan-badge {
+    display: inline-flex;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #eef3fb;
+    color: var(--primary);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.pricing-card strong {
+    color: var(--primary);
+    font-size: 2rem;
+    margin-top: 14px;
+}
+
+.pricing-card small {
+    color: #657386;
+    margin: 6px 0 16px;
+}
+
+.choose-plan {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 11px 18px;
+    border-radius: 999px;
+    background: #e6af1a;
+    color: #ffffff;
+    font-weight: 800;
 }
 
 /* Responsive */
 @media (max-width: 900px) {
-    .features-grid {
-        grid-template-columns: 1fr;
+    .premium-intro {
+        align-items: flex-start;
+        flex-direction: column;
     }
 
-    .subscribe-btn {
-        width: 70%;
+    .subscription-pill {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .plan-comparison,
+    .pricing-grid {
+        grid-template-columns: 1fr;
     }
 }
