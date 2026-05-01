@@ -9,6 +9,7 @@ const {
     refineAnswerWithDBContext,
     getGroundedGroqResponse
 } = require('../gemini');
+const { logChat } = require('../chat_logger');
 
 const DYNAMIC_INTENT_HANDLERS = {
     // Departments
@@ -440,6 +441,22 @@ function buildBulletList(items) {
     return `<ul>${items.map(item => `<li>${item}</li>`).join('')}</ul>`;
 }
 
+function missingDataAnswer(text) {
+    return { text, answerStatus: 'missing_data' };
+}
+
+function getAnswerText(answer) {
+    return typeof answer === 'object' && answer !== null && 'text' in answer
+        ? answer.text
+        : answer;
+}
+
+function getAnswerStatus(answer) {
+    return typeof answer === 'object' && answer !== null
+        ? answer.answerStatus || 'answered'
+        : 'answered';
+}
+
 const LOOKUP_STOP_WORDS = new Set([
     'the', 'a', 'an', 'of', 'for', 'to', 'is', 'are', 'in', 'at', 'on', 'with', 'and',
     'or', 'do', 'does', 'did', 'can', 'i', 'we', 'you', 'it', 'this', 'that', 'these',
@@ -464,6 +481,37 @@ function extractMeaningfulTokens(value = '') {
     return normalizeLookupText(value)
         .split(' ')
         .filter(token => token && token.length > 1 && !LOOKUP_STOP_WORDS.has(token));
+}
+
+function hasSpecificUnknownSubject(message = '', domainWords = []) {
+    const domainSet = new Set(domainWords);
+    return extractMeaningfulTokens(message)
+        .filter(token => !domainSet.has(token))
+        .some(token => token.length >= 4);
+}
+
+function hasUnknownSpecificProgramRequest(message = '', catalog = null) {
+    const normalized = normalizeLookupText(message);
+    const hasProgramContext = /\b(program|course|degree|bs|ms|phd|bachelor|master|study)\b/.test(normalized);
+    if (!hasProgramContext) return false;
+
+    const programMatch = catalog
+        ? findBestCatalogMatch(
+            message,
+            catalog.programs.map(program => ({ ...program, name: program.program_name })),
+            item => buildProgramAliases(item.program_name),
+            50
+        )
+        : null;
+
+    if (programMatch) return false;
+
+    return hasSpecificUnknownSubject(message, [
+        'program', 'programs', 'course', 'degree', 'available', 'offer', 'offered', 'study',
+        'pugc', 'punjab', 'university', 'campus', 'bs', 'ms', 'phd', 'bachelor', 'master',
+        'details', 'detail', 'list', 'fee', 'fees', 'tuition', 'charges', 'cost', 'structure',
+        'semester', 'total', 'what'
+    ]);
 }
 
 function addAlias(set, value) {
@@ -1021,9 +1069,9 @@ async function getDepartmentAnswer(intent, message, pool, catalog = null) {
                 `);
 
             if (programResult.recordset.length === 0) {
-                return `<b>${escapeHtml(dept.dept_name)} Department Programs</b><br><br>${buildBulletList([
+                return missingDataAnswer(`<b>${escapeHtml(dept.dept_name)} Department Programs</b><br><br>${buildBulletList([
                     'No active programs are currently listed for this department in the database.'
-                ])}`;
+                ])}`);
             }
 
             return `<b>${escapeHtml(dept.dept_name)} Department Programs</b><br><br>${buildBulletList(
@@ -1131,6 +1179,22 @@ async function getProgramsAnswer(intent, message, pool, catalog = null) {
                 formatFieldValue('Overview', program.description)
             ])}`;
         }
+
+        return missingDataAnswer(`<b>Program Data Not Available</b><br><br>${buildBulletList([
+            `The current PUGC database does not contain an active record for <b>${escapeHtml(programName)}</b>.`,
+            'Please contact PUGC directly for confirmation.'
+        ])}`);
+    }
+
+    const asksSpecificProgram = hasUnknownSpecificProgramRequest(message, liveCatalog)
+        && !departmentMatch
+        && !level;
+
+    if (asksSpecificProgram) {
+        return missingDataAnswer(`<b>Program Data Not Available</b><br><br>${buildBulletList([
+            'The current PUGC database does not contain an active program record matching this request.',
+            'Please contact PUGC directly for confirmation.'
+        ])}`);
     }
 
     const request = pool.request();
@@ -1197,7 +1261,12 @@ async function getFeesAnswer(message, pool, catalog = null) {
                 ORDER BY ft.fee_type_name
             `);
 
-        if (result.recordset.length === 0) return null;
+        if (result.recordset.length === 0) {
+            return missingDataAnswer(`<b>Fee Data Not Available</b><br><br>${buildBulletList([
+                `The current PUGC database has an active program record for <b>${escapeHtml(programName)}</b>, but no current fee records are listed for it.`,
+                'Please contact PUGC directly for confirmation.'
+            ])}`);
+        }
 
         const total = result.recordset.reduce((sum, row) => sum + Number(row.amount || 0), 0);
 
@@ -1231,6 +1300,13 @@ async function getFeesAnswer(message, pool, catalog = null) {
         ])}`;
     }
 
+    if (hasUnknownSpecificProgramRequest(message, liveCatalog) && !departmentMatch) {
+        return missingDataAnswer(`<b>Fee Data Not Available</b><br><br>${buildBulletList([
+            'The current PUGC database does not contain an active program record matching this fee request.',
+            'Please contact PUGC directly for confirmation.'
+        ])}`);
+    }
+
     const request = pool.request();
     let query = `
         SELECT TOP 12 program_name, program_level, dept_name, total_semester_fee
@@ -1258,6 +1334,13 @@ async function getFeesAnswer(message, pool, catalog = null) {
 async function getFeeScheduleAnswer(intent, message, pool, catalog = null) {
     const liveCatalog = catalog || await loadStructuredCatalog(pool);
     const programName = detectProgramName(message, liveCatalog.programs);
+    if (!programName && hasUnknownSpecificProgramRequest(message, liveCatalog)) {
+        return missingDataAnswer(`<b>Fee Schedule Data Not Available</b><br><br>${buildBulletList([
+            'The current PUGC database does not contain an active program record matching this fee schedule request.',
+            'Please contact PUGC directly for confirmation.'
+        ])}`);
+    }
+
     const request = pool.request();
     let query = `
         SELECT TOP 6 p.program_name, sem.semester_name, fs.due_date, fs.late_fee_per_day, fs.grace_period_days
@@ -1374,11 +1457,11 @@ async function getScholarshipAnswer(message, pool, catalog = null) {
             const fieldValueRaw = row[field];
             const fieldMissing = fieldValueRaw === null || fieldValueRaw === undefined || fieldValueRaw === '';
             if (fieldMissing) {
-                return `<b>${escapeHtml(row.type_name)} Scholarship</b><br><br>${buildBulletList([
+                return missingDataAnswer(`<b>${escapeHtml(row.type_name)} Scholarship</b><br><br>${buildBulletList([
                     `This scholarship exists in the current PUGC data, but the requested ${escapeHtml(field.replace(/_/g, ' '))} is not listed for the matched record.`,
                     `<b>Semester:</b> ${escapeHtml(`${row.semester_name} ${row.year}`)}`,
                     `<b>Status:</b> ${escapeHtml(getScholarshipStatus(row))}`
-                ])}`;
+                ])}`);
             }
 
             return `<b>${escapeHtml(row.type_name)} Scholarship</b><br><br>${buildBulletList([
@@ -1386,6 +1469,21 @@ async function getScholarshipAnswer(message, pool, catalog = null) {
                 formatFieldValue('Status', getScholarshipStatus(row))
             ])}`;
         }
+    }
+
+    const asksSpecificScholarship = !scholarshipTypeMatch
+        && /\bscholarship|financial aid|funding\b/.test(normalizeLookupText(message))
+        && hasSpecificUnknownSubject(message, [
+            'scholarship', 'scholarships', 'financial', 'aid', 'funding', 'available', 'apply',
+            'deadline', 'cgpa', 'criteria', 'eligibility', 'renewable', 'pugc', 'punjab',
+            'university', 'campus', 'offer', 'offered', 'only', 'list', 'all', 'current'
+        ]);
+
+    if (asksSpecificScholarship) {
+        return missingDataAnswer(`<b>Scholarship Data Not Available</b><br><br>${buildBulletList([
+            'The current PUGC database does not contain a scholarship record matching this specific request.',
+            'Please contact PUGC directly for confirmation.'
+        ])}`);
     }
 
     const heading = scope === 'past'
@@ -1476,6 +1574,15 @@ async function getEventsAnswer(intent, message, pool, catalog = null) {
     const category = detectEventCategory(intent, message);
     const field = detectEventField(message);
     const timeScope = detectEventTimeScope(message);
+    const asksSpecificEvent = !eventMatch
+        && !eventTypeMatch
+        && !category
+        && /\b(event|trip|tour|visit|excursion|seminar|workshop|orientation|planned|plan)\b/.test(normalizeLookupText(message))
+        && hasSpecificUnknownSubject(message, [
+            'event', 'events', 'trip', 'tour', 'visit', 'excursion', 'seminar', 'workshop',
+            'orientation', 'planned', 'plan', 'pugc', 'punjab', 'university', 'campus',
+            'upcoming', 'future', 'next', 'schedule', 'held', 'date', 'when'
+        ]);
 
     if (eventMatch?.event_id) {
         const result = await pool.request()
@@ -1506,6 +1613,13 @@ async function getEventsAnswer(intent, message, pool, catalog = null) {
                 return `<b>${escapeHtml(row.event_name)}</b><br><br>${buildBulletList([fieldMap[field]])}`;
             }
         }
+    }
+
+    if (asksSpecificEvent) {
+        return missingDataAnswer(`<b>Event Data Not Available</b><br><br>${buildBulletList([
+            'The current PUGC database does not contain an event record matching this specific request.',
+            'Please contact PUGC directly for confirmation.'
+        ])}`);
     }
 
     const eventsRequest = pool.request();
@@ -1592,11 +1706,11 @@ async function getEventsAnswer(intent, message, pool, catalog = null) {
                 ? 'matching'
                 : 'upcoming';
 
-    return `<b>No Event Data Available</b><br><br>${buildBulletList([
+    return missingDataAnswer(`<b>No Event Data Available</b><br><br>${buildBulletList([
         `There are no ${escapeHtml(scopeLabel)} event records matching this request in the current database as of <b>${formatDate(new Date())}</b>.`,
         `You can add or update records in the <b>events</b> table from the admin dashboard to make this answer available dynamically.`,
         `For confirmation, contact PUGC at <b>055-9200001</b>.`
-    ])}`;
+    ])}`);
 }
 
 async function getLibraryAnswer(intent, pool) {
@@ -1689,7 +1803,7 @@ async function getSchemaAwareFallbackAnswer(message, pool) {
         if (scholarshipAnswer) return scholarshipAnswer;
     }
 
-    if (/\bevent|orientation|workshop|seminar|registration|venue\b/.test(normalized)) {
+    if (/\bevent|orientation|workshop|seminar|registration|venue|trip|tour|excursion\b/.test(normalized)) {
         const eventAnswer = await getEventsAnswer('ask_semester_events', message, pool, catalog);
         if (eventAnswer) return eventAnswer;
     }
@@ -1812,6 +1926,11 @@ function getLastBotTopic(history) {
     return null;
 }
 
+async function logChatFromReply(message, intent, replyText, source, contextText = '') {
+    const explicitStatus = getAnswerStatus(contextText);
+    await logChat(message, intent, explicitStatus !== 'missing_data', source);
+}
+
 async function sendDBAnswerOrRefinedResponse(
     pool,
     res,
@@ -1824,31 +1943,37 @@ async function sendDBAnswerOrRefinedResponse(
     fallbackIntents = []
 ) {
     const suggestedQuestions = await buildSuggestedQuestions(pool, primaryIntent, message, fallbackIntents);
-    const relevant = await isAnswerRelevant(message, dbAnswer, conversationHistory);
+    const dbAnswerText = getAnswerText(dbAnswer);
+    const relevant = await isAnswerRelevant(message, dbAnswerText, conversationHistory);
 
     if (relevant) {
         console.log(`Source: ${source}, refining DB answer for presentation`);
-        const refinedAnswer = await refineAnswerWithDBContext(message, dbAnswer, conversationHistory);
-        return res.json({ reply: refinedAnswer || dbAnswer, source: `${source}_refined`, suggestedQuestions });
+        const refinedAnswer = await refineAnswerWithDBContext(message, dbAnswerText, conversationHistory);
+        await logChatFromReply(message, primaryIntent, refinedAnswer || dbAnswerText, `${source}_refined`, dbAnswer);
+        return res.json({ reply: refinedAnswer || dbAnswerText, source: `${source}_refined`, suggestedQuestions });
     }
 
     if (!allowRefinement) {
         console.log(`Source: ${source} not relevant, using grounded Groq fallback`);
-        const groqAnswer = await getGroundedGroqResponse(message, dbAnswer, conversationHistory);
+        const groqAnswer = await getGroundedGroqResponse(message, dbAnswerText, conversationHistory);
         if (groqAnswer) {
+            await logChatFromReply(message, primaryIntent, groqAnswer, 'groq_grounded', dbAnswer);
             return res.json({ reply: groqAnswer, source: 'groq_grounded', suggestedQuestions });
         }
 
-        return res.json({ reply: dbAnswer, source, suggestedQuestions });
+        await logChatFromReply(message, primaryIntent, dbAnswerText, source, dbAnswer);
+        return res.json({ reply: dbAnswerText, source, suggestedQuestions });
     }
 
     console.log(`Source: ${source} not directly relevant, refining with Groq`);
-    const refinedAnswer = await refineAnswerWithDBContext(message, dbAnswer, conversationHistory);
+    const refinedAnswer = await refineAnswerWithDBContext(message, dbAnswerText, conversationHistory);
     if (refinedAnswer) {
+        await logChatFromReply(message, primaryIntent, refinedAnswer, `${source}_refined`, dbAnswer);
         return res.json({ reply: refinedAnswer, source: `${source}_refined`, suggestedQuestions });
     }
 
-    return res.json({ reply: dbAnswer, source, suggestedQuestions });
+    await logChatFromReply(message, primaryIntent, dbAnswerText, source, dbAnswer);
+    return res.json({ reply: dbAnswerText, source, suggestedQuestions });
 }
 
 router.post('/chat', async (req, res) => {
@@ -1937,6 +2062,7 @@ router.post('/chat', async (req, res) => {
                 const groqAnswer = await getGroqResponse(message, conversationHistory);
                 if (groqAnswer) {
                     const suggestedQuestions = await buildSuggestedQuestions(pool, intent, message, [extractedIntent]);
+                    await logChatFromReply(message, intent, groqAnswer, 'groq_general');
                     return res.json({ reply: groqAnswer, source: 'groq_general', suggestedQuestions });
                 }
             }
@@ -1999,6 +2125,7 @@ router.post('/chat', async (req, res) => {
         if (groqAnswer) {
             console.log('Source: Groq general');
             const suggestedQuestions = await buildSuggestedQuestions(pool, extractedIntent || intent, message);
+            await logChatFromReply(message, extractedIntent || intent, groqAnswer, 'groq_general');
             return res.json({ reply: groqAnswer, source: 'groq', suggestedQuestions });
         }
 
@@ -2010,6 +2137,7 @@ router.post('/chat', async (req, res) => {
                 suggestions.map(item => item.example_text),
                 message
             ).slice(0, 4);
+            await logChat(message, suggestionIntent, false, 'training_examples');
             return res.json({
                 reply: wrapSuggestionsReply(
                     'I May Have Missed Your Question',
@@ -2022,6 +2150,7 @@ router.post('/chat', async (req, res) => {
         }
 
         const fallbackSuggestions = await buildSuggestedQuestions(pool, suggestionIntent, message);
+        await logChat(message, suggestionIntent, false, 'fallback');
         return res.json({
             reply: '<b>Sorry, I could not find an answer.</b><br><br>Please contact PUGC directly:<br>Phone: <b>055-9200001</b><br>Email: info@pugc.edu.pk',
             source: 'fallback',

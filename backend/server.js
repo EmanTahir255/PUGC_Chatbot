@@ -10,9 +10,13 @@ app.use(express.json());
 const chatRoutes = require('./routes/chat');
 const adminRoutes = require('./routes/admin');
 const subscriptionRoutes = require('./routes/subscription');
+const reportRoutes = require('./routes/report');
+
 app.use('/api', chatRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin', reportRoutes); 
 app.use('/api/subscription', subscriptionRoutes);
+
 
 // Start server
 const PORT = process.env.PORT || 3000;

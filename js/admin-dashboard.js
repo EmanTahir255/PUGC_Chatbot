@@ -148,7 +148,7 @@ function attachNavigation() {
         });
     });
 
-    document.querySelectorAll('.action-card').forEach(card => {
+    document.querySelectorAll('.action-card[data-action]').forEach(card => {
         card.addEventListener('click', () => {
             setSection(card.dataset.action);
         });
