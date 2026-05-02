@@ -56,15 +56,17 @@
 
         <div class="receipt-note">
           <i class="fas fa-envelope-circle-check"></i>
-          <span>Confirmation email and website notification are created after activation.</span>
+          <span>Your premium access starts after an admin approves the payment request.</span>
         </div>
       </aside>
 
       <section class="checkout-form-panel">
-        <div class="checkout-header">
-          <span class="checkout-kicker">Secure checkout</span>
-          <h1>Complete Your Subscription</h1>
-          <p class="checkout-intro">Choose a payment method and activate premium access.</p>
+        <!-- Step 1 -->
+        <div id="checkout-step-1">
+          <div class="checkout-header">
+          <span class="checkout-kicker">Manual payment</span>
+          <h1>Submit Payment Request</h1>
+          <p class="checkout-intro">Enter your transaction details so an admin can verify and activate premium access.</p>
         </div>
 
         <!-- Student Info -->
@@ -79,46 +81,83 @@
           </div>
         </form>
 
-        <div class="form-group payment-group">
-          <label class="payment-label">Payment Method</label>
-          <div class="payment-options">
-            <label>
-              <input type="radio" name="payment-method" value="Demo Payment" checked>
-              Demo Payment
-            </label>
-            <label>
-              <input type="radio" name="payment-method" value="Easypaisa">
-              Easypaisa
-            </label>
-            <label>
-              <input type="radio" name="payment-method" value="JazzCash">
-              JazzCash
-            </label>
+          <div class="form-group payment-group">
+            <label class="payment-label">Payment Method</label>
+            <div class="payment-options">
+              <label>
+                <input type="radio" name="payment-method" value="easypaisa">
+                Easypaisa
+              </label>
+              <label>
+                <input type="radio" name="payment-method" value="jazzcash">
+                JazzCash
+              </label>
+              <label>
+                <input type="radio" name="payment-method" value="bank_transfer">
+                Bank Transfer
+              </label>
+            </div>
+          </div>
+
+          <div class="secure-checkout-footer">
+            <i class="fas fa-lock secure-icon"></i>
+            <div class="secure-text">
+              <h4>Secure Manual Processing</h4>
+              <p>Your payment details are protected. Manual transaction requests are typically verified by an admin within 24 hours.</p>
+            </div>
           </div>
         </div>
 
-        <div class="manual-payment-box" id="manual-payment-box" hidden>
+        <!-- Step 2 -->
+        <div id="checkout-step-2" style="display: none;">
+          <div class="step-2-header">
+            <button type="button" id="back-to-step-1" class="step-back-btn">
+              <i class="fas fa-arrow-left"></i> Back to methods
+            </button>
+          </div>
+
+          <div class="manual-payment-box" id="manual-payment-box">
           <strong id="manual-method-title">Manual Payment</strong>
-          <p>Send payment to the demo merchant number and upload a screenshot for admin approval later.</p>
+          <p>Send payment to the account below, then submit the sender details and transaction reference.</p>
           <div class="merchant-row">
-            <span>Merchant No.</span>
-            <strong>0300-0000000</strong>
+            <span id="merchant-label">Merchant No.</span>
+            <strong id="merchant-value">0300-0000000</strong>
+          </div>
+          <div class="manual-fields">
+            <div class="form-group">
+              <label for="sender-name">Sender Account Name</label>
+              <input type="text" id="sender-name" placeholder="Name shown on payment account">
+            </div>
+            <div class="form-group">
+              <label for="sender-number">Sender Account Number</label>
+              <input type="text" id="sender-number" placeholder="Mobile/account number used">
+            </div>
+            <div class="form-group">
+              <label for="transaction-reference">Transaction Reference</label>
+              <input type="text" id="transaction-reference" placeholder="Transaction ID / reference number">
+            </div>
+            <div class="form-group">
+              <label for="student-note">Note</label>
+              <textarea id="student-note" rows="3" placeholder="Any extra detail for admin"></textarea>
+            </div>
           </div>
           <label class="upload-field">
-            <span>Payment screenshot</span>
+            <span>Payment screenshot optional</span>
             <input type="file" id="payment-proof" accept="image/*">
           </label>
         </div>
 
-        <div class="payment-action">
-          <div class="payment-message" id="payment-message" role="status"></div>
+          <div class="payment-action">
+            <div class="payment-message" id="payment-message" role="status"></div>
 
-          <button id="confirm-payment" class="checkout-btn">
-            <i class="fas fa-check-circle"></i> Pay & Activate
-          </button>
+            <button id="confirm-payment" class="checkout-btn">
+              <i class="fas fa-paper-plane"></i> Submit Request
+            </button>
+          </div>
         </div>
       </section>
-      </div>
+      
+    </div>
   </div>
 
   <script src="js/auth-validation.js"></script>

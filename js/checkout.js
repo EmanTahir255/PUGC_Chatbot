@@ -1,13 +1,43 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const SUBSCRIPTION_API_BASE = 'http://localhost:3000/api/subscription';
+    const MAX_PROOF_SIZE_BYTES = 2 * 1024 * 1024;
+    const PAYMENT_ACCOUNTS = {
+        easypaisa: {
+            title: 'Easypaisa Manual Payment',
+            label: 'Easypaisa No.',
+            value: '0300-0000000'
+        },
+        jazzcash: {
+            title: 'JazzCash Manual Payment',
+            label: 'JazzCash No.',
+            value: '0300-0000000'
+        },
+        bank_transfer: {
+            title: 'Bank Transfer',
+            label: 'Account / IBAN',
+            value: 'PK00-PUGC-000000000000'
+        }
+    };
+
     const backButton = document.getElementById('back-button');
     const nameInput = document.getElementById('name');
     const emailInput = document.getElementById('email');
+    const senderNameInput = document.getElementById('sender-name');
+    const senderNumberInput = document.getElementById('sender-number');
+    const transactionReferenceInput = document.getElementById('transaction-reference');
+    const studentNoteInput = document.getElementById('student-note');
+    const paymentProofInput = document.getElementById('payment-proof');
     const planSummary = document.getElementById('plan-summary');
     const totalAmount = document.getElementById('total-amount');
     const confirmPayment = document.getElementById('confirm-payment');
     const paymentMessage = document.getElementById('payment-message');
-    const manualPaymentBox = document.getElementById('manual-payment-box');
     const manualMethodTitle = document.getElementById('manual-method-title');
+    const merchantLabel = document.getElementById('merchant-label');
+    const merchantValue = document.getElementById('merchant-value');
+
+    const checkoutStep1 = document.getElementById('checkout-step-1');
+    const checkoutStep2 = document.getElementById('checkout-step-2');
+    const backToStep1Button = document.getElementById('back-to-step-1');
 
     const currentUser = SubscriptionService.getCurrentUser();
     const selectedPlan = JSON.parse(localStorage.getItem('selectedSubscriptionPlan') || 'null') || SubscriptionService.PLANS.monthly;
@@ -38,21 +68,112 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getSelectedPaymentMethod() {
-        return document.querySelector('input[name="payment-method"]:checked')?.value || 'Demo Payment';
+        return document.querySelector('input[name="payment-method"]:checked')?.value || 'easypaisa';
     }
 
     function updatePaymentMethodUI() {
         const method = getSelectedPaymentMethod();
-        const isManual = method === 'Easypaisa' || method === 'JazzCash';
+        const account = PAYMENT_ACCOUNTS[method] || PAYMENT_ACCOUNTS.easypaisa;
 
-        manualPaymentBox.hidden = !isManual;
-        manualMethodTitle.textContent = `${method} Manual Payment`;
-
-        if (isManual) {
-            setPaymentMessage('Manual methods are ready for admin verification later. For this FYP demo, payment will activate after you confirm.');
-        } else {
-            setPaymentMessage('Demo Payment activates the subscription instantly.');
+        manualMethodTitle.textContent = account.title;
+        merchantLabel.textContent = account.label;
+        merchantValue.textContent = account.value;
+        setPaymentMessage('Submit your payment details. Premium access starts after admin approval.');
+        
+        if (checkoutStep1 && checkoutStep2 && method) {
+            checkoutStep1.style.display = 'none';
+            checkoutStep2.style.display = 'block';
         }
+    }
+
+    backToStep1Button?.addEventListener('click', () => {
+        if (checkoutStep1 && checkoutStep2) {
+            checkoutStep2.style.display = 'none';
+            checkoutStep1.style.display = 'block';
+            document.querySelectorAll('input[name="payment-method"]').forEach(input => input.checked = false);
+        }
+    });
+
+    function getAuthToken() {
+        return window.AuthService?.getToken?.() || localStorage.getItem('authToken') || '';
+    }
+
+    function readProofFile(file) {
+        return new Promise((resolve, reject) => {
+            if (!file) {
+                resolve(null);
+                return;
+            }
+
+            if (!file.type.startsWith('image/')) {
+                reject(new Error('Payment proof must be an image file.'));
+                return;
+            }
+
+            if (file.size > MAX_PROOF_SIZE_BYTES) {
+                reject(new Error('Payment proof image must be 2 MB or smaller.'));
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Could not read payment proof image.'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function submitManualPayment(payload) {
+        const response = await fetch(`${SUBSCRIPTION_API_BASE}/manual-payments`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${getAuthToken()}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        let body = {};
+        try {
+            body = await response.json();
+        } catch (error) {
+            body = {};
+        }
+
+        if (!response.ok) {
+            const details = body.details || {};
+            const firstDetail = Object.values(details)[0];
+            throw new Error(firstDetail || body.error || 'Could not submit payment request.');
+        }
+
+        return body;
+    }
+
+    function validateManualPayment() {
+        if (!nameInput.value.trim()) {
+            nameInput.focus();
+            return 'Please enter your full name.';
+        }
+
+        if (!emailInput.value.trim()) {
+            return 'Login email is required before subscription.';
+        }
+
+        if (!senderNameInput.value.trim()) {
+            senderNameInput.focus();
+            return 'Please enter sender account name.';
+        }
+
+        if (!senderNumberInput.value.trim()) {
+            senderNumberInput.focus();
+            return 'Please enter sender account number.';
+        }
+
+        if (!transactionReferenceInput.value.trim()) {
+            transactionReferenceInput.focus();
+            return 'Please enter the transaction reference.';
+        }
+
+        return '';
     }
 
     document.querySelectorAll('input[name="payment-method"]').forEach(input => {
@@ -60,51 +181,118 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     confirmPayment?.addEventListener('click', async () => {
-        if (!nameInput.value.trim()) {
-            setPaymentMessage('Please enter your full name.', 'error');
-            nameInput.focus();
+        const validationError = validateManualPayment();
+
+        if (validationError) {
+            setPaymentMessage(validationError, 'error');
             return;
         }
 
-        if (!emailInput.value.trim()) {
-            setPaymentMessage('Login email is required before subscription.', 'error');
-            return;
-        }
-
+        const originalButtonHtml = confirmPayment.innerHTML;
         confirmPayment.disabled = true;
-        confirmPayment.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing';
-        setPaymentMessage('Processing demo payment and sending confirmation email...');
+        confirmPayment.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting';
+        setPaymentMessage('Submitting payment request for admin review...');
 
-        const paymentMethod = getSelectedPaymentMethod();
-        const emailResult = await SubscriptionService.runDemoPayment(selectedPlan.id, paymentMethod);
-        const subscription = SubscriptionService.activateSubscription(
-            selectedPlan.id,
-            paymentMethod,
-            emailResult.payment || {}
-        );
+        try {
+            const proofFile = paymentProofInput.files?.[0] || null;
+            const proofDataUrl = await readProofFile(proofFile);
+            const result = await submitManualPayment({
+                planCode: selectedPlan.id,
+                paymentMethod: getSelectedPaymentMethod(),
+                senderAccountName: senderNameInput.value.trim(),
+                senderAccountNumber: senderNumberInput.value.trim(),
+                transactionReference: transactionReferenceInput.value.trim(),
+                studentNote: studentNoteInput.value.trim(),
+                proofOriginalName: proofFile?.name || null,
+                proofDataUrl
+            });
 
-        SubscriptionService.addNotification(
-            'success',
-            'Subscription activated',
-            `${subscription.planName} is active until ${SubscriptionService.formatDate(subscription.expiresAt)}.`,
-            'premium.html'
-        );
+            if (SubscriptionService.refreshNotifications) {
+                await SubscriptionService.refreshNotifications();
+            } else {
+                SubscriptionService.addNotification(
+                    'info',
+                    'Payment request submitted',
+                    `${result.plan?.name || selectedPlan.name} is pending admin approval.`,
+                    'premium.html'
+                );
+            }
 
-        if (emailResult.email?.sent) {
-            setPaymentMessage('Payment successful. Confirmation email sent.', 'success');
-        } else if (emailResult.email?.skipped) {
-            setPaymentMessage('Payment successful. Email is ready but SMTP settings are missing in backend .env.', 'success');
-        } else {
-            setPaymentMessage('Payment successful. Email could not be sent because the backend/email service is not reachable.', 'success');
+            localStorage.removeItem('selectedSubscriptionPlan');
+            setPaymentMessage('Payment request submitted. Admin approval is required before premium starts.', 'success');
+
+            window.setTimeout(() => {
+                window.location.href = 'premium.html';
+            }, 1600);
+        } catch (error) {
+            confirmPayment.disabled = false;
+            confirmPayment.innerHTML = originalButtonHtml;
+            setPaymentMessage(error.message || 'Could not submit payment request.', 'error');
         }
-
-        localStorage.removeItem('selectedSubscriptionPlan');
-
-        window.setTimeout(() => {
-            window.location.href = 'chatbot.html';
-        }, 1400);
     });
 
+    async function checkSubscriptionStatus() {
+        try {
+            const [currentData, paymentsData] = await Promise.all([
+                SubscriptionService.apiRequest('/subscription/current'),
+                SubscriptionService.apiRequest('/subscription/manual-payments')
+            ]);
+
+            const subscription = currentData.subscription;
+            const activePendingPayment = paymentsData.payments?.find(p => p.status === 'pending');
+
+            if (subscription?.isPremium) {
+                const expiryDate = new Date(subscription.expiresAt).toLocaleDateString('en-GB', {
+                    day: '2-digit', month: 'long', year: 'numeric'
+                });
+                showStatusAlert(
+                    'error',
+                    'Active Subscription Found',
+                    `You are already subscribed to the <strong>${subscription.planName}</strong> which expires on <strong>${expiryDate}</strong>. You can purchase a new plan once your current one expires.`
+                );
+                disableCheckout();
+            } else if (activePendingPayment) {
+                showStatusAlert(
+                    'warning',
+                    'Payment Request Pending',
+                    `You already have a pending request for <strong>${activePendingPayment.planName}</strong> awaiting admin approval. Please wait for a decision before submitting another request.`
+                );
+                disableCheckout();
+            }
+        } catch (error) {
+            console.error('Error checking subscription status:', error);
+        }
+    }
+
+    function showStatusAlert(type, title, message) {
+        const formPanel = document.querySelector('.checkout-form-panel');
+        if (!formPanel) return;
+        
+        const alertHtml = `
+            <div class="subscription-alert ${type}">
+                <i class="fas ${type === 'error' ? 'fa-circle-xmark' : 'fa-triangle-exclamation'}"></i>
+                <div class="alert-content">
+                    <h4>${title}</h4>
+                    <p>${message}</p>
+                    <a href="premium.html" class="btn-link">Back to Plans</a>
+                </div>
+            </div>
+        `;
+        formPanel.insertAdjacentHTML('afterbegin', alertHtml);
+    }
+
+    function disableCheckout() {
+        if (!confirmPayment) return;
+        confirmPayment.disabled = true;
+        confirmPayment.style.opacity = '0.5';
+        confirmPayment.style.cursor = 'not-allowed';
+        document.querySelectorAll('input[name="payment-method"]').forEach(input => {
+            input.disabled = true;
+        });
+        const checkoutIntro = document.querySelector('.checkout-intro');
+        if (checkoutIntro) checkoutIntro.textContent = 'Subscription checkout is currently locked for your account.';
+    }
+
     renderPlan();
-    updatePaymentMethodUI();
+    checkSubscriptionStatus();
 });

@@ -641,6 +641,33 @@ body {
     font-size: 1.25rem;
 }
 
+.history-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.clear-history-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 10px;
+    background: #fff1f0;
+    color: #e03131;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.clear-history-btn:hover {
+    background: #e03131;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(224, 49, 49, 0.2);
+}
+
 .history-close-btn {
     width: 36px;
     height: 36px;
@@ -788,4 +815,120 @@ body {
 
 .star-rating span.active {
   color: #f1b90b; /* golden */
+}
+
+/* ------------------ Custom Professional Modal ------------------ */
+.custom-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 21, 41, 0.4);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-modal-backdrop.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.custom-modal-container {
+    background: #ffffff;
+    width: min(480px, 90vw);
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    transform: scale(0.9) translateY(20px);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-align: center;
+}
+
+.custom-modal-backdrop.active .custom-modal-container {
+    transform: scale(1) translateY(0);
+}
+
+.modal-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    background: rgba(244, 191, 59, 0.1);
+    color: #f4bf3b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 20px;
+}
+
+.modal-icon-wrapper.danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.custom-modal-container h3 {
+    color: #001529;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+}
+
+.custom-modal-container p {
+    color: #64748b;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 30px;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.modal-btn {
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    min-width: 120px;
+}
+
+.modal-btn.cancel-btn {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.modal-btn.cancel-btn:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.modal-btn.confirm-btn {
+    background: #001529;
+    color: #ffffff;
+}
+
+.modal-btn.confirm-btn:hover {
+    background: #002347;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 21, 41, 0.2);
+}
+
+.modal-btn.danger-btn {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+.modal-btn.danger-btn:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }

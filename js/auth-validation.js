@@ -1,229 +1,554 @@
-// ==============================
-// Common Helpers
-// ==============================
+const AUTH_API_BASE = 'http://localhost:3000/api/auth';
+const AUTH_TOKEN_KEY = 'authToken';
+
 function showError(input, message) {
-    let error = input.parentElement.querySelector(".error-msg");
+    let error = input.parentElement.querySelector('.error-msg');
 
     if (!error) {
-        error = document.createElement("small");
-        error.className = "error-msg";
+        error = document.createElement('small');
+        error.className = 'error-msg';
         input.parentElement.appendChild(error);
     }
 
     error.innerText = message;
-    input.classList.add("error");
+    input.classList.add('error');
 }
 
 function clearError(input) {
-    const error = input.parentElement.querySelector(".error-msg");
+    const error = input.parentElement.querySelector('.error-msg');
     if (error) error.remove();
-    input.classList.remove("error");
+    input.classList.remove('error');
 }
 
 function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// ==============================
-// GLOBAL AUTH STATE
-// ==============================
+function getPasswordValidationError(password) {
+    if (password.length < 8) {
+        return 'Password must be at least 8 characters';
+    }
+
+    if (!/\d/.test(password)) {
+        return 'Password must contain at least 1 number';
+    }
+
+    if (!/^[A-Za-z0-9!@#$%^&*]+$/.test(password)) {
+        return 'Password can only use letters, numbers, and these special characters: ! @ # $ % ^ & *';
+    }
+
+    return '';
+}
+
+function readJSON(key, fallback) {
+    try {
+        const value = JSON.parse(localStorage.getItem(key));
+        return value ?? fallback;
+    } catch (error) {
+        return fallback;
+    }
+}
+
+function getStoredToken() {
+    return localStorage.getItem(AUTH_TOKEN_KEY) || sessionStorage.getItem(AUTH_TOKEN_KEY) || '';
+}
+
+function getStoredCurrentUser() {
+    return readJSON('currentUser', null);
+}
+
+function getEmailFallbackName(email, role) {
+    if (email) return email.split('@')[0];
+    return role === 'admin' ? 'Admin' : 'Student';
+}
+
+function buildClientUser(serverUser = {}) {
+    const existingUser = getStoredCurrentUser() || {};
+    const users = readJSON('users', []);
+    const email = String(serverUser.email || existingUser.email || '').trim().toLowerCase();
+    const savedUser = users.find(user => String(user.email || '').trim().toLowerCase() === email) || {};
+    const role = serverUser.role || existingUser.role || savedUser.role || 'student';
+    const fullName = serverUser.fullName || serverUser.name || existingUser.fullName || existingUser.name || savedUser.fullName || savedUser.name || getEmailFallbackName(email, role);
+    const features = Array.isArray(serverUser.features)
+        ? serverUser.features
+        : Array.isArray(existingUser.features)
+            ? existingUser.features
+            : Array.isArray(savedUser.features)
+                ? savedUser.features
+                : [];
+    const subscription = serverUser.subscription || existingUser.subscription || savedUser.subscription || { status: 'free' };
+
+    return {
+        ...savedUser,
+        ...existingUser,
+        ...serverUser,
+        userId: serverUser.userId || existingUser.userId || savedUser.userId || null,
+        name: fullName,
+        fullName,
+        email,
+        role,
+        features,
+        subscription
+    };
+}
+
+function syncUserList(user) {
+    if (!user?.email) return;
+
+    const users = readJSON('users', []);
+    const index = users.findIndex(item => String(item.email || '').trim().toLowerCase() === user.email);
+
+    if (index >= 0) {
+        users[index] = {
+            ...users[index],
+            ...user
+        };
+    } else {
+        users.push(user);
+    }
+
+    localStorage.setItem('users', JSON.stringify(users));
+}
+
+function updateLegacyAuthFlags(user) {
+    localStorage.setItem('isLoggedIn', 'true');
+    sessionStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('userEmail', user.email || '');
+    localStorage.setItem('userRole', user.role || 'student');
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    syncUserList(user);
+}
+
+function dispatchAuthEvent(name, detail = {}) {
+    document.dispatchEvent(new CustomEvent(name, { detail }));
+    if (typeof window.toggleNavbarButtons === 'function') {
+        window.toggleNavbarButtons();
+    }
+}
+
+function applyAuthState(payload = {}) {
+    const token = payload.token || getStoredToken();
+    const user = buildClientUser(payload.user || {});
+
+    if (token) {
+        localStorage.setItem(AUTH_TOKEN_KEY, token);
+        sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+    }
+
+    updateLegacyAuthFlags(user);
+    dispatchAuthEvent('auth:changed', { user });
+    return user;
+}
+
+function clearAuthState() {
+    sessionStorage.removeItem('isLoggedIn');
+    sessionStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('currentUser');
+    dispatchAuthEvent('auth:cleared');
+}
+
 function isUserLoggedIn() {
-    return (
-        sessionStorage.getItem("isLoggedIn") === "true" ||
-        localStorage.getItem("isLoggedIn") === "true"
-    );
+    return Boolean(getStoredToken() && getStoredCurrentUser()?.email);
 }
 
 function getStoredUserRole() {
-    let currentUser = null;
+    const currentUser = getStoredCurrentUser();
+    return currentUser?.role || localStorage.getItem('userRole') || '';
+}
+
+async function requestAuth(path, options = {}) {
+    const headers = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+    };
+    const token = getStoredToken();
+
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${AUTH_API_BASE}${path}`, {
+        ...options,
+        headers
+    });
+
+    let payload = {};
+    try {
+        payload = await response.json();
+    } catch (error) {
+        payload = {};
+    }
+
+    if (!response.ok) {
+        const error = new Error(payload.error || 'Request failed.');
+        error.status = response.status;
+        error.details = payload.details || {};
+        throw error;
+    }
+
+    return payload;
+}
+
+function getAuthPageRedirect(role) {
+    return role === 'admin' ? 'admin-dashboard.html' : 'dashboard.html';
+}
+
+function setFormStatus(form, message, type = 'error') {
+    let element = form.querySelector('.form-status');
+
+    if (!element) {
+        element = document.createElement('p');
+        element.className = 'form-status';
+        element.style.marginTop = '14px';
+        element.style.fontSize = '0.95rem';
+        element.style.fontWeight = '600';
+        const actionButton = form.querySelector('button[type="submit"]');
+        if (actionButton) {
+            actionButton.insertAdjacentElement('afterend', element);
+        } else {
+            form.appendChild(element);
+        }
+    }
+
+    element.textContent = message;
+    element.style.color = type === 'success' ? '#15803d' : '#b91c1c';
+}
+
+function clearFormStatus(form) {
+    const element = form.querySelector('.form-status');
+    if (element) element.remove();
+}
+
+function setButtonLoading(button, loadingText) {
+    if (!button) return () => { };
+    const originalHtml = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = loadingText;
+
+    return () => {
+        button.disabled = false;
+        button.innerHTML = originalHtml;
+    };
+}
+
+async function syncCurrentUserFromServer() {
+    const token = getStoredToken();
+    if (!token) return null;
 
     try {
-        currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+        const payload = await requestAuth('/me');
+        return applyAuthState({ token, user: payload.user });
     } catch (error) {
-        currentUser = null;
+        if (error.status === 401 || error.status === 403) {
+            clearAuthState();
+            return null;
+        }
+
+        throw error;
     }
-
-    const storedRole = localStorage.getItem("userRole") || currentUser?.role;
-    if (storedRole) return storedRole;
-
-    const email = currentUser?.email || localStorage.getItem("userEmail") || "";
-    return email.toLowerCase().includes("admin") ? "admin" : "student";
 }
 
-// ==============================
-// SIGNUP VALIDATION
-// ==============================
-const signupForm = document.querySelector(".signup-form");
-
-if (signupForm) {
-    signupForm.addEventListener("submit", function (e) {
-        e.preventDefault();
-
-        const name = signupForm.querySelector('input[type="text"]');
-        const email = signupForm.querySelector('input[type="email"]');
-        const password = signupForm.querySelectorAll('input[type="password"]')[0];
-        const confirmPassword = signupForm.querySelectorAll('input[type="password"]')[1];
-
-        let isValid = true;
-
-        if (name.value.trim().length < 3) { showError(name, "Name must be at least 3 characters"); isValid = false; } else clearError(name);
-        if (!isValidEmail(email.value.trim())) { showError(email, "Enter a valid email address"); isValid = false; } else clearError(email);
-        if (password.value.length < 6) { showError(password, "Password must be at least 6 characters"); isValid = false; } else clearError(password);
-        if (password.value !== confirmPassword.value) { showError(confirmPassword, "Passwords do not match"); isValid = false; } else clearError(confirmPassword);
-
-        if (!isValid) return;
-
-        // Determine role (admin if email contains "admin")
-        const role = email.value.toLowerCase().includes("admin") ? "admin" : "student";
-
-        // AUTH STATE
-        sessionStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("userRole", role);
-        localStorage.setItem("userEmail", email.value.trim());
-
-        // SAVE CURRENT USER for checkout & chatbot
-        const user = {
-            name: name.value.trim(),
-            email: email.value.trim(),
-            features: [], // initially empty
-            subscription: { status: "free" },
-            role: role
-        };
-        localStorage.setItem("currentUser", JSON.stringify(user));
-
-        // Save to global users array
-        let users = JSON.parse(localStorage.getItem('users') || '[]');
-
-        // Prevent duplicate signup
-        const exists = users.some(u => u.email === user.email);
-        if (!exists) {
-            users.push(user);
-            localStorage.setItem('users', JSON.stringify(users));
+async function logoutAndRedirect() {
+    try {
+        if (getStoredToken()) {
+            await requestAuth('/logout', { method: 'POST' });
         }
-
-        // REDIRECT based on role
-        if (role === "admin") {
-            window.location.href = "admin-dashboard.html";
-        } else {
-            window.location.href = "dashboard.html";
-        }
-    });
+    } catch (error) {
+        console.warn('Logout request failed:', error);
+    } finally {
+        clearAuthState();
+        window.location.href = 'login.html';
+    }
 }
 
 
-// ==============================
-// LOGIN VALIDATION
-// ==============================
-const loginForm = document.querySelector(".login-form");
-
-if (loginForm) {
-    loginForm.addEventListener("submit", function (e) {
-        e.preventDefault();
-
-        const email = loginForm.querySelector('input[type="email"]');
-        const password = loginForm.querySelector('input[type="password"]');
-
-        let isValid = true;
-
-        if (!isValidEmail(email.value.trim())) { showError(email, "Invalid email address"); isValid = false; } else clearError(email);
-        if (password.value.trim() === "") { showError(password, "Password cannot be empty"); isValid = false; } else clearError(password);
-
-        if (!isValid) return;
-
-        // AUTH STATE
-        sessionStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("userEmail", email.value.trim());
-
-        // Determine role
-        let role = email.value.toLowerCase().includes("admin") ? "admin" : "student";
-        localStorage.setItem("userRole", role);
-
-        // SAVE CURRENT USER for checkout
-        let currentUser = {
-            email: email.value.trim(),
-            features: [],
-            subscription: { status: "free" },
-            role: role
-        };
-
-        if (role === "admin") {
-            currentUser.name = "Admin"; // Admin name
-        } else {
-            // For students, try to find them in users array saved during signup
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const foundUser = users.find(u => u.email === email.value.trim());
-            currentUser.name = foundUser ? foundUser.name : ""; // use name if exists, else blank
-            currentUser.features = foundUser ? foundUser.features || [] : [];
-            currentUser.subscription = foundUser ? foundUser.subscription || { status: "free" } : { status: "free" };
-        }
-
-        localStorage.setItem("currentUser", JSON.stringify(currentUser));
-
-        // REDIRECT BASED ON ROLE
-        if (role === "admin") {
-            window.location.href = "admin-dashboard.html";
-        } else {
-            window.location.href = "dashboard.html";
-        }
-    });
+/* ------------------ Custom Modal Helper (Auth) ------------------ */
+function escapeHtmlForModal(text) {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
-
-// ==============================
-// PAGE PROTECTION
-// ==============================
-document.addEventListener("DOMContentLoaded", () => {
-    const loggedIn = isUserLoggedIn();
-    const role = getStoredUserRole();
-
-    if (loggedIn && role && !localStorage.getItem("userRole")) {
-        localStorage.setItem("userRole", role);
+class CustomAuthModal {
+    static alert(title, message, options = {}) {
+        const { buttonText = 'OK', type = 'warning' } = options;
+        return new Promise((resolve) => {
+            const backdrop = document.createElement('div');
+            backdrop.className = 'custom-modal-backdrop';
+            const icon = type === 'danger' ? 'fa-triangle-exclamation' : 'fa-circle-info';
+            backdrop.innerHTML = `
+                <div class="custom-modal-container">
+                    <div class="modal-icon-wrapper ${type === 'danger' ? 'danger' : ''}">
+                        <i class="fa-solid ${icon}"></i>
+                    </div>
+                    <h3>${escapeHtmlForModal(title)}</h3>
+                    <p>${escapeHtmlForModal(message)}</p>
+                    <div class="modal-footer">
+                        <button class="modal-btn confirm-btn" id="modalOkBtn">${escapeHtmlForModal(buttonText)}</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(backdrop);
+            setTimeout(() => backdrop.classList.add('active'), 10);
+            const cleanup = () => {
+                backdrop.classList.remove('active');
+                setTimeout(() => {
+                    if (backdrop.parentNode) document.body.removeChild(backdrop);
+                    resolve();
+                }, 300);
+            };
+            backdrop.querySelector('#modalOkBtn').addEventListener('click', cleanup);
+            backdrop.addEventListener('click', (e) => { if (e.target === backdrop) cleanup(); });
+        });
     }
+}
 
-    // Protect pages
-    if (document.body.classList.contains("protected-page") && !loggedIn) {
-        window.location.href = "login.html";
-        return;
-    }
+function bindProtectedLinks() {
+    document.querySelectorAll('.protected').forEach(link => {
+        const loggedIn = isUserLoggedIn();
+        const showGuest = link.classList.contains('show-guest');
 
-    // Role-based protection
-    if (document.body.classList.contains("student-page") && role !== "student") {
-        window.location.href = "admin-dashboard.html";
-        return;
-    }
+        if (showGuest) {
+            link.style.display = 'inline-block';
+        } else {
+            link.style.display = loggedIn ? 'inline-block' : 'none';
+        }
 
-    if (document.body.classList.contains("admin-page") && role !== "admin") {
-        window.location.href = "dashboard.html";
-        return;
-    }
+        if (link.dataset.authBound === 'true') return;
+        link.dataset.authBound = 'true';
 
-    // Protected links
-    document.querySelectorAll(".protected").forEach(link => {
-        link.style.display = loggedIn ? "inline-block" : "none";
+        link.addEventListener('click', async event => {
+            if (isUserLoggedIn()) return;
+            event.preventDefault();
 
-        link.addEventListener("click", function (e) {
-            if (!isUserLoggedIn()) {
-                e.preventDefault();
-                window.location.href = "login.html";
+            if (showGuest) {
+                const message = link.dataset.authMessage || "You have to login/signup with your account to access the chat bot.";
+                await CustomAuthModal.alert('Authentication Required', message);
             }
+
+            window.location.href = 'login.html';
         });
     });
+}
 
-    // Logout
-    const logoutBtn = document.getElementById("logoutBtn") || document.querySelector(".logout");
-    if (logoutBtn) {
-        logoutBtn.style.display = loggedIn ? "inline-block" : "none";
+function bindSimpleLogoutButton() {
+    const logoutBtn = document.getElementById('logoutBtn') || document.querySelector('.logout');
+    if (!logoutBtn) return;
 
-        logoutBtn.addEventListener("click", () => {
-            sessionStorage.clear();
-            localStorage.removeItem("isLoggedIn");
-            localStorage.removeItem("userEmail");
-            localStorage.removeItem("userRole");
-            localStorage.removeItem("currentUser"); // also remove currentUser
+    logoutBtn.style.display = isUserLoggedIn() ? 'inline-block' : 'none';
 
-            window.location.href = "login.html";
-        });
+    if (logoutBtn.dataset.authBound === 'true') return;
+    logoutBtn.dataset.authBound = 'true';
+
+    logoutBtn.addEventListener('click', event => {
+        event.preventDefault();
+        logoutAndRedirect();
+    });
+}
+
+async function handleSignup(event) {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+    const name = form.querySelector('input[type="text"]');
+    const email = form.querySelector('input[type="email"]');
+    const password = form.querySelectorAll('input[type="password"]')[0];
+    const confirmPassword = form.querySelectorAll('input[type="password"]')[1];
+    let isValid = true;
+
+    clearFormStatus(form);
+
+    if (name.value.trim().length < 3) {
+        showError(name, 'Name must be at least 3 characters');
+        isValid = false;
+    } else {
+        clearError(name);
     }
-});
+
+    if (!isValidEmail(email.value.trim())) {
+        showError(email, 'Enter a valid email address');
+        isValid = false;
+    } else {
+        clearError(email);
+    }
+
+    const passwordError = getPasswordValidationError(password.value);
+
+    if (passwordError) {
+        showError(password, passwordError);
+        isValid = false;
+    } else {
+        clearError(password);
+    }
+
+    if (password.value !== confirmPassword.value) {
+        showError(confirmPassword, 'Passwords do not match');
+        isValid = false;
+    } else {
+        clearError(confirmPassword);
+    }
+
+    if (!isValid) return;
+
+    const releaseButton = setButtonLoading(form.querySelector('button[type="submit"]'), '<i class="fas fa-spinner fa-spin"></i> Creating...');
+
+    try {
+        const payload = await requestAuth('/signup', {
+            method: 'POST',
+            body: JSON.stringify({
+                fullName: name.value.trim(),
+                email: email.value.trim(),
+                password: password.value,
+                confirmPassword: confirmPassword.value
+            })
+        });
+
+        const user = applyAuthState(payload);
+        setFormStatus(form, 'Account created successfully.', 'success');
+        window.setTimeout(() => {
+            window.location.href = getAuthPageRedirect(user.role);
+        }, 250);
+    } catch (error) {
+        if (error.details?.fullName) showError(name, error.details.fullName);
+        if (error.details?.email) showError(email, error.details.email);
+        if (error.details?.password) showError(password, error.details.password);
+        if (error.details?.confirmPassword) showError(confirmPassword, error.details.confirmPassword);
+        setFormStatus(form, error.message || 'Could not create your account.');
+    } finally {
+        releaseButton();
+    }
+}
+
+async function handleLogin(event) {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+    const email = form.querySelector('input[type="email"]');
+    const password = form.querySelector('input[type="password"]');
+    let isValid = true;
+
+    clearFormStatus(form);
+
+    if (!isValidEmail(email.value.trim())) {
+        showError(email, 'Invalid email address');
+        isValid = false;
+    } else {
+        clearError(email);
+    }
+
+    if (password.value.trim() === '') {
+        showError(password, 'Password cannot be empty');
+        isValid = false;
+    } else {
+        clearError(password);
+    }
+
+    if (!isValid) return;
+
+    const releaseButton = setButtonLoading(form.querySelector('button[type="submit"]'), '<i class="fas fa-spinner fa-spin"></i> Signing In...');
+
+    try {
+        const payload = await requestAuth('/login', {
+            method: 'POST',
+            body: JSON.stringify({
+                email: email.value.trim(),
+                password: password.value
+            })
+        });
+
+        const user = applyAuthState(payload);
+        window.location.href = getAuthPageRedirect(user.role);
+    } catch (error) {
+        showError(password, error.message || 'Invalid email or password.');
+        setFormStatus(form, error.message || 'Invalid email or password.');
+    } finally {
+        releaseButton();
+    }
+}
+
+function bindAuthForms() {
+    const signupForm = document.querySelector('.signup-form');
+    const loginForm = document.querySelector('.login-form');
+
+    if (signupForm && signupForm.dataset.authBound !== 'true') {
+        signupForm.dataset.authBound = 'true';
+        signupForm.addEventListener('submit', handleSignup);
+    }
+
+    if (loginForm && loginForm.dataset.authBound !== 'true') {
+        loginForm.dataset.authBound = 'true';
+        loginForm.addEventListener('submit', handleLogin);
+    }
+}
+
+async function initializePageAuth() {
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    const isProtectedPage = document.body.classList.contains('protected-page');
+    const token = getStoredToken();
+
+    bindAuthForms();
+    bindProtectedLinks();
+    bindSimpleLogoutButton();
+
+    if (!token) {
+        if (localStorage.getItem('isLoggedIn') === 'true' || getStoredCurrentUser()) {
+            clearAuthState();
+        }
+
+        if (isProtectedPage) {
+            window.location.href = 'login.html';
+        }
+        return;
+    }
+
+    let user = null;
+
+    try {
+        user = await syncCurrentUserFromServer();
+    } catch (error) {
+        console.error('Auth sync failed:', error);
+    }
+
+    if (!user) {
+        if (isProtectedPage) {
+            window.location.href = 'login.html';
+        }
+        return;
+    }
+
+    const role = user.role || 'student';
+
+    if (document.body.classList.contains('student-page') && role !== 'student') {
+        window.location.href = 'admin-dashboard.html';
+        return;
+    }
+
+    if (document.body.classList.contains('admin-page') && role !== 'admin') {
+        window.location.href = 'dashboard.html';
+        return;
+    }
+
+    if (currentPage === 'login.html' || currentPage === 'signup.html') {
+        window.location.href = getAuthPageRedirect(role);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initializePageAuth);
+
+window.AuthService = {
+    applyAuthState,
+    clearAuthState,
+    getCurrentUser: getStoredCurrentUser,
+    getToken: getStoredToken,
+    isLoggedIn: isUserLoggedIn,
+    logout: logoutAndRedirect,
+    refreshCurrentUser: syncCurrentUserFromServer,
+    requestAuth
+};

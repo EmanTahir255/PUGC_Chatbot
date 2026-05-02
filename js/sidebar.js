@@ -76,6 +76,11 @@ function saveSidebarProfile(displayName) {
 }
 
 function performSidebarLogout() {
+    if (window.AuthService?.logout) {
+        window.AuthService.logout();
+        return;
+    }
+
     sessionStorage.clear();
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userEmail');
@@ -162,6 +167,7 @@ function initSidebar() {
     document.body.classList.toggle('sidebar-collapsed', savedCollapsed);
     toggle?.setAttribute('aria-expanded', String(!savedCollapsed));
     updateSidebarProfile();
+    updateAdminBadgeCount();
 
     toggle?.addEventListener('click', () => {
         const collapsed = !document.body.classList.contains('sidebar-collapsed');
@@ -205,3 +211,36 @@ function initSidebar() {
 }
 
 document.addEventListener('DOMContentLoaded', initSidebar);
+document.addEventListener('auth:changed', updateSidebarProfile);
+document.addEventListener('auth:cleared', updateSidebarProfile);
+
+window.updateAdminBadgeCount = async function() {
+    const user = getSidebarUser();
+    if (user.role !== 'admin') return;
+
+    const subsBadge = document.getElementById('subsBadge');
+    if (!subsBadge) return;
+
+    try {
+        const token = window.AuthService?.getToken?.() || localStorage.getItem('authToken') || '';
+        if (!token) return;
+
+        const response = await fetch('http://localhost:3000/api/admin/manual-payments', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const pendingCount = (data.payments || []).filter(p => p.status === 'pending').length;
+
+        if (pendingCount > 0) {
+            subsBadge.textContent = pendingCount;
+            subsBadge.style.display = 'flex';
+        } else {
+            subsBadge.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error updating admin badge:', error);
+    }
+}

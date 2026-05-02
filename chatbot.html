@@ -139,9 +139,14 @@
                 <span class="history-kicker">Saved conversations</span>
                 <h2 id="history-drawer-title">Chat History</h2>
             </div>
-            <button type="button" class="history-close-btn" data-history-close aria-label="Close history">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="history-header-actions">
+                <button type="button" id="clear-history-btn" class="clear-history-btn" title="Clear All History">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+                <button type="button" class="history-close-btn" data-history-close aria-label="Close history">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
         <p class="history-drawer-note" id="history-drawer-note">
             Free users can review recent history. Premium users can access full chat history.

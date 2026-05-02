@@ -1,14 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { getPool, sql } = require('../db');
-
-function requireAdmin(req, res, next) {
-    const role = String(req.header('x-user-role') || '').toLowerCase();
-    if (role !== 'admin') {
-        return res.status(403).json({ error: 'Admin access required.' });
-    }
-    next();
-}
+const { requireAuth, requireRole } = require('../middleware/auth');
+const emailService = require('../services/emailService');
 
 function parseIntField(value) {
     const parsed = Number.parseInt(value, 10);
@@ -61,7 +55,930 @@ function sendValidationError(res, errors) {
     return res.status(400).json({ error: 'Validation failed.', details: errors });
 }
 
-router.use(requireAdmin);
+function normalizeRole(value) {
+    return String(value || '').trim().toLowerCase();
+}
+
+function normalizePaymentStatus(value) {
+    const status = String(value || 'all').trim().toLowerCase();
+    return ['all', 'pending', 'approved', 'rejected', 'cancelled'].includes(status) ? status : 'all';
+}
+
+function buildAdminPayment(record = {}) {
+    return {
+        paymentId: record.payment_id,
+        userId: record.user_id,
+        userName: record.full_name,
+        userEmail: record.email,
+        planId: record.plan_id,
+        planCode: record.plan_code,
+        planName: record.plan_name,
+        durationDays: record.duration_days,
+        chatLimit: record.chat_limit,
+        amount: Number(record.amount),
+        currency: record.currency,
+        paymentMethod: record.payment_method,
+        senderAccountName: record.sender_account_name,
+        senderAccountNumber: record.sender_account_number,
+        transactionReference: record.transaction_reference,
+        proofFilePath: record.proof_file_path,
+        proofOriginalName: record.proof_original_name,
+        studentNote: record.student_note,
+        status: record.status,
+        reviewedBy: record.reviewed_by,
+        reviewedByName: record.reviewed_by_name,
+        reviewedAt: record.reviewed_at,
+        adminNote: record.admin_note,
+        submittedAt: record.submitted_at,
+        createdAt: record.created_at,
+        updatedAt: record.updated_at
+    };
+}
+
+function buildAdminSubscription(record = {}) {
+    return {
+        subscriptionId: record.subscription_id,
+        userId: record.user_id,
+        userName: record.full_name,
+        userEmail: record.email,
+        planId: record.plan_id,
+        planCode: record.plan_code,
+        planName: record.plan_name,
+        paymentId: record.payment_id,
+        status: record.status,
+        startedAt: record.started_at,
+        expiresAt: record.expires_at,
+        cancelledAt: record.cancelled_at,
+        price: Number(record.price),
+        currency: record.currency,
+        durationDays: record.duration_days,
+        chatLimit: record.chat_limit,
+        createdAt: record.created_at,
+        updatedAt: record.updated_at
+    };
+}
+
+router.use(requireAuth, requireRole('admin'));
+
+router.get('/users', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const result = await pool.request().query(`
+            SELECT
+                user_id,
+                full_name,
+                email,
+                role,
+                is_active,
+                last_login_at,
+                created_at,
+                updated_at
+            FROM users
+            ORDER BY created_at DESC, user_id DESC
+        `);
+
+        return res.json(result.recordset);
+    } catch (error) {
+        console.error('Admin users list error:', error);
+        return res.status(500).json({ error: 'Failed to load users.' });
+    }
+});
+
+router.put('/users/:id/role', async (req, res) => {
+    const targetUserId = parseIntField(req.params.id);
+    const nextRole = normalizeRole(req.body.role);
+    const requesterUserId = Number(req.auth?.sub);
+
+    if (!targetUserId) {
+        return res.status(400).json({ error: 'A valid user id is required.' });
+    }
+
+    if (!['student', 'admin'].includes(nextRole)) {
+        return res.status(400).json({ error: 'Role must be either student or admin.' });
+    }
+
+    if (targetUserId === requesterUserId) {
+        return res.status(400).json({ error: 'You cannot change your own admin role from the dashboard.' });
+    }
+
+    try {
+        const pool = await getPool();
+        const targetResult = await pool.request()
+            .input('userId', sql.Int, targetUserId)
+            .query(`
+                SELECT TOP 1
+                    user_id,
+                    full_name,
+                    email,
+                    role,
+                    is_active,
+                    last_login_at,
+                    created_at,
+                    updated_at
+                FROM users
+                WHERE user_id = @userId
+            `);
+
+        const targetUser = targetResult.recordset[0];
+
+        if (!targetUser) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        if (targetUser.role === nextRole) {
+            return res.json({
+                message: 'User role is already set to that value.',
+                user: targetUser
+            });
+        }
+
+        if (targetUser.role === 'admin' && nextRole === 'student') {
+            const adminCountResult = await pool.request().query(`
+                SELECT COUNT(*) AS admin_count
+                FROM users
+                WHERE role = 'admin'
+                  AND is_active = 1
+            `);
+            const adminCount = Number(adminCountResult.recordset[0]?.admin_count || 0);
+
+            if (adminCount <= 1) {
+                return res.status(400).json({ error: 'You cannot remove the last active admin.' });
+            }
+        }
+
+        await pool.request()
+            .input('userId', sql.Int, targetUserId)
+            .input('role', sql.NVarChar(20), nextRole)
+            .query(`
+                UPDATE users
+                SET role = @role
+                WHERE user_id = @userId
+            `);
+
+        const refreshedResult = await pool.request()
+            .input('userId', sql.Int, targetUserId)
+            .query(`
+                SELECT TOP 1
+                    user_id,
+                    full_name,
+                    email,
+                    role,
+                    is_active,
+                    last_login_at,
+                    created_at,
+                    updated_at
+                FROM users
+                WHERE user_id = @userId
+            `);
+
+
+        // Trigger Email and In-App Notification (non-blocking)
+        const updatedUser = refreshedResult.recordset[0];
+        if (updatedUser) {
+            // Email
+            emailService.sendUserRoleChangeEmail({
+                email: updatedUser.email,
+                name: updatedUser.full_name,
+                newRole: nextRole
+            }).catch(err => console.error('Role Change Email Error:', err.message));
+        }
+
+        return res.json({
+            message: `User role updated to ${nextRole}. The user should log out and sign in again to refresh permissions.`,
+            user: refreshedResult.recordset[0]
+        });
+    } catch (error) {
+        console.error('Admin user role update error:', error);
+        return res.status(500).json({ error: 'Failed to update user role.' });
+    }
+});
+
+router.put('/users/:id/status', async (req, res) => {
+    const targetUserId = parseIntField(req.params.id);
+    const isActive = parseBit(req.body.isActive);
+    const requesterUserId = Number(req.auth?.sub);
+
+    if (!targetUserId) {
+        return res.status(400).json({ error: 'A valid user id is required.' });
+    }
+
+    if (targetUserId === requesterUserId) {
+        return res.status(400).json({ error: 'You cannot deactivate your own account.' });
+    }
+
+    try {
+        const pool = await getPool();
+        const targetResult = await pool.request()
+            .input('userId', sql.Int, targetUserId)
+            .query('SELECT user_id, full_name, email, role, is_active FROM users WHERE user_id = @userId');
+
+        const targetUser = targetResult.recordset[0];
+        if (!targetUser) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        // Safety: don't deactivate the last active admin
+        if (!isActive && targetUser.role === 'admin') {
+            const adminCountResult = await pool.request().query("SELECT COUNT(*) AS admin_count FROM users WHERE role = 'admin' AND is_active = 1");
+            const adminCount = Number(adminCountResult.recordset[0]?.admin_count || 0);
+            if (adminCount <= 1) {
+                return res.status(400).json({ error: 'You cannot deactivate the last active admin.' });
+            }
+        }
+
+        await pool.request()
+            .input('userId', sql.Int, targetUserId)
+            .input('isActive', sql.Bit, isActive ? 1 : 0)
+            .query('UPDATE users SET is_active = @isActive WHERE user_id = @userId');
+
+        // Trigger Email Notification (non-blocking)
+        if (targetUser && targetUser.email) {
+            emailService.sendUserAccountStatusEmail({
+                email: targetUser.email,
+                name: targetUser.full_name,
+                status: isActive ? 'active' : 'inactive'
+            }).catch(err => console.error('Status Change Email Error:', err.message));
+        }
+
+        return res.json({ message: `User account ${isActive ? 'activated' : 'deactivated'} successfully.` });
+    } catch (error) {
+        console.error('Admin user status update error:', error);
+        return res.status(500).json({ error: error.message || 'Failed to update user status.' });
+    }
+});
+
+router.delete('/users/:id', async (req, res) => {
+    const targetUserId = parseIntField(req.params.id);
+    const requesterUserId = Number(req.auth?.sub);
+
+    if (!targetUserId) {
+        return res.status(400).json({ error: 'A valid user id is required.' });
+    }
+
+    if (targetUserId === requesterUserId) {
+        return res.status(400).json({ error: 'You cannot delete your own account.' });
+    }
+
+    let transaction;
+    try {
+        const pool = await getPool();
+
+        const targetResult = await pool.request()
+            .input('userId', sql.Int, targetUserId)
+            .query('SELECT user_id, full_name, email, role, is_active FROM users WHERE user_id = @userId');
+
+        const targetUser = targetResult.recordset[0];
+        if (!targetUser) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        // Safety: don't delete the last active admin
+        if (targetUser.role === 'admin' && targetUser.is_active) {
+            const adminCountResult = await pool.request().query("SELECT COUNT(*) AS admin_count FROM users WHERE role = 'admin' AND is_active = 1");
+            const adminCount = Number(adminCountResult.recordset[0]?.admin_count || 0);
+            if (adminCount <= 1) {
+                return res.status(400).json({ error: 'You cannot delete the last active admin.' });
+            }
+        }
+
+        transaction = new sql.Transaction(pool);
+        await transaction.begin();
+
+        const request = new sql.Request(transaction);
+        request.input('userId', sql.Int, targetUserId);
+
+        // 1. Delete notifications
+        await request.query('DELETE FROM dbo.notifications WHERE user_id = @userId');
+
+        // 2. Delete subscriptions
+        await request.query('DELETE FROM dbo.user_subscriptions WHERE user_id = @userId');
+
+        // 3. Delete manual payments (where the user is the payer)
+        await request.query('DELETE FROM dbo.manual_payments WHERE user_id = @userId');
+
+        // 4. Update payments reviewed by this user (if any) to NULL so they don't break the FK
+        await request.query('UPDATE dbo.manual_payments SET reviewed_by = NULL WHERE reviewed_by = @userId');
+
+        // 5. Finally delete the user
+        await request.query('DELETE FROM users WHERE user_id = @userId');
+
+        await transaction.commit();
+
+        // Trigger Email Notification (non-blocking)
+        if (targetUser && targetUser.email) {
+            emailService.sendUserAccountStatusEmail({
+                email: targetUser.email,
+                name: targetUser.full_name,
+                status: 'deleted'
+            }).catch(err => console.error('Deletion Email Error:', err.message));
+        }
+
+        return res.json({ message: 'User account and all related data deleted permanently.' });
+    } catch (error) {
+        if (transaction) await transaction.rollback();
+        console.error('Admin user deletion error:', error);
+        return res.status(500).json({ error: error.message || 'Failed to delete user account.' });
+    }
+});
+
+router.get('/manual-payments', async (req, res) => {
+    const status = normalizePaymentStatus(req.query.status);
+
+    try {
+        const pool = await getPool();
+        const request = pool.request();
+        let statusFilter = '';
+
+        if (status !== 'all') {
+            request.input('status', sql.NVarChar(20), status);
+            statusFilter = 'WHERE p.status = @status';
+        }
+
+        const result = await request.query(`
+            SELECT
+                p.payment_id,
+                p.user_id,
+                u.full_name,
+                u.email,
+                p.plan_id,
+                sp.plan_code,
+                sp.plan_name,
+                sp.duration_days,
+                sp.chat_limit,
+                p.amount,
+                p.currency,
+                p.payment_method,
+                p.sender_account_name,
+                p.sender_account_number,
+                p.transaction_reference,
+                p.proof_file_path,
+                p.proof_original_name,
+                p.student_note,
+                p.status,
+                p.reviewed_by,
+                reviewer.full_name AS reviewed_by_name,
+                p.reviewed_at,
+                p.admin_note,
+                p.submitted_at,
+                p.created_at,
+                p.updated_at
+            FROM dbo.manual_payments p
+            INNER JOIN dbo.users u ON p.user_id = u.user_id
+            INNER JOIN dbo.subscription_plans sp ON p.plan_id = sp.plan_id
+            LEFT JOIN dbo.users reviewer ON p.reviewed_by = reviewer.user_id
+            ${statusFilter}
+            ORDER BY
+                CASE WHEN p.status = 'pending' THEN 0 ELSE 1 END,
+                p.submitted_at DESC,
+                p.payment_id DESC
+        `);
+
+        return res.json({
+            payments: result.recordset.map(buildAdminPayment)
+        });
+    } catch (error) {
+        console.error('Admin manual payment list error:', error);
+        return res.status(500).json({ error: 'Failed to load manual payments.' });
+    }
+});
+
+router.get('/subscriptions', async (req, res) => {
+    const status = String(req.query.status || 'all').trim().toLowerCase();
+    const allowedStatuses = new Set(['all', 'active', 'expired', 'cancelled']);
+
+    try {
+        const pool = await getPool();
+
+        await pool.request().query(`
+            UPDATE dbo.user_subscriptions
+            SET status = 'expired'
+            WHERE status = 'active'
+              AND expires_at <= GETDATE()
+        `);
+
+        const request = pool.request();
+        let statusFilter = '';
+
+        if (allowedStatuses.has(status) && status !== 'all') {
+            request.input('status', sql.NVarChar(20), status);
+            statusFilter = 'WHERE s.status = @status';
+        }
+
+        const result = await request.query(`
+            SELECT
+                s.subscription_id,
+                s.user_id,
+                u.full_name,
+                u.email,
+                s.plan_id,
+                sp.plan_code,
+                sp.plan_name,
+                s.payment_id,
+                s.status,
+                s.started_at,
+                s.expires_at,
+                s.cancelled_at,
+                sp.price,
+                sp.currency,
+                sp.duration_days,
+                sp.chat_limit,
+                s.created_at,
+                s.updated_at
+            FROM dbo.user_subscriptions s
+            INNER JOIN dbo.users u ON s.user_id = u.user_id
+            INNER JOIN dbo.subscription_plans sp ON s.plan_id = sp.plan_id
+            ${statusFilter}
+            ORDER BY
+                CASE WHEN s.status = 'active' THEN 0 ELSE 1 END,
+                s.expires_at DESC,
+                s.subscription_id DESC
+        `);
+
+        return res.json({
+            subscriptions: result.recordset.map(buildAdminSubscription)
+        });
+    } catch (error) {
+        console.error('Admin subscription list error:', error);
+        return res.status(500).json({ error: 'Failed to load subscriptions.' });
+    }
+});
+
+router.put('/actions/cancel-subscription/:id', async (req, res) => {
+    console.log('--- Cancellation Request Received ---');
+    const subscriptionId = parseIntField(req.params.id);
+    const cancelReason = normalizeOptionalText(req.body.reason) || 'Cancelled by administrator';
+
+    if (!subscriptionId) {
+        return res.status(400).json({ error: 'Valid subscription ID is required.' });
+    }
+
+    let transaction;
+    try {
+        const pool = await getPool();
+
+        // 1. Get subscription details first
+        const subResult = await pool.request()
+            .input('id', sql.Int, subscriptionId)
+            .query(`
+                SELECT s.subscription_id, s.user_id, u.full_name, u.email, sp.plan_name, s.status
+                FROM dbo.user_subscriptions s
+                INNER JOIN dbo.users u ON s.user_id = u.user_id
+                INNER JOIN dbo.subscription_plans sp ON s.plan_id = sp.plan_id
+                WHERE s.subscription_id = @id
+            `);
+
+        const sub = subResult.recordset[0];
+        if (!sub) return res.status(404).json({ error: 'Subscription not found.' });
+        if (sub.status !== 'active') return res.status(400).json({ error: `Cannot cancel: Subscription is currently ${sub.status}.` });
+
+        // Use a transaction for the status update and notification
+        transaction = new sql.Transaction(pool);
+        await transaction.begin();
+
+        // 2. Update status to cancelled
+        await new sql.Request(transaction)
+            .input('id', sql.Int, subscriptionId)
+            .query(`
+                UPDATE dbo.user_subscriptions
+                SET status = 'cancelled',
+                    cancelled_at = GETDATE(),
+                    updated_at = GETDATE()
+                WHERE subscription_id = @id
+            `);
+
+        // 3. Create in-app notification
+        // Note: 'payment_rejected' is used as it's allowed by the DB constraint 'CK_notifications_type'
+        await new sql.Request(transaction)
+            .input('userId', sql.Int, sub.user_id)
+            .input('subId', sql.Int, subscriptionId)
+            .input('title', sql.NVarChar(150), 'Subscription Cancelled')
+            .input('message', sql.NVarChar(1000), `Your ${sub.plan_name} subscription was cancelled by admin. Reason: ${cancelReason}`)
+            .query(`
+                INSERT INTO dbo.notifications (user_id, notification_type, title, message, related_subscription_id)
+                VALUES (@userId, 'payment_rejected', @title, @message, @subId)
+            `);
+
+        await transaction.commit();
+        transaction = null;
+
+        // 4. Send Email (non-blocking, won't fail the transaction if email fails)
+        const { sendSubscriptionCancellation } = require('../services/emailService');
+        sendSubscriptionCancellation({
+            email: sub.email,
+            name: sub.full_name,
+            reason: cancelReason,
+            subscription: { planName: sub.plan_name }
+        }).catch(err => console.error('Delayed Email Error:', err.message));
+
+        return res.json({ success: true, message: 'Subscription cancelled successfully.' });
+    } catch (error) {
+        if (transaction) {
+            try { await transaction.rollback(); } catch (e) { console.error('Rollback error:', e); }
+        }
+        console.error('CRITICAL: Cancel subscription error:', error);
+        return res.status(500).json({
+            error: 'Internal server error during cancellation.',
+            details: error.message
+        });
+    }
+});
+
+router.put('/manual-payments/:id/approve', async (req, res) => {
+    const paymentId = parseIntField(req.params.id);
+    const reviewerId = Number(req.auth?.sub);
+    const adminNote = normalizeOptionalText(req.body.adminNote || req.body.admin_note);
+    let transaction;
+
+    if (!paymentId) {
+        return res.status(400).json({ error: 'A valid payment id is required.' });
+    }
+
+    try {
+        const pool = await getPool();
+        transaction = new sql.Transaction(pool);
+        await transaction.begin();
+
+        const paymentResult = await new sql.Request(transaction)
+            .input('paymentId', sql.Int, paymentId)
+            .query(`
+                SELECT TOP 1
+                    p.payment_id,
+                    p.user_id,
+                    p.plan_id,
+                    p.status,
+                    p.amount,
+                    p.currency,
+                    sp.plan_name,
+                    sp.duration_days
+                FROM dbo.manual_payments p
+                INNER JOIN dbo.subscription_plans sp ON p.plan_id = sp.plan_id
+                WHERE p.payment_id = @paymentId
+            `);
+
+        const payment = paymentResult.recordset[0];
+
+        if (!payment) {
+            await transaction.rollback();
+            transaction = null;
+            return res.status(404).json({ error: 'Manual payment request not found.' });
+        }
+
+        if (payment.status !== 'pending') {
+            await transaction.rollback();
+            transaction = null;
+            return res.status(400).json({ error: `Only pending payments can be approved. This payment is ${payment.status}.` });
+        }
+
+        await new sql.Request(transaction)
+            .input('paymentId', sql.Int, paymentId)
+            .input('reviewerId', sql.Int, reviewerId)
+            .input('adminNote', sql.NVarChar(500), adminNote)
+            .query(`
+                UPDATE dbo.manual_payments
+                SET status = 'approved',
+                    reviewed_by = @reviewerId,
+                    reviewed_at = GETDATE(),
+                    admin_note = @adminNote
+                WHERE payment_id = @paymentId
+            `);
+
+        await new sql.Request(transaction)
+            .input('userId', sql.Int, payment.user_id)
+            .query(`
+                UPDATE dbo.user_subscriptions
+                SET status = 'expired'
+                WHERE user_id = @userId
+                  AND status = 'active'
+                  AND expires_at <= GETDATE()
+            `);
+
+        const existingSubscriptionResult = await new sql.Request(transaction)
+            .input('userId', sql.Int, payment.user_id)
+            .query(`
+                SELECT TOP 1 subscription_id, expires_at
+                FROM dbo.user_subscriptions
+                WHERE user_id = @userId
+                  AND status = 'active'
+                  AND expires_at > GETDATE()
+                ORDER BY expires_at DESC, subscription_id DESC
+            `);
+
+        let subscriptionId;
+
+        if (existingSubscriptionResult.recordset[0]) {
+            const updatedSubscriptionResult = await new sql.Request(transaction)
+                .input('subscriptionId', sql.Int, existingSubscriptionResult.recordset[0].subscription_id)
+                .input('planId', sql.Int, payment.plan_id)
+                .input('paymentId', sql.Int, payment.payment_id)
+                .input('durationDays', sql.Int, payment.duration_days)
+                .query(`
+                    UPDATE dbo.user_subscriptions
+                    SET plan_id = @planId,
+                        payment_id = @paymentId,
+                        expires_at = DATEADD(day, @durationDays, expires_at)
+                    OUTPUT inserted.subscription_id
+                    WHERE subscription_id = @subscriptionId
+                `);
+
+            subscriptionId = updatedSubscriptionResult.recordset[0].subscription_id;
+        } else {
+            const createdSubscriptionResult = await new sql.Request(transaction)
+                .input('userId', sql.Int, payment.user_id)
+                .input('planId', sql.Int, payment.plan_id)
+                .input('paymentId', sql.Int, payment.payment_id)
+                .input('durationDays', sql.Int, payment.duration_days)
+                .query(`
+                    INSERT INTO dbo.user_subscriptions (
+                        user_id,
+                        plan_id,
+                        payment_id,
+                        status,
+                        started_at,
+                        expires_at
+                    )
+                    OUTPUT inserted.subscription_id
+                    VALUES (
+                        @userId,
+                        @planId,
+                        @paymentId,
+                        'active',
+                        GETDATE(),
+                        DATEADD(day, @durationDays, GETDATE())
+                    )
+                `);
+
+            subscriptionId = createdSubscriptionResult.recordset[0].subscription_id;
+        }
+
+        await new sql.Request(transaction)
+            .input('userId', sql.Int, payment.user_id)
+            .input('paymentId', sql.Int, payment.payment_id)
+            .input('subscriptionId', sql.Int, subscriptionId)
+            .input('title', sql.NVarChar(150), 'Payment approved')
+            .input('message', sql.NVarChar(1000), `Your ${payment.plan_name} payment was approved. Premium access is now active.`)
+            .query(`
+                INSERT INTO dbo.notifications (
+                    user_id,
+                    notification_type,
+                    title,
+                    message,
+                    related_payment_id,
+                    related_subscription_id
+                )
+                VALUES (
+                    @userId,
+                    'payment_approved',
+                    @title,
+                    @message,
+                    @paymentId,
+                    @subscriptionId
+                )
+            `);
+
+        await transaction.commit();
+        transaction = null;
+
+        const refreshedPaymentResult = await pool.request()
+            .input('paymentId', sql.Int, paymentId)
+            .query(`
+                SELECT TOP 1
+                    p.payment_id,
+                    p.user_id,
+                    u.full_name,
+                    u.email,
+                    p.plan_id,
+                    sp.plan_code,
+                    sp.plan_name,
+                    sp.duration_days,
+                    sp.chat_limit,
+                    p.amount,
+                    p.currency,
+                    p.payment_method,
+                    p.sender_account_name,
+                    p.sender_account_number,
+                    p.transaction_reference,
+                    p.proof_file_path,
+                    p.proof_original_name,
+                    p.student_note,
+                    p.status,
+                    p.reviewed_by,
+                    reviewer.full_name AS reviewed_by_name,
+                    p.reviewed_at,
+                    p.admin_note,
+                    p.submitted_at,
+                    p.created_at,
+                    p.updated_at
+                FROM dbo.manual_payments p
+                INNER JOIN dbo.users u ON p.user_id = u.user_id
+                INNER JOIN dbo.subscription_plans sp ON p.plan_id = sp.plan_id
+                LEFT JOIN dbo.users reviewer ON p.reviewed_by = reviewer.user_id
+                WHERE p.payment_id = @paymentId
+            `);
+
+        const refreshedSubscriptionResult = await pool.request()
+            .input('subscriptionId', sql.Int, subscriptionId)
+            .query(`
+                SELECT TOP 1
+                    s.subscription_id,
+                    s.user_id,
+                    u.full_name,
+                    u.email,
+                    s.plan_id,
+                    sp.plan_code,
+                    sp.plan_name,
+                    s.payment_id,
+                    s.status,
+                    s.started_at,
+                    s.expires_at,
+                    s.cancelled_at,
+                    sp.price,
+                    sp.currency,
+                    sp.duration_days,
+                    sp.chat_limit,
+                    s.created_at,
+                    s.updated_at
+                FROM dbo.user_subscriptions s
+                INNER JOIN dbo.users u ON s.user_id = u.user_id
+                INNER JOIN dbo.subscription_plans sp ON s.plan_id = sp.plan_id
+                WHERE s.subscription_id = @subscriptionId
+            `);
+
+        // Trigger Email Notification (non-blocking)
+        const subData = refreshedSubscriptionResult.recordset[0];
+        if (subData && subData.email) {
+            emailService.sendSubscriptionConfirmation({
+                email: subData.email,
+                name: subData.full_name,
+                plan: { name: subData.plan_name, currency: subData.currency, price: subData.price },
+                subscription: { expiresAt: subData.expires_at },
+                paymentMethod: refreshedPaymentResult.recordset[0]?.payment_method || 'Manual Payment'
+            }).catch(err => console.error('Approval Email Error:', err.message));
+        }
+
+        return res.json({
+            message: 'Payment approved and subscription activated.',
+            payment: buildAdminPayment(refreshedPaymentResult.recordset[0]),
+            subscription: buildAdminSubscription(refreshedSubscriptionResult.recordset[0])
+        });
+    } catch (error) {
+        if (transaction) {
+            try {
+                await transaction.rollback();
+            } catch (rollbackError) {
+                console.error('Payment approval rollback error:', rollbackError);
+            }
+        }
+
+        console.error('Admin payment approval error:', error);
+        return res.status(500).json({ error: 'Failed to approve payment.' });
+    }
+});
+
+router.put('/manual-payments/:id/reject', async (req, res) => {
+    const paymentId = parseIntField(req.params.id);
+    const reviewerId = Number(req.auth?.sub);
+    const adminNote = normalizeOptionalText(req.body.adminNote || req.body.admin_note) || 'Payment request rejected by admin.';
+    let transaction;
+
+    if (!paymentId) {
+        return res.status(400).json({ error: 'A valid payment id is required.' });
+    }
+
+    try {
+        const pool = await getPool();
+        transaction = new sql.Transaction(pool);
+        await transaction.begin();
+
+        const paymentResult = await new sql.Request(transaction)
+            .input('paymentId', sql.Int, paymentId)
+            .query(`
+                SELECT TOP 1
+                    p.payment_id,
+                    p.user_id,
+                    p.status,
+                    sp.plan_name
+                FROM dbo.manual_payments p
+                INNER JOIN dbo.subscription_plans sp ON p.plan_id = sp.plan_id
+                WHERE p.payment_id = @paymentId
+            `);
+
+        const payment = paymentResult.recordset[0];
+
+        if (!payment) {
+            await transaction.rollback();
+            transaction = null;
+            return res.status(404).json({ error: 'Manual payment request not found.' });
+        }
+
+        if (payment.status !== 'pending') {
+            await transaction.rollback();
+            transaction = null;
+            return res.status(400).json({ error: `Only pending payments can be rejected. This payment is ${payment.status}.` });
+        }
+
+        await new sql.Request(transaction)
+            .input('paymentId', sql.Int, paymentId)
+            .input('reviewerId', sql.Int, reviewerId)
+            .input('adminNote', sql.NVarChar(500), adminNote)
+            .query(`
+                UPDATE dbo.manual_payments
+                SET status = 'rejected',
+                    reviewed_by = @reviewerId,
+                    reviewed_at = GETDATE(),
+                    admin_note = @adminNote
+                WHERE payment_id = @paymentId
+            `);
+
+        await new sql.Request(transaction)
+            .input('userId', sql.Int, payment.user_id)
+            .input('paymentId', sql.Int, payment.payment_id)
+            .input('title', sql.NVarChar(150), 'Payment rejected')
+            .input('message', sql.NVarChar(1000), `Your ${payment.plan_name} payment request was rejected. ${adminNote}`)
+            .query(`
+                INSERT INTO dbo.notifications (
+                    user_id,
+                    notification_type,
+                    title,
+                    message,
+                    related_payment_id
+                )
+                VALUES (
+                    @userId,
+                    'payment_rejected',
+                    @title,
+                    @message,
+                    @paymentId
+                )
+            `);
+
+        await transaction.commit();
+        transaction = null;
+
+        const refreshedPaymentResult = await pool.request()
+            .input('paymentId', sql.Int, paymentId)
+            .query(`
+                SELECT TOP 1
+                    p.payment_id,
+                    p.user_id,
+                    u.full_name,
+                    u.email,
+                    p.plan_id,
+                    sp.plan_code,
+                    sp.plan_name,
+                    sp.duration_days,
+                    sp.chat_limit,
+                    p.amount,
+                    p.currency,
+                    p.payment_method,
+                    p.sender_account_name,
+                    p.sender_account_number,
+                    p.transaction_reference,
+                    p.proof_file_path,
+                    p.proof_original_name,
+                    p.student_note,
+                    p.status,
+                    p.reviewed_by,
+                    reviewer.full_name AS reviewed_by_name,
+                    p.reviewed_at,
+                    p.admin_note,
+                    p.submitted_at,
+                    p.created_at,
+                    p.updated_at
+                FROM dbo.manual_payments p
+                INNER JOIN dbo.users u ON p.user_id = u.user_id
+                INNER JOIN dbo.subscription_plans sp ON p.plan_id = sp.plan_id
+                LEFT JOIN dbo.users reviewer ON p.reviewed_by = reviewer.user_id
+                WHERE p.payment_id = @paymentId
+            `);
+
+        // Trigger Email Notification (non-blocking)
+        const paymentData = refreshedPaymentResult.recordset[0];
+        if (paymentData && paymentData.email) {
+            emailService.sendSubscriptionRejection({
+                email: paymentData.email,
+                name: paymentData.full_name,
+                planName: paymentData.plan_name,
+                reason: paymentData.admin_note
+            }).catch(err => console.error('Rejection Email Error:', err.message));
+        }
+
+        return res.json({
+            message: 'Payment rejected.',
+            payment: buildAdminPayment(refreshedPaymentResult.recordset[0])
+        });
+    } catch (error) {
+        if (transaction) {
+            try {
+                await transaction.rollback();
+            } catch (rollbackError) {
+                console.error('Payment rejection rollback error:', rollbackError);
+            }
+        }
+
+        console.error('Admin payment rejection error:', error);
+        return res.status(500).json({ error: 'Failed to reject payment.' });
+    }
+});
 
 router.get('/meta', async (req, res) => {
     try {
@@ -269,7 +1186,7 @@ router.get('/departments', async (req, res) => {
         const pool = await getPool();
         const result = await pool.request().query(`
             SELECT department_id, dept_name, head_name, contact_number, email,
-                   block_location, room_number, office_hours
+                   block_location, room_number, office_hours, is_active
             FROM departments
             ORDER BY dept_name
         `);
@@ -290,6 +1207,7 @@ router.post('/departments', async (req, res) => {
         const blockLocation = normalizeOptionalText(req.body.block_location);
         const roomNumber = normalizeOptionalText(req.body.room_number);
         const officeHours = normalizeOptionalText(req.body.office_hours);
+        const isActive = parseBit(req.body.is_active, true);
         const errors = {};
 
         if (!deptName) errors.dept_name = 'Department name is required.';
@@ -312,10 +1230,11 @@ router.post('/departments', async (req, res) => {
             .input('blockLocation', sql.VarChar, blockLocation)
             .input('roomNumber', sql.VarChar, roomNumber)
             .input('officeHours', sql.VarChar, officeHours)
+            .input('isActive', sql.Bit, isActive)
             .query(`
-                INSERT INTO departments (dept_name, head_name, contact_number, email, block_location, room_number, office_hours)
+                INSERT INTO departments (dept_name, head_name, contact_number, email, block_location, room_number, office_hours, is_active)
                 OUTPUT INSERTED.department_id
-                VALUES (@deptName, @headName, @contactNumber, @email, @blockLocation, @roomNumber, @officeHours)
+                VALUES (@deptName, @headName, @contactNumber, @email, @blockLocation, @roomNumber, @officeHours, @isActive)
             `);
 
         return res.status(201).json({ id: result.recordset[0].department_id });
@@ -336,6 +1255,7 @@ router.put('/departments/:id', async (req, res) => {
         const blockLocation = normalizeOptionalText(req.body.block_location);
         const roomNumber = normalizeOptionalText(req.body.room_number);
         const officeHours = normalizeOptionalText(req.body.office_hours);
+        const isActive = parseBit(req.body.is_active, true);
         const errors = {};
 
         if (!departmentId || !(await recordExists(pool, 'departments', 'department_id', departmentId))) {
@@ -366,6 +1286,7 @@ router.put('/departments/:id', async (req, res) => {
             .input('blockLocation', sql.VarChar, blockLocation)
             .input('roomNumber', sql.VarChar, roomNumber)
             .input('officeHours', sql.VarChar, officeHours)
+            .input('isActive', sql.Bit, isActive)
             .query(`
                 UPDATE departments
                 SET dept_name = @deptName,
@@ -374,7 +1295,8 @@ router.put('/departments/:id', async (req, res) => {
                     email = @email,
                     block_location = @blockLocation,
                     room_number = @roomNumber,
-                    office_hours = @officeHours
+                    office_hours = @officeHours,
+                    is_active = @isActive
                 WHERE department_id = @departmentId
             `);
 
@@ -410,6 +1332,28 @@ router.delete('/departments/:id', async (req, res) => {
     } catch (error) {
         console.error('Department delete error:', error);
         return res.status(500).json({ error: 'Failed to delete department.' });
+    }
+});
+
+router.put('/departments/:id/status', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const departmentId = parseIntField(req.params.id);
+        const isActive = parseBit(req.body.isActive);
+
+        if (!departmentId || !(await recordExists(pool, 'departments', 'department_id', departmentId))) {
+            return res.status(404).json({ error: 'Department not found.' });
+        }
+
+        await pool.request()
+            .input('departmentId', sql.Int, departmentId)
+            .input('isActive', sql.Bit, isActive)
+            .query('UPDATE departments SET is_active = @isActive WHERE department_id = @departmentId');
+
+        return res.json({ success: true, isActive });
+    } catch (error) {
+        console.error('Department status update error:', error);
+        return res.status(500).json({ error: 'Failed to update department status.' });
     }
 });
 
@@ -588,6 +1532,53 @@ router.delete('/programs/:id', async (req, res) => {
     } catch (error) {
         console.error('Program deactivate error:', error);
         return res.status(500).json({ error: 'Failed to deactivate program.' });
+    }
+});
+
+router.put('/programs/:id/status', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const programId = parseIntField(req.params.id);
+        const isActive = parseBit(req.body.isActive);
+
+        if (!programId || !(await recordExists(pool, 'programs', 'program_id', programId))) {
+            return res.status(404).json({ error: 'Program not found.' });
+        }
+
+        await pool.request()
+            .input('programId', sql.Int, programId)
+            .input('isActive', sql.Bit, isActive)
+            .query('UPDATE programs SET is_active = @isActive WHERE program_id = @programId');
+
+        return res.json({ success: true, isActive });
+    } catch (error) {
+        console.error('Program status update error:', error);
+        return res.status(500).json({ error: 'Failed to update program status.' });
+    }
+});
+
+router.delete('/programs/:id/permanent', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const programId = parseIntField(req.params.id);
+        if (!programId || !(await recordExists(pool, 'programs', 'program_id', programId))) {
+            return res.status(404).json({ error: 'Program not found.' });
+        }
+
+        // Check dependencies (Fee structures)
+        const hasFees = await ensureNotDuplicate(pool, 'SELECT TOP 1 1 as found FROM fee_structure WHERE program_id = @id', [{ name: 'id', type: sql.Int, value: programId }]);
+        if (hasFees) {
+            return res.status(400).json({ error: 'Cannot delete program with linked fee structures. Delete fees first.' });
+        }
+
+        await pool.request()
+            .input('programId', sql.Int, programId)
+            .query('DELETE FROM programs WHERE program_id = @programId');
+
+        return res.json({ success: true, deleted: true });
+    } catch (error) {
+        console.error('Program permanent delete error:', error);
+        return res.status(500).json({ error: 'Failed to permanently delete program.' });
     }
 });
 
@@ -792,6 +1783,47 @@ router.delete('/events/:id', async (req, res) => {
     }
 });
 
+router.put('/events/:id/status', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const eventId = parseIntField(req.params.id);
+        const isActive = parseBit(req.body.isActive);
+
+        if (!eventId || !(await recordExists(pool, 'events', 'event_id', eventId))) {
+            return res.status(404).json({ error: 'Event not found.' });
+        }
+
+        await pool.request()
+            .input('eventId', sql.Int, eventId)
+            .input('isActive', sql.Bit, isActive)
+            .query('UPDATE events SET is_active = @isActive WHERE event_id = @eventId');
+
+        return res.json({ success: true, isActive });
+    } catch (error) {
+        console.error('Event status update error:', error);
+        return res.status(500).json({ error: 'Failed to update event status.' });
+    }
+});
+
+router.delete('/events/:id/permanent', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const eventId = parseIntField(req.params.id);
+        if (!eventId || !(await recordExists(pool, 'events', 'event_id', eventId))) {
+            return res.status(404).json({ error: 'Event not found.' });
+        }
+
+        await pool.request()
+            .input('eventId', sql.Int, eventId)
+            .query('DELETE FROM events WHERE event_id = @eventId');
+
+        return res.json({ success: true, deleted: true });
+    } catch (error) {
+        console.error('Event permanent delete error:', error);
+        return res.status(500).json({ error: 'Failed to permanently delete event.' });
+    }
+});
+
 router.get('/fee-structures', async (req, res) => {
     try {
         const pool = await getPool();
@@ -957,6 +1989,54 @@ router.delete('/fee-structures/:id', async (req, res) => {
     } catch (error) {
         console.error('Fee structure deactivate error:', error);
         return res.status(500).json({ error: 'Failed to deactivate fee structure record.' });
+    }
+});
+
+router.put('/fee-structures/:id/status', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const feeStructureId = parseIntField(req.params.id);
+        const isActive = parseBit(req.body.isActive);
+
+        if (!feeStructureId || !(await recordExists(pool, 'fee_structure', 'fee_structure_id', feeStructureId))) {
+            return res.status(404).json({ error: 'Fee structure record not found.' });
+        }
+
+        // For fee structure, "Deactivate" means setting effective_to to today if it was NULL.
+        // "Activate" means setting effective_to to NULL.
+        if (isActive) {
+            await pool.request()
+                .input('id', sql.Int, feeStructureId)
+                .query('UPDATE fee_structure SET effective_to = NULL WHERE fee_structure_id = @id');
+        } else {
+            await pool.request()
+                .input('id', sql.Int, feeStructureId)
+                .query('UPDATE fee_structure SET effective_to = CAST(GETDATE() AS date) WHERE fee_structure_id = @id AND effective_to IS NULL');
+        }
+
+        return res.json({ success: true, isActive });
+    } catch (error) {
+        console.error('Fee structure status update error:', error);
+        return res.status(500).json({ error: 'Failed to update fee structure status.' });
+    }
+});
+
+router.delete('/fee-structures/:id/permanent', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const feeStructureId = parseIntField(req.params.id);
+        if (!feeStructureId || !(await recordExists(pool, 'fee_structure', 'fee_structure_id', feeStructureId))) {
+            return res.status(404).json({ error: 'Fee structure record not found.' });
+        }
+
+        await pool.request()
+            .input('id', sql.Int, feeStructureId)
+            .query('DELETE FROM fee_structure WHERE fee_structure_id = @id');
+
+        return res.json({ success: true, deleted: true });
+    } catch (error) {
+        console.error('Fee structure permanent delete error:', error);
+        return res.status(500).json({ error: 'Failed to permanently delete fee structure.' });
     }
 });
 
@@ -1149,6 +2229,135 @@ router.delete('/scholarships/:id', async (req, res) => {
     } catch (error) {
         console.error('Scholarship deactivate error:', error);
         return res.status(500).json({ error: 'Failed to deactivate scholarship.' });
+    }
+});
+
+router.put('/scholarships/:id/status', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const scholarshipId = parseIntField(req.params.id);
+        const isActive = parseBit(req.body.isActive);
+
+        if (!scholarshipId || !(await recordExists(pool, 'scholarships', 'scholarship_id', scholarshipId))) {
+            return res.status(404).json({ error: 'Scholarship not found.' });
+        }
+
+        await pool.request()
+            .input('scholarshipId', sql.Int, scholarshipId)
+            .input('isActive', sql.Bit, isActive)
+            .query('UPDATE scholarships SET is_active = @isActive WHERE scholarship_id = @scholarshipId');
+
+        return res.json({ success: true, isActive });
+    } catch (error) {
+        console.error('Scholarship status update error:', error);
+        return res.status(500).json({ error: 'Failed to update scholarship status.' });
+    }
+});
+
+router.delete('/scholarships/:id/permanent', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const scholarshipId = parseIntField(req.params.id);
+        if (!scholarshipId || !(await recordExists(pool, 'scholarships', 'scholarship_id', scholarshipId))) {
+            return res.status(404).json({ error: 'Scholarship not found.' });
+        }
+
+        await pool.request()
+            .input('scholarshipId', sql.Int, scholarshipId)
+            .query('DELETE FROM scholarships WHERE scholarship_id = @scholarshipId');
+
+        return res.json({ success: true, deleted: true });
+    } catch (error) {
+        console.error('Scholarship permanent delete error:', error);
+        return res.status(500).json({ error: 'Failed to permanently delete scholarship.' });
+    }
+});
+
+
+router.get('/feedback', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const result = await pool.request().query(`
+            SELECT f.*, u.full_name as user_name, u.email as user_email
+            FROM feedback f
+            LEFT JOIN users u ON f.user_id = u.user_id
+            ORDER BY f.created_at DESC
+        `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('Feedback fetch error:', error);
+        res.status(500).json({ error: 'Failed to fetch feedback.' });
+    }
+});
+
+router.delete('/feedback/:id', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const feedbackId = parseIntField(req.params.id);
+        
+        await pool.request()
+            .input('feedbackId', sql.Int, feedbackId)
+            .query('DELETE FROM feedback WHERE feedback_id = @feedbackId');
+            
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Feedback delete error:', error);
+        res.status(500).json({ error: 'Failed to delete feedback.' });
+    }
+});
+
+router.delete('/manual-payments/:id', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const paymentId = parseIntField(req.params.id);
+        
+        // Use an atomic transaction for complete safety
+        const transaction = new sql.Transaction(pool);
+        await transaction.begin();
+        try {
+            const request = new sql.Request(transaction);
+            request.input('paymentId', sql.Int, paymentId);
+            
+            // Cleanup order: Notifications -> Subscriptions -> Payment
+            await request.query('DELETE FROM dbo.notifications WHERE related_payment_id = @paymentId');
+            await request.query('DELETE FROM dbo.user_subscriptions WHERE payment_id = @paymentId');
+            const result = await request.query('DELETE FROM dbo.manual_payments WHERE payment_id = @paymentId');
+            
+            await transaction.commit();
+            res.json({ success: true, affected: result.rowsAffected[0] });
+        } catch (err) {
+            await transaction.rollback();
+            throw err;
+        }
+    } catch (error) {
+        console.error('CRITICAL: Payment delete failure:', error);
+        res.status(500).json({ error: `Database error: ${error.message}` });
+    }
+});
+
+router.delete('/subscriptions/:id', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const subscriptionId = parseIntField(req.params.id);
+        
+        const transaction = new sql.Transaction(pool);
+        await transaction.begin();
+        try {
+            const request = new sql.Request(transaction);
+            request.input('subscriptionId', sql.Int, subscriptionId);
+            
+            await request.query('DELETE FROM dbo.notifications WHERE related_subscription_id = @subscriptionId');
+            const result = await request.query('DELETE FROM dbo.user_subscriptions WHERE subscription_id = @subscriptionId');
+            
+            await transaction.commit();
+            res.json({ success: true, affected: result.rowsAffected[0] });
+        } catch (err) {
+            await transaction.rollback();
+            throw err;
+        }
+    } catch (error) {
+        console.error('CRITICAL: Subscription delete failure:', error);
+        res.status(500).json({ error: `Database error: ${error.message}` });
     }
 });
 
