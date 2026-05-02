@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Fee Challan | PUGC SmartBot</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        /* Professional Form Styling */
+        .challan-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            padding: 30px;
+            border: 1px solid #f1f5f9;
+        }
+        
+        .section-header {
+            border-bottom: 2px solid #e6ecf5;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .section-header h2 {
+            color: var(--primary);
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-header h2 i {
+            color: var(--accent);
+            margin-right: 10px;
+        }
+
+        .challan-form .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 35px;
+        }
+
+        .challan-form .field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .challan-form .field span {
+            font-weight: 600;
+            color: #334155;
+            font-size: 0.9rem;
+            letter-spacing: 0.3px;
+        }
+
+        .challan-form input, .challan-form select {
+            padding: 12px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            color: #1e293b;
+            background: #f8fafc;
+            transition: all 0.3s ease;
+            outline: none;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .challan-form select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: calc(100% - 15px) center;
+            padding-right: 40px;
+        }
+
+        .challan-form input:focus, .challan-form select:focus {
+            border-color: var(--accent);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .challan-form input::placeholder {
+            color: #94a3b8;
+        }
+
+        .challan-form input:read-only {
+            background: #f1f5f9;
+            color: #64748b;
+            cursor: not-allowed;
+            border-color: #e2e8f0;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 25px;
+        }
+
+        .primary-btn, .secondary-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            border: none;
+            font-family: inherit;
+        }
+
+        .primary-btn {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+        }
+
+        .primary-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .secondary-btn {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .secondary-btn:hover {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+    </style>
+</head>
+<body class="protected-page student-page">
+
+<div class="dashboard-layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <i class="fas fa-robot"></i>
+                <span class="brand-label">PUGC SmartBot</span>
+            </div>
+            <button type="button" class="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="true">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-menu" aria-label="Student navigation">
+            <a href="index.html" title="Home">
+                <i class="fas fa-home"></i>
+                <span class="nav-label">Home</span>
+            </a>
+            <a href="dashboard.html" title="Student Dashboard">
+                <i class="fas fa-user"></i>
+                <span class="nav-label">Student Dashboard</span>
+            </a>
+            <a href="premium.html" title="Premium">
+                <i class="fas fa-crown"></i>
+                <span class="nav-label">Premium</span>
+            </a>
+            <a href="chatbot.html" title="Chatbot">
+                <i class="fas fa-comments"></i>
+                <span class="nav-label">Chatbot</span>
+            </a>
+            <a href="challan.html" class="active" title="Fee Challan">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span class="nav-label">Fee Challan</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button type="button" class="sidebar-profile-button" aria-haspopup="true">
+                <span class="profile-avatar" data-profile-initials>US</span>
+                <span class="profile-details">
+                    <span class="profile-name" data-profile-name>Student</span>
+                    <span class="profile-email" data-profile-email>student</span>
+                </span>
+                <i class="fas fa-chevron-up profile-chevron"></i>
+            </button>
+            <div class="sidebar-profile-menu">
+                <button type="button" class="profile-menu-item" data-profile-action="profile">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Profile</span>
+                </button>
+                <button type="button" class="profile-menu-item danger" data-profile-action="logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <section class="content">
+            <div class="card welcome-card">
+                <h2>Fee Challan Generator</h2>
+                <p>Select the challan type, program, and student details. The amount is calculated automatically.</p>
+            </div>
+
+            <section class="card challan-panel" id="challanPanel" aria-live="polite">
+                <div class="section-header">
+                    <div>
+                        <h2><i class="fas fa-file-invoice"></i> Generate Challan</h2>
+                    </div>
+                </div>
+
+                <form class="challan-form" id="challanForm">
+                    <div class="form-grid">
+                        <label class="field">
+                            <span>Student Name</span>
+                            <input type="text" id="challanStudentName" placeholder="Enter full name" required>
+                        </label>
+                        <label class="field">
+                            <span>Roll No</span>
+                            <input type="text" id="challanRollNo" placeholder="e.g., BITF20M011" required>
+                        </label>
+                        <label class="field">
+                            <span>CNIC</span>
+                            <input type="text" id="challanCnic" pattern="^[0-9]{5}-[0-9]{7}-[0-9]$" title="Enter a valid CNIC format (e.g. 34101-1234567-1)" placeholder="e.g., 34101-1234567-1" required>
+                        </label>
+                        <label class="field">
+                            <span>Challan Type</span>
+                            <select id="challanType" required>
+                                <option value="semester">Semester Fee</option>
+                                <option value="admission">Admission Fee</option>
+                                <option value="transcript">Transcript Fee</option>
+                                <option value="duplicate">Duplicate Document Fee</option>
+                                <option value="hostel">Hostel Fee</option>
+                                <option value="exam">Exam Fee</option>
+                                <option value="event">Event / Certification Fee</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span>Program Level</span>
+                            <select id="challanProgramLevel" required>
+                                <option value="">Select level</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span>Program</span>
+                            <select id="challanProgram" required>
+                                <option value="">Select program</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span>Semester</span>
+                            <input type="number" id="challanSemester" min="1" max="12" value="1" required>
+                        </label>
+                        <label class="field">
+                            <span>Due Date</span>
+                            <input type="date" id="challanDueDate" readonly>
+                        </label>
+                        <label class="field" id="challanSubTypeField">
+                            <span>Fee Option</span>
+                            <select id="challanSubType"></select>
+                        </label>
+                        <label class="field" id="challanHostelField">
+                            <span>Hostel</span>
+                            <select id="challanHostel"></select>
+                        </label>
+
+                        <label class="field">
+                            <span>Quantity</span>
+                            <input type="number" id="challanQuantity" min="1" value="1" required>
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="primary-btn">
+                            <i class="fas fa-eye"></i> Continue To Preview
+                        </button>
+                        <button type="button" class="secondary-btn" id="resetChallanForm">
+                            <i class="fas fa-rotate-right"></i> Reset
+                        </button>
+                        <a href="dashboard.html" class="secondary-btn">
+                            <i class="fas fa-arrow-left"></i> Back To Dashboard
+                        </a>
+                    </div>
+                </form>
+            </section>
+        </section>
+    </main>
+</div>
+
+<script src="js/auth-validation.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/subscription.js"></script>
+<script src="js/challan.js"></script>
+</body>
+</html>

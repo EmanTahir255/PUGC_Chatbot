@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview Fee Challan | PUGC SmartBot</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        .preview-container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e6ecf5;
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .preview-header h2 {
+            color: var(--primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .challan-id-badge {
+            background: #f0f4f8;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-weight: 600;
+            color: var(--accent);
+            border: 1px dashed #c0d1e3;
+        }
+
+        #challanPreviewBody dl {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 0;
+        }
+
+        #challanPreviewBody dl div {
+            background: #f9fbff;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #eef2f7;
+        }
+
+        #challanPreviewBody dt {
+            font-size: 0.85rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        #challanPreviewBody dd {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .preview-topline {
+            grid-column: 1 / -1;
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .preview-topline span {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .preview-topline strong {
+            font-size: 1.25rem;
+        }
+
+        .barcode-container {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px dashed #e6ecf5;
+        }
+
+        #challanBarcode {
+            font-family: monospace;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            color: #475569;
+        }
+
+        .preview-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .preview-actions button, .preview-actions a {
+            min-width: 150px;
+            justify-content: center;
+        }
+
+        .primary-btn, .secondary-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            border: none;
+            font-family: inherit;
+        }
+
+        .primary-btn {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+        }
+
+        .primary-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .secondary-btn {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .secondary-btn:hover {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+    </style>
+</head>
+<body class="protected-page student-page">
+
+<div class="dashboard-layout" id="challanPreviewPage">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <i class="fas fa-robot"></i>
+                <span class="brand-label">PUGC SmartBot</span>
+            </div>
+            <button type="button" class="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="true">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-menu" aria-label="Student navigation">
+            <a href="index.html" title="Home">
+                <i class="fas fa-home"></i>
+                <span class="nav-label">Home</span>
+            </a>
+            <a href="dashboard.html" title="Student Dashboard">
+                <i class="fas fa-user"></i>
+                <span class="nav-label">Student Dashboard</span>
+            </a>
+            <a href="premium.html" title="Premium">
+                <i class="fas fa-crown"></i>
+                <span class="nav-label">Premium</span>
+            </a>
+            <a href="chatbot.html" title="Chatbot">
+                <i class="fas fa-comments"></i>
+                <span class="nav-label">Chatbot</span>
+            </a>
+            <a href="challan.html" class="active" title="Fee Challan">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span class="nav-label">Fee Challan</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button type="button" class="sidebar-profile-button" aria-haspopup="true">
+                <span class="profile-avatar" data-profile-initials>US</span>
+                <span class="profile-details">
+                    <span class="profile-name" data-profile-name>Student</span>
+                    <span class="profile-email" data-profile-email>student</span>
+                </span>
+                <i class="fas fa-chevron-up profile-chevron"></i>
+            </button>
+            <div class="sidebar-profile-menu">
+                <button type="button" class="profile-menu-item" data-profile-action="profile">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Profile</span>
+                </button>
+                <button type="button" class="profile-menu-item danger" data-profile-action="logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <section class="content">
+            <div class="preview-container">
+                <div class="preview-header">
+                    <h2><i class="fas fa-eye" style="color: var(--accent);"></i> Challan Preview</h2>
+                    <div class="challan-id-badge" id="challanPreviewId">Loading...</div>
+                </div>
+
+                <div id="challanPreviewBody">
+                    <p style="text-align: center; color: #64748b; padding: 40px 0;">Loading preview data...</p>
+                </div>
+                
+                <div class="barcode-container">
+                    <div id="challanBarcode"></div>
+                    <small style="color: #94a3b8; display: block; margin-top: 5px;">Scan at any HBL branch</small>
+                </div>
+
+                <div class="preview-actions">
+                    <a href="challan.html" class="secondary-btn">
+                        <i class="fas fa-edit"></i> Edit Details
+                    </a>
+                    <button type="button" class="primary-btn" id="downloadChallanPdf">
+                        <i class="fas fa-download"></i> Download PDF
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script src="js/auth-validation.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/subscription.js"></script>
+<script src="js/challan.js"></script>
+</body>
+</html>

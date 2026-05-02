@@ -1,181 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chatbot | PUGC SmartBot</title>
 
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Global Styles -->
-  <link rel="stylesheet" href="css/style.css">
-  <!-- Dashboard/Chatbot Styles -->
-  <link rel="stylesheet" href="css/dashboard.css">
-  <link rel="stylesheet" href="css/chatbot.css">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot | PUGC SmartBot</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Global Styles -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Dashboard/Chatbot Styles -->
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/chatbot.css">
 </head>
+
 <body class="protected-page">
 
-<div class="dashboard-layout">
+    <div class="dashboard-layout">
 
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-brand">
-                <i class="fas fa-robot"></i>
-                <span class="brand-label">PUGC SmartBot</span>
-            </div>
-            <button type="button" class="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="true">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-        <nav class="sidebar-menu" aria-label="Student navigation">
-            <a href="index.html" title="Home">
-                <i class="fas fa-home"></i>
-                <span class="nav-label">Home</span>
-            </a>
-            <a href="dashboard.html" title="Student Dashboard">
-                <i class="fas fa-user"></i>
-                <span class="nav-label">Student Dashboard</span>
-            </a>
-            <a href="premium.html" title="Premium">
-                <i class="fas fa-crown"></i>
-                <span class="nav-label">Premium</span>
-            </a>
-            <a href="chatbot.html" class="active" title="Chatbot">
-                <i class="fas fa-comments"></i>
-                <span class="nav-label">Chatbot</span>
-            </a>
-            <a href="#history" id="history-btn" title="History">
-                <i class="fas fa-history"></i>
-                <span class="nav-label">History</span>
-            </a>
-        </nav>
-
-        <div class="sidebar-footer">
-            <button type="button" class="sidebar-profile-button" aria-haspopup="true">
-                <span class="profile-avatar" data-profile-initials>US</span>
-                <span class="profile-details">
-                    <span class="profile-name" data-profile-name>Student</span>
-                    <span class="profile-email" data-profile-email>student</span>
-                </span>
-                <i class="fas fa-chevron-up profile-chevron"></i>
-            </button>
-            <div class="sidebar-profile-menu">
-                <button type="button" class="profile-menu-item" data-profile-action="profile">
-                    <i class="fas fa-user-circle"></i>
-                    <span>Profile</span>
-                </button>
-                <button type="button" class="profile-menu-item danger" data-profile-action="logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <i class="fas fa-robot"></i>
+                    <span class="brand-label">PUGC SmartBot</span>
+                </div>
+                <button type="button" class="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="true">
+                    <i class="fas fa-bars"></i>
                 </button>
             </div>
-        </div>
-    </aside>
+            <nav class="sidebar-menu" aria-label="Student navigation">
+                <a href="index.html" title="Home">
+                    <i class="fas fa-home"></i>
+                    <span class="nav-label">Home</span>
+                </a>
+                <a href="dashboard.html" title="Student Dashboard">
+                    <i class="fas fa-user"></i>
+                    <span class="nav-label">Student Dashboard</span>
+                </a>
+                <a href="premium.html" title="Premium">
+                    <i class="fas fa-crown"></i>
+                    <span class="nav-label">Premium</span>
+                </a>
+                <a href="chatbot.html" class="active" title="Chatbot">
+                    <i class="fas fa-comments"></i>
+                    <span class="nav-label">Chatbot</span>
+                </a>
+                <a href="#history" id="history-btn" title="History">
+                    <i class="fas fa-history"></i>
+                    <span class="nav-label">History</span>
+                </a>
+            </nav>
 
-    <!-- Main Content -->
-    <main class="main-content">
-
-        <!-- Chat Section -->
-        <section class="content">
-
-            <div class="card chatbot-card">
-                <div class="chatbot-header">
-                    <div class="chatbot-meta-row">
-                        <span class="chatbot-kicker">Academic assistant</span>
-                        <span class="status-badge" data-subscription-status>Free</span>
-                        <button type="button" id="new-chat-btn" class="new-chat-btn">
-                            <i class="fas fa-plus"></i> New Chat
-                        </button>
-                    </div>
-                    <h2>Ask PUGC SmartBot</h2>
+            <div class="sidebar-footer">
+                <button type="button" class="sidebar-profile-button" aria-haspopup="true">
+                    <span class="profile-avatar" data-profile-initials>US</span>
+                    <span class="profile-details">
+                        <span class="profile-name" data-profile-name>Student</span>
+                        <span class="profile-email" data-profile-email>student</span>
+                    </span>
+                    <i class="fas fa-chevron-up profile-chevron"></i>
+                </button>
+                <div class="sidebar-profile-menu">
+                    <button type="button" class="profile-menu-item" data-profile-action="profile">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Profile</span>
+                    </button>
+                    <button type="button" class="profile-menu-item danger" data-profile-action="logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
                 </div>
+            </div>
+        </aside>
 
-                <div id="chat-window" class="chat-window">
-                    <div class="chat-empty-state">
-                        <i class="fas fa-robot"></i>
-                        <strong>PUGC SmartBot is ready</strong>
-                        <span>Admissions, programs, fees, events, departments, and campus services.</span>
-                    </div>
-                </div>
+        <!-- Main Content -->
+        <main class="main-content">
 
-                <div class="chat-input">
-                    <details class="chat-tools-menu">
-                        <summary aria-label="Open chat tools">
-                            <i class="fas fa-plus"></i>
-                        </summary>
-                        <div class="chatbot-buttons">
-                            <button id="faq-btn">
-                                <i class="fas fa-question-circle"></i> FAQ
+            <!-- Chat Section -->
+            <section class="content">
+
+                <div class="card chatbot-card">
+                    <div class="chatbot-header">
+                        <div class="chatbot-meta-row">
+                            <span class="chatbot-kicker">Academic assistant</span>
+                            <span class="status-badge" data-subscription-status>Free</span>
+                            <button type="button" id="new-chat-btn" class="new-chat-btn">
+                                <i class="fas fa-plus"></i> New Chat
                             </button>
-                            <button id="events-btn">
-                                <i class="fas fa-calendar-alt"></i> Events
-                                <span class="lock-icon" data-premium="true"><i class="fas fa-lock"></i></span>
-                            </button>
-                            <button id="feedback-btn">
-                                <i class="fas fa-star"></i> Feedback
-                            </button>
-                            <a class="tool-upgrade-link" href="premium.html">
-                                <i class="fas fa-crown"></i> Upgrade
-                            </a>
                         </div>
-                    </details>
-                    <input type="text" id="user-input" placeholder="Type your message..." />
-                    <button id="send-btn" aria-label="Send message"><i class="fas fa-paper-plane"></i></button>
+                        <h2>Ask PUGC SmartBot</h2>
+                    </div>
+
+                    <div id="chat-window" class="chat-window">
+                        <div class="chat-empty-state">
+                            <i class="fas fa-robot"></i>
+                            <strong>PUGC SmartBot is ready</strong>
+                            <span>Admissions, programs, fees, events, departments, and campus services.</span>
+                        </div>
+                    </div>
+
+                    <div class="chat-input">
+                        <details class="chat-tools-menu">
+                            <summary aria-label="Open chat tools">
+                                <i class="fas fa-plus"></i>
+                            </summary>
+                            <div class="chatbot-buttons">
+                                <button id="faq-btn">
+                                    <i class="fas fa-question-circle"></i> FAQ
+                                </button>
+                                <button id="events-btn">
+                                    <i class="fas fa-calendar-alt"></i> Events
+                                    <span class="lock-icon" data-premium="true"><i class="fas fa-lock"></i></span>
+                                </button>
+                                <button id="feedback-btn">
+                                    <i class="fas fa-star"></i> Feedback
+                                </button>
+                                <a class="tool-upgrade-link" href="premium.html">
+                                    <i class="fas fa-crown"></i> Upgrade
+                                </a>
+                            </div>
+                        </details>
+                        <input type="text" id="user-input" placeholder="Type your message..." />
+                        <button id="send-btn" aria-label="Send message"><i class="fas fa-paper-plane"></i></button>
+                    </div>
                 </div>
-            </div>
 
-        </section>
+            </section>
 
-    </main>
+        </main>
 
-</div>
-
-<!-- History Drawer -->
-<div id="history-drawer" class="history-drawer" aria-hidden="true">
-    <div class="history-drawer-backdrop" data-history-close></div>
-    <aside class="history-drawer-panel" role="dialog" aria-modal="true" aria-labelledby="history-drawer-title">
-        <div class="history-drawer-header">
-            <div>
-                <span class="history-kicker">Saved conversations</span>
-                <h2 id="history-drawer-title">Chat History</h2>
-            </div>
-            <button type="button" class="history-close-btn" data-history-close aria-label="Close history">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <p class="history-drawer-note" id="history-drawer-note">
-            Free users can review recent history. Premium users can access full chat history.
-        </p>
-        <div id="history-list" class="history-list"></div>
-    </aside>
-</div>
-
-<!-- Feedback Modal -->
-<div id="feedback-modal" class="feedback-modal" style="display:none;">
-    <div class="feedback-content">
-        <span id="close-feedback" class="close">&times;</span>
-        <h3>Submit Feedback</h3>
-        <label>Rating:</label>
-<div class="star-rating" id="star-rating">
-  <span data-value="1">★</span>
-  <span data-value="2">★</span>
-  <span data-value="3">★</span>
-  <span data-value="4">★</span>
-  <span data-value="5">★</span>
-</div>
-<input type="hidden" id="feedback-rating">
-
-        <label>Message:</label>
-        <textarea id="feedback-message" rows="4" placeholder="Your feedback..."></textarea>
-        <button id="submit-feedback">Submit</button>
     </div>
-</div>
 
-<script src="js/auth-validation.js"></script>
-<script src="js/chatbot-shell.js"></script>
-<script src="js/sidebar.js"></script>
-<script src="js/subscription.js"></script>
-<script src="js/chatbot.js"></script>
+    <!-- History Drawer -->
+    <div id="history-drawer" class="history-drawer" aria-hidden="true">
+        <div class="history-drawer-backdrop" data-history-close></div>
+        <aside class="history-drawer-panel" role="dialog" aria-modal="true" aria-labelledby="history-drawer-title">
+            <div class="history-drawer-header">
+                <div>
+                    <span class="history-kicker">Saved conversations</span>
+                    <h2 id="history-drawer-title">Chat History</h2>
+                </div>
+                <button type="button" class="history-close-btn" data-history-close aria-label="Close history">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <p class="history-drawer-note" id="history-drawer-note">
+                Free users can review recent history. Premium users can access full chat history.
+            </p>
+            <div id="history-list" class="history-list"></div>
+        </aside>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div id="feedback-modal" class="feedback-modal" style="display:none;">
+        <div class="feedback-content">
+            <span id="close-feedback" class="close">&times;</span>
+            <h3>Submit Feedback</h3>
+            <label>Rating:</label>
+            <div class="star-rating" id="star-rating">
+                <span data-value="1">★</span>
+                <span data-value="2">★</span>
+                <span data-value="3">★</span>
+                <span data-value="4">★</span>
+                <span data-value="5">★</span>
+            </div>
+            <input type="hidden" id="feedback-rating">
+
+            <label>Message:</label>
+            <textarea id="feedback-message" rows="4" placeholder="Your feedback..."></textarea>
+            <button id="submit-feedback">Submit</button>
+        </div>
+    </div>
+
+    <script src="js/auth-validation.js"></script>
+    <script src="js/chatbot-shell.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/subscription.js"></script>
+    <script src="js/chatbot.js"></script>
 
 </body>
+
 </html>
