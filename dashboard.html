@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,139 +13,195 @@
     <link rel="stylesheet" href="css/style.css">
     <!-- Dashboard Styles -->
     <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        .primary-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            border: none;
+            font-family: inherit;
+            background: var(--accent);
+            color: #ffffff;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .primary-btn:hover {
+            background: #e6af1a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+    </style>
 </head>
+
 <body class="protected-page student-page">
 
-<div class="dashboard-layout">
+    <div class="dashboard-layout">
 
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-brand">
-                <i class="fas fa-robot"></i>
-                <span class="brand-label">PUGC SmartBot</span>
-            </div>
-            <button type="button" class="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="true">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-
-        <nav class="sidebar-menu" aria-label="Student navigation">
-            <a href="index.html" title="Home">
-                <i class="fas fa-home"></i>
-                <span class="nav-label">Home</span>
-            </a>
-            <a href="#" class="active" title="Student Dashboard">
-                <i class="fas fa-user"></i>
-                <span class="nav-label">Student Dashboard</span>
-            </a>
-            <a href="premium.html" title="Premium">
-                <i class="fas fa-crown"></i>
-                <span class="nav-label">Premium</span>
-            </a>
-            <a href="chatbot.html" title="Chatbot">
-                <i class="fas fa-comments"></i>
-                <span class="nav-label">Chatbot</span>
-            </a>
-            <a href="chatbot.html#history" title="History">
-                <i class="fas fa-history"></i>
-                <span class="nav-label">History</span>
-            </a>
-        </nav>
-
-        <div class="sidebar-footer">
-            <button type="button" class="sidebar-profile-button" aria-haspopup="true">
-                <span class="profile-avatar" data-profile-initials>US</span>
-                <span class="profile-details">
-                    <span class="profile-name" data-profile-name>Student</span>
-                    <span class="profile-email" data-profile-email>student</span>
-                </span>
-                <i class="fas fa-chevron-up profile-chevron"></i>
-            </button>
-            <div class="sidebar-profile-menu">
-                <button type="button" class="profile-menu-item" data-profile-action="profile">
-                    <i class="fas fa-user-circle"></i>
-                    <span>Profile</span>
-                </button>
-                <button type="button" class="profile-menu-item danger" data-profile-action="logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
-                </button>
-            </div>
-        </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="main-content">
-
-        <!-- Content -->
-        <section class="content">
-
-            <!-- Welcome Card -->
-            <div class="card welcome-card">
-                <h2>Welcome to PUGC SmartBot 👋</h2>
-                <p>
-                    Your AI-powered academic assistant is ready to help you
-                    with queries, guidance, and university-related information.
-                </p>
-            </div>
-
-            <!-- Stats -->
-            <div class="stats-grid">
-                <div class="card stat-card">
-                    <i class="fas fa-comments"></i>
-                    <h3>AI Chats</h3>
-                    <p data-chat-limit-text>20 of 20 free messages left today</p>
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <i class="fas fa-robot"></i>
+                    <span class="brand-label">PUGC SmartBot</span>
                 </div>
+                <button type="button" class="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="true">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
 
-                <div class="card stat-card">
+            <nav class="sidebar-menu" aria-label="Student navigation">
+                <a href="index.html" title="Home">
+                    <i class="fas fa-home"></i>
+                    <span class="nav-label">Home</span>
+                </a>
+                <a href="#" class="active" title="Student Dashboard">
+                    <i class="fas fa-user"></i>
+                    <span class="nav-label">Student Dashboard</span>
+                </a>
+                <a href="premium.html" title="Premium">
                     <i class="fas fa-crown"></i>
-                    <h3>Subscription</h3>
-                    <p data-subscription-status>Free</p>
-                </div>
+                    <span class="nav-label">Premium</span>
+                </a>
+                <a href="chatbot.html" title="Chatbot">
+                    <i class="fas fa-comments"></i>
+                    <span class="nav-label">Chatbot</span>
+                </a>
+                <a href="chatbot.html#history" title="History">
+                    <i class="fas fa-history"></i>
+                    <span class="nav-label">History</span>
+                </a>
+                <a href="challan.html" title="Fee Challan">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span class="nav-label">Fee Challan</span>
+                </a>
+                <a href="application-form.html" title="Application Forms">
+                    <i class="fas fa-file-alt"></i>
+                    <span class="nav-label">Application Forms</span>
+                </a>
+            </nav>
 
-                <div class="card stat-card">
-                    <i class="fas fa-clock"></i>
-                    <h3>Expiry</h3>
-                    <p data-subscription-expiry>Upgrade anytime</p>
+            <div class="sidebar-footer">
+                <button type="button" class="sidebar-profile-button" aria-haspopup="true">
+                    <span class="profile-avatar" data-profile-initials>US</span>
+                    <span class="profile-details">
+                        <span class="profile-name" data-profile-name>Student</span>
+                        <span class="profile-email" data-profile-email>student</span>
+                    </span>
+                    <i class="fas fa-chevron-up profile-chevron"></i>
+                </button>
+                <div class="sidebar-profile-menu">
+                    <button type="button" class="profile-menu-item" data-profile-action="profile">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Profile</span>
+                    </button>
+                    <button type="button" class="profile-menu-item danger" data-profile-action="logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
                 </div>
             </div>
+        </aside>
 
-            <!-- Chatbot & Premium Cards Side by Side -->
-<div class="cards-row">
-    <!-- Chatbot Card -->
-    <div class="card chatbot-card">
-        <h2>Start a Conversation</h2>
-        <p>
-            Ask questions about admissions, departments,
-            schedules, or general academic guidance.
-        </p>
-        <a href="chatbot.html" class="chatbot-btn">
-            <i class="fas fa-robot"></i> Open Chatbot
-        </a>
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- Content -->
+            <section class="content">
+
+                <!-- Welcome Card -->
+                <div class="card welcome-card">
+                    <h2>Welcome to PUGC SmartBot 👋</h2>
+                    <p>
+                        Your AI-powered academic assistant is ready to help you
+                        with queries, guidance, and university-related information.
+                    </p>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-grid">
+                    <div class="card stat-card">
+                        <i class="fas fa-comments"></i>
+                        <h3>AI Chats</h3>
+                        <p data-chat-limit-text>20 of 20 free messages left today</p>
+                    </div>
+
+                    <div class="card stat-card">
+                        <i class="fas fa-crown"></i>
+                        <h3>Subscription</h3>
+                        <p data-subscription-status>Free</p>
+                    </div>
+
+                    <div class="card stat-card">
+                        <i class="fas fa-clock"></i>
+                        <h3>Expiry</h3>
+                        <p data-subscription-expiry>Upgrade anytime</p>
+                    </div>
+                </div>
+
+                <section class="card action-card challan-action-card">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <h3>Generate Fee Challan</h3>
+                    <p>Create a challan on a dedicated page and preview it before downloading the PDF.</p>
+                    <a href="challan.html" class="primary-btn">
+                        <i class="fas fa-arrow-right"></i> Open Challan Generator
+                    </a>
+                </section>
+
+                <section class="card action-card" style="border-left: 4px solid var(--accent);">
+                    <i class="fas fa-file-alt" style="font-size:2rem;color:var(--accent);margin-bottom:12px;"></i>
+                    <h3>Application Forms</h3>
+                    <p>Generate official university application forms — transcripts, resit exams, semester freeze, ID card, and more.</p>
+                    <a href="application-form.html" class="primary-btn">
+                        <i class="fas fa-arrow-right"></i> Open Form Generator
+                    </a>
+                </section>
+
+                <!-- Chatbot & Premium Cards Side by Side -->
+                <div class="cards-row">
+                    <!-- Chatbot Card -->
+                    <div class="card chatbot-card">
+                        <h2>Start a Conversation</h2>
+                        <p>
+                            Ask questions about admissions, departments,
+                            schedules, or general academic guidance.
+                        </p>
+                        <a href="chatbot.html" class="chatbot-btn">
+                            <i class="fas fa-robot"></i> Open Chatbot
+                        </a>
+                    </div>
+
+                    <!-- Premium Card -->
+                    <div class="card premium-card">
+                        <h2 class="centered-heading">Go Premium</h2>
+                        <p>
+                            Remove the daily chat limit and unlock full history, event reminders,
+                            fee challans, and smart transcript request forms.
+                        </p>
+                        <a href="premium.html" class="premium-btn">
+                            <i class="fas fa-gift"></i> Subscribe Now
+                        </a>
+                    </div>
+                </div>
+
+
+            </section>
+
+        </main>
+
     </div>
 
-    <!-- Premium Card -->
-    <div class="card premium-card">
-        <h2 class="centered-heading">Go Premium</h2>
-        <p>
-            Remove the daily chat limit and unlock full history, event reminders,
-            fee challans, and smart transcript request forms.
-        </p>
-        <a href="premium.html" class="premium-btn">
-            <i class="fas fa-gift"></i> Subscribe Now
-        </a>
-    </div>
-</div>
-
-
-        </section>
-
-    </main>
-
-</div>
-
-<script src="js/auth-validation.js"></script>
-<script src="js/sidebar.js"></script>
-<script src="js/subscription.js"></script>
+    <script src="js/auth-validation.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/subscription.js"></script>
+    <script src="js/challan.js"></script>
 </body>
+
 </html>

@@ -14,12 +14,14 @@ const chatRoutes = require('./routes/chat');
 const adminRoutes = require('./routes/admin');
 const subscriptionRoutes = require('./routes/subscription');
 const reportRoutes = require('./routes/report');
+const challanRoutes = require('./routes/challan');
 
 app.use('/api/auth', authRoutes);
 app.use('/api', chatRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', reportRoutes); 
 app.use('/api/subscription', subscriptionRoutes);
+app.use('/api/challan', challanRoutes);
 
 
 // Start server

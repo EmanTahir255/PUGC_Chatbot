@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,143 +15,153 @@
     <!-- Premium Styles -->
     <link rel="stylesheet" href="css/premium.css">
 </head>
+
 <body class="protected-page student-page">
 
-<div class="dashboard-layout">
+    <div class="dashboard-layout">
 
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-brand">
-                <i class="fas fa-robot"></i>
-                <span class="brand-label">PUGC SmartBot</span>
-            </div>
-            <button type="button" class="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="true">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-
-        <nav class="sidebar-menu" aria-label="Student navigation">
-            <a href="index.html" title="Home">
-                <i class="fas fa-home"></i>
-                <span class="nav-label">Home</span>
-            </a>
-            <a href="dashboard.html" title="Student Dashboard">
-                <i class="fas fa-user"></i>
-                <span class="nav-label">Student Dashboard</span>
-            </a>
-            <a href="premium.html" class="active" title="Premium">
-                <i class="fas fa-crown"></i>
-                <span class="nav-label">Premium</span>
-            </a>
-            <a href="chatbot.html" title="Chatbot">
-                <i class="fas fa-comments"></i>
-                <span class="nav-label">Chatbot</span>
-            </a>
-            <a href="chatbot.html#history" title="History">
-                <i class="fas fa-history"></i>
-                <span class="nav-label">History</span>
-            </a>
-        </nav>
-
-        <div class="sidebar-footer">
-            <button type="button" class="sidebar-profile-button" aria-haspopup="true">
-                <span class="profile-avatar" data-profile-initials>US</span>
-                <span class="profile-details">
-                    <span class="profile-name" data-profile-name>Student</span>
-                    <span class="profile-email" data-profile-email>student</span>
-                </span>
-                <i class="fas fa-chevron-up profile-chevron"></i>
-            </button>
-            <div class="sidebar-profile-menu">
-                <button type="button" class="profile-menu-item" data-profile-action="profile">
-                    <i class="fas fa-user-circle"></i>
-                    <span>Profile</span>
-                </button>
-                <button type="button" class="profile-menu-item danger" data-profile-action="logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <i class="fas fa-robot"></i>
+                    <span class="brand-label">PUGC SmartBot</span>
+                </div>
+                <button type="button" class="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="true">
+                    <i class="fas fa-bars"></i>
                 </button>
             </div>
-        </div>
-    </aside>
 
-    <!-- Main Content -->
-    <main class="main-content">
+            <nav class="sidebar-menu" aria-label="Student navigation">
+                <a href="index.html" title="Home">
+                    <i class="fas fa-home"></i>
+                    <span class="nav-label">Home</span>
+                </a>
+                <a href="dashboard.html" title="Student Dashboard">
+                    <i class="fas fa-user"></i>
+                    <span class="nav-label">Student Dashboard</span>
+                </a>
+                <a href="premium.html" class="active" title="Premium">
+                    <i class="fas fa-crown"></i>
+                    <span class="nav-label">Premium</span>
+                </a>
+                <a href="chatbot.html" title="Chatbot">
+                    <i class="fas fa-comments"></i>
+                    <span class="nav-label">Chatbot</span>
+                </a>
+                <a href="chatbot.html#history" title="History">
+                    <i class="fas fa-history"></i>
+                    <span class="nav-label">History</span>
+                </a>
+                <a href="challan.html" title="Fee Challan">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span class="nav-label">Fee Challan</span>
+                </a>
+                <a href="application-form.html" title="Application Forms">
+                    <i class="fas fa-file-alt"></i>
+                    <span class="nav-label">Application Forms</span>
+                </a>
+            </nav>
 
-        <!-- Premium Content -->
-        <section class="content full-screen-content">
-
-            <div class="card premium-intro">
-                <div>
-                    <h2><i class="fas fa-crown golden-icon"></i> Subscription</h2>
-                    <p>Upgrade your free account to remove daily limits and unlock advanced chatbot tools.</p>
-                </div>
-                <div class="subscription-pill">
-                    <span data-subscription-status>Free</span>
-                    <small>Expires: <strong data-subscription-expiry>Upgrade anytime</strong></small>
+            <div class="sidebar-footer">
+                <button type="button" class="sidebar-profile-button" aria-haspopup="true">
+                    <span class="profile-avatar" data-profile-initials>US</span>
+                    <span class="profile-details">
+                        <span class="profile-name" data-profile-name>Student</span>
+                        <span class="profile-email" data-profile-email>student</span>
+                    </span>
+                    <i class="fas fa-chevron-up profile-chevron"></i>
+                </button>
+                <div class="sidebar-profile-menu">
+                    <button type="button" class="profile-menu-item" data-profile-action="profile">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Profile</span>
+                    </button>
+                    <button type="button" class="profile-menu-item danger" data-profile-action="logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
                 </div>
             </div>
+        </aside>
 
-            <div class="plan-comparison">
-                <div class="card plan-card free-plan">
-                    <div class="plan-header">
-                        <i class="fas fa-user"></i>
-                        <div>
-                            <h3>Free User</h3>
-                            <p>For normal daily questions.</p>
-                        </div>
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- Premium Content -->
+            <section class="content full-screen-content">
+
+                <div class="card premium-intro">
+                    <div>
+                        <h2><i class="fas fa-crown golden-icon"></i> Subscription</h2>
+                        <p>Upgrade your free account to remove daily limits and unlock advanced chatbot tools.</p>
                     </div>
-                    <ul class="feature-list">
-                        <li><i class="fas fa-message"></i> 20 chatbot messages per day</li>
-                        <li><i class="fas fa-question-circle"></i> FAQ suggestions</li>
-                        <li><i class="fas fa-history"></i> Last 5 chat history messages</li>
-                        <li><i class="fas fa-star-half-alt"></i> Feedback and ratings</li>
-                    </ul>
-                </div>
-
-                <div class="card plan-card premium-plan">
-                    <div class="plan-header">
-                        <i class="fas fa-gem"></i>
-                        <div>
-                            <h3>Premium User</h3>
-                            <p>For full chatbot access.</p>
-                        </div>
+                    <div class="subscription-pill">
+                        <span data-subscription-status>Free</span>
+                        <small>Expires: <strong data-subscription-expiry>Upgrade anytime</strong></small>
                     </div>
-                    <ul class="feature-list">
-                        <li><i class="fas fa-infinity"></i> High chat limit</li>
-                        <li><i class="fas fa-clock-rotate-left"></i> Full chat history</li>
-                        <li><i class="fas fa-calendar-check"></i> Event reminders</li>
-                        <li><i class="fas fa-file-invoice-dollar"></i> Fee challan generator</li>
-                        <li><i class="fas fa-file-signature"></i> Smart transcript request form generator</li>
-                    </ul>
                 </div>
-            </div>
 
-            <div class="pricing-grid">
-                <button type="button" class="card pricing-card" data-plan-id="weekly">
-                    <span class="plan-badge">Weekly</span>
-                    <strong>Rs. 199</strong>
-                    <small>7 days premium access</small>
-                    <span class="choose-plan">Choose Weekly</span>
-                </button>
+                <div class="plan-comparison">
+                    <div class="card plan-card free-plan">
+                        <div class="plan-header">
+                            <i class="fas fa-user"></i>
+                            <div>
+                                <h3>Free User</h3>
+                                <p>For normal daily questions.</p>
+                            </div>
+                        </div>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-message"></i> 20 chatbot messages per day</li>
+                            <li><i class="fas fa-question-circle"></i> FAQ suggestions</li>
+                            <li><i class="fas fa-history"></i> Last 5 chat history messages</li>
+                            <li><i class="fas fa-star-half-alt"></i> Feedback and ratings</li>
+                        </ul>
+                    </div>
 
-                <button type="button" class="card pricing-card highlighted" data-plan-id="monthly">
-                    <span class="plan-badge">Monthly</span>
-                    <strong>Rs. 499</strong>
-                    <small>30 days premium access</small>
-                    <span class="choose-plan">Choose Monthly</span>
-                </button>
-            </div>
+                    <div class="card plan-card premium-plan">
+                        <div class="plan-header">
+                            <i class="fas fa-gem"></i>
+                            <div>
+                                <h3>Premium User</h3>
+                                <p>For full chatbot access.</p>
+                            </div>
+                        </div>
+                        <ul class="feature-list">
+                            <li><i class="fas fa-infinity"></i> High chat limit</li>
+                            <li><i class="fas fa-clock-rotate-left"></i> Full chat history</li>
+                            <li><i class="fas fa-calendar-check"></i> Event reminders</li>
+                            <li><i class="fas fa-file-invoice-dollar"></i> Fee challan generator</li>
+                            <li><i class="fas fa-file-signature"></i> Smart transcript request form generator</li>
+                        </ul>
+                    </div>
+                </div>
 
-        </section>
+                <div class="pricing-grid">
+                    <button type="button" class="card pricing-card" data-plan-id="weekly">
+                        <span class="plan-badge">Weekly</span>
+                        <strong>Rs. 199</strong>
+                        <small>7 days premium access</small>
+                        <span class="choose-plan">Choose Weekly</span>
+                    </button>
 
-    </main>
+                    <button type="button" class="card pricing-card highlighted" data-plan-id="monthly">
+                        <span class="plan-badge">Monthly</span>
+                        <strong>Rs. 499</strong>
+                        <small>30 days premium access</small>
+                        <span class="choose-plan">Choose Monthly</span>
+                    </button>
+                </div>
 
-</div>
+            </section>
 
-<script src="js/auth-validation.js"></script>
-<script src="js/sidebar.js"></script>
-<script src="js/subscription.js"></script>
-<script src="js/premium.js"></script>
+        </main>
+
+    </div>
+
+    <script src="js/auth-validation.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/subscription.js"></script>
+    <script src="js/premium.js"></script>
 </body>
+
 </html>
