@@ -42,6 +42,14 @@
                     <i class="fas fa-crown"></i>
                     <span class="nav-label">Premium</span>
                 </a>
+                <a href="challan.html" title="Fee Challan" data-premium-only="true">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span class="nav-label">Fee Challan</span>
+                </a>
+                <a href="application-form.html" title="Application Forms" data-premium-only="true">
+                    <i class="fas fa-file-alt"></i>
+                    <span class="nav-label">Application Forms</span>
+                </a>
                 <a href="chatbot.html" class="active" title="Chatbot">
                     <i class="fas fa-comments"></i>
                     <span class="nav-label">Chatbot</span>
@@ -49,14 +57,6 @@
                 <a href="#history" id="history-btn" title="History">
                     <i class="fas fa-history"></i>
                     <span class="nav-label">History</span>
-                </a>
-                <a href="challan.html" title="Fee Challan">
-                    <i class="fas fa-file-invoice-dollar"></i>
-                    <span class="nav-label">Fee Challan</span>
-                </a>
-                <a href="application-form.html" title="Application Forms">
-                    <i class="fas fa-file-alt"></i>
-                    <span class="nav-label">Application Forms</span>
                 </a>
             </nav>
 
@@ -149,9 +149,14 @@
                     <span class="history-kicker">Saved conversations</span>
                     <h2 id="history-drawer-title">Chat History</h2>
                 </div>
-                <button type="button" class="history-close-btn" data-history-close aria-label="Close history">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div class="history-header-actions">
+                    <button type="button" id="clear-history-btn" class="clear-history-btn" title="Clear All History">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                    <button type="button" class="history-close-btn" data-history-close aria-label="Close history">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
             <p class="history-drawer-note" id="history-drawer-note">
                 Free users can review recent history. Premium users can access full chat history.
@@ -182,6 +187,7 @@
     </div>
 
     <script src="js/auth-validation.js"></script>
+    <script src="js/modal.js"></script>
     <script src="js/chatbot-shell.js"></script>
     <script src="js/sidebar.js"></script>
     <script src="js/subscription.js"></script>

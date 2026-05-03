@@ -28,8 +28,7 @@ function toggleNavbarButtons() {
         user = {};
     }
 
-    const email = (user.email || '').toLowerCase();
-    const isAdmin = role === 'admin' || email.includes('admin');
+    const isAdmin = role === 'admin';
 
     const signinBtn = document.querySelector('.btn-login.signin');
     const signupBtn = document.querySelector('.btn-login.signup'); // Sign Up button
@@ -54,14 +53,19 @@ function toggleNavbarButtons() {
         // Attach logout functionality once
         if (!logoutBtn.dataset.initialized) {
             logoutBtn.dataset.initialized = 'true';
-            logoutBtn.addEventListener('click', (e) => {
+            logoutBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
+                if (window.AuthService?.logout) {
+                    await window.AuthService.logout();
+                    return;
+                }
+
                 sessionStorage.clear();
                 localStorage.removeItem('isLoggedIn');
                 localStorage.removeItem('userEmail');
                 localStorage.removeItem('userRole');
                 localStorage.removeItem('currentUser');
-                toggleNavbarButtons(); // Update navbar immediately
+                toggleNavbarButtons();
                 window.location.href = 'login.html';
             });
         }
@@ -76,5 +80,28 @@ function toggleNavbarButtons() {
     }
 }
 
+function initPasswordToggles() {
+    document.querySelectorAll('.toggle-password').forEach(icon => {
+        icon.addEventListener('click', () => {
+            const input = icon.parentElement.querySelector('input');
+            if (!input) return;
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
+        });
+    });
+}
+
 // Run layout
 loadLayout();
+initPasswordToggles();
+window.toggleNavbarButtons = toggleNavbarButtons;
+document.addEventListener('auth:changed', toggleNavbarButtons);
+document.addEventListener('auth:cleared', toggleNavbarButtons);

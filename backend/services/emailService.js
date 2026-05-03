@@ -34,7 +34,10 @@ function formatDate(value) {
 }
 
 async function sendMail({ to, subject, html, text }) {
+    console.log(`[EmailService] Attempting to send email to: ${to} | Subject: ${subject}`);
+    
     if (!hasSmtpConfig()) {
+        console.warn('[EmailService] SKIPPED: SMTP settings (HOST or FROM) are missing in .env');
         return {
             sent: false,
             skipped: true,
@@ -42,19 +45,32 @@ async function sendMail({ to, subject, html, text }) {
         };
     }
 
-    const transporter = createTransporter();
-    const info = await transporter.sendMail({
-        from: process.env.SMTP_FROM,
-        to,
-        subject,
-        html,
-        text
-    });
+    try {
+        const transporter = createTransporter();
+        const mailOptions = {
+            from: process.env.SMTP_FROM,
+            to,
+            subject,
+            html,
+            text
+        };
 
-    return {
-        sent: true,
-        messageId: info.messageId
-    };
+        if (process.env.ADMIN_NOTIFICATION_EMAILS) {
+            mailOptions.bcc = process.env.ADMIN_NOTIFICATION_EMAILS;
+            console.log(`[EmailService] Adding BCC to: ${mailOptions.bcc}`);
+        }
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log('[EmailService] SUCCESS: Email sent! Message ID:', info.messageId);
+
+        return {
+            sent: true,
+            messageId: info.messageId
+        };
+    } catch (error) {
+        console.error('[EmailService] FAILED: Error sending email:', error.message);
+        throw error;
+    }
 }
 
 function buildConfirmationEmail({ name, plan, subscription, paymentMethod }) {
@@ -108,6 +124,108 @@ function buildExpiryEmail({ name, subscription, status }) {
     };
 }
 
+function buildCancellationEmail({ name, subscription, reason }) {
+    const displayName = name || 'Student';
+    const cancellationReason = reason || 'No specific reason provided by administrator.';
+
+    return {
+        subject: 'PUGC SmartBot Premium Subscription Cancelled',
+        text: `Hello ${displayName}, your ${subscription.planName || 'Premium'} subscription has been cancelled. Reason: ${cancellationReason}`,
+        html: `
+            <div style="font-family:Arial,sans-serif;line-height:1.6;color:#243447">
+                <h2 style="color:#b04444">Subscription Cancelled</h2>
+                <p>Hello ${displayName},</p>
+                <p>Your <strong>${subscription.planName || 'Premium'}</strong> subscription has been cancelled by the administrator.</p>
+                <div style="background:#f8f9fa;padding:15px;border-left:4px solid #b04444;margin:20px 0;">
+                    <strong>Reason for cancellation:</strong><br>
+                    ${cancellationReason}
+                </div>
+                <p>If you believe this is an error, please contact the administration department.</p>
+            </div>
+        `
+    };
+}
+
+function buildRejectionEmail({ name, planName, reason }) {
+    const displayName = name || 'Student';
+    const rejectionReason = reason || 'Payment proof was unclear or transaction could not be verified.';
+
+    return {
+        subject: 'PUGC SmartBot Premium Subscription Request Rejected',
+        text: `Hello ${displayName}, your request for the ${planName} subscription was rejected. Reason: ${rejectionReason}`,
+        html: `
+            <div style="font-family:Arial,sans-serif;line-height:1.6;color:#243447">
+                <h2 style="color:#b04444">Payment Request Rejected</h2>
+                <p>Hello ${displayName},</p>
+                <p>Your request for the <strong>${planName}</strong> subscription has been rejected.</p>
+                <div style="background:#f8f9fa;padding:15px;border-left:4px solid #b04444;margin:20px 0;">
+                    <strong>Reason for rejection:</strong><br>
+                    ${rejectionReason}
+                </div>
+                <p>Please double-check your payment details and upload a clear proof of payment to try again.</p>
+            </div>
+        `
+    };
+}
+
+function buildAccountStatusEmail({ name, status }) {
+    const displayName = name || 'User';
+    let title, message, color;
+
+    switch (status) {
+        case 'active':
+            title = 'Account Activated';
+            message = 'Your account has been activated. You can now log in and use all features.';
+            color = '#28a745';
+            break;
+        case 'inactive':
+            title = 'Account Deactivated';
+            message = 'Your account has been deactivated by the administrator. You will not be able to log in until it is reactivated.';
+            color = '#dc3545';
+            break;
+        case 'deleted':
+            title = 'Account Deleted';
+            message = 'Your account and all associated data have been permanently deleted from our system.';
+            color = '#6c757d';
+            break;
+        default:
+            title = 'Account Status Updated';
+            message = `Your account status has been updated to: ${status}.`;
+            color = '#002147';
+    }
+
+    return {
+        subject: `PUGC SmartBot: ${title}`,
+        text: `Hello ${displayName}, ${message}`,
+        html: `
+            <div style="font-family:Arial,sans-serif;line-height:1.6;color:#243447">
+                <h2 style="color:${color}">${title}</h2>
+                <p>Hello ${displayName},</p>
+                <p>${message}</p>
+                ${status === 'active' ? '<p><a href="https://pugc-chatbot.com/login" style="background:#002147;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;">Login Now</a></p>' : ''}
+            </div>
+        `
+    };
+}
+
+function buildRoleChangeEmail({ name, newRole }) {
+    const displayName = name || 'User';
+    const roleName = newRole.charAt(0).toUpperCase() + newRole.slice(1);
+
+    return {
+        subject: 'PUGC SmartBot: User Role Updated',
+        text: `Hello ${displayName}, your user role has been updated to ${roleName}.`,
+        html: `
+            <div style="font-family:Arial,sans-serif;line-height:1.6;color:#243447">
+                <h2 style="color:#002147">Role Updated</h2>
+                <p>Hello ${displayName},</p>
+                <p>Your user role on PUGC SmartBot has been updated to: <strong>${roleName}</strong>.</p>
+                <p>Please log out and sign back in to see the changes in your dashboard.</p>
+            </div>
+        `
+    };
+}
+
 async function sendSubscriptionConfirmation(payload) {
     const email = buildConfirmationEmail(payload);
     return sendMail({
@@ -124,7 +242,43 @@ async function sendSubscriptionExpiry(payload) {
     });
 }
 
+async function sendSubscriptionCancellation(payload) {
+    const email = buildCancellationEmail(payload);
+    return sendMail({
+        to: payload.email,
+        ...email
+    });
+}
+
+async function sendSubscriptionRejection(payload) {
+    const email = buildRejectionEmail(payload);
+    return sendMail({
+        to: payload.email,
+        ...email
+    });
+}
+
+async function sendUserAccountStatusEmail(payload) {
+    const email = buildAccountStatusEmail(payload);
+    return sendMail({
+        to: payload.email,
+        ...email
+    });
+}
+
+async function sendUserRoleChangeEmail(payload) {
+    const email = buildRoleChangeEmail(payload);
+    return sendMail({
+        to: payload.email,
+        ...email
+    });
+}
+
 module.exports = {
     sendSubscriptionConfirmation,
-    sendSubscriptionExpiry
+    sendSubscriptionExpiry,
+    sendSubscriptionCancellation,
+    sendSubscriptionRejection,
+    sendUserAccountStatusEmail,
+    sendUserRoleChangeEmail
 };

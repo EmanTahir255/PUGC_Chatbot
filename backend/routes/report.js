@@ -2,16 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { getPool, sql } = require('../db');
 const Groq = require('groq-sdk');
+const { requireAuth, requireRole } = require('../middleware/auth');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // ── Auth guard (same pattern as admin.js) ──────────────────────────
-function requireAdmin(req, res, next) {
-    const role = String(req.header('x-user-role') || '').toLowerCase();
-    if (role !== 'admin') return res.status(403).json({ error: 'Admin access required.' });
-    next();
-}
-router.use(requireAdmin);
+router.use(requireAuth, requireRole('admin'));
 
 // ── Helpers ────────────────────────────────────────────────────────
 function dateParam(value) {

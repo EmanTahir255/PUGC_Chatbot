@@ -76,6 +76,11 @@ function saveSidebarProfile(displayName) {
 }
 
 function performSidebarLogout() {
+    if (window.AuthService?.logout) {
+        window.AuthService.logout();
+        return;
+    }
+
     sessionStorage.clear();
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userEmail');
@@ -162,6 +167,7 @@ function initSidebar() {
     document.body.classList.toggle('sidebar-collapsed', savedCollapsed);
     toggle?.setAttribute('aria-expanded', String(!savedCollapsed));
     updateSidebarProfile();
+    updateAdminBadgeCount();
 
     toggle?.addEventListener('click', () => {
         const collapsed = !document.body.classList.contains('sidebar-collapsed');
@@ -202,6 +208,80 @@ function initSidebar() {
             closeProfileModal();
         }
     });
+
+    // Handle Subscription Access Control
+    applySubscriptionAccess();
+}
+
+function applySubscriptionAccess() {
+    if (!window.SubscriptionService) {
+        console.warn('SubscriptionService not available for sidebar access control.');
+        return;
+    }
+
+    const isPremium = window.SubscriptionService.isPremium();
+    const premiumLinks = document.querySelectorAll('[data-premium-only="true"]');
+
+    premiumLinks.forEach(link => {
+        if (!isPremium) {
+            link.classList.add('locked-feature');
+            
+            // Add lock icon if not already there
+            if (!link.querySelector('.lock-icon')) {
+                const lock = document.createElement('i');
+                lock.className = 'fas fa-lock lock-icon';
+                link.appendChild(lock);
+            }
+
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                window.CustomModal.confirm('Premium Feature', 'This feature is only available for Weekly and Monthly premium subscribers. Upgrade now?', {
+                    confirmText: 'Upgrade',
+                    cancelText: 'Later'
+                }).then(confirmed => {
+                    if (confirmed) window.location.href = 'premium.html';
+                });
+            });
+        } else {
+            link.classList.remove('locked-feature');
+            link.querySelector('.lock-icon')?.remove();
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', initSidebar);
+document.addEventListener('auth:changed', updateSidebarProfile);
+document.addEventListener('auth:cleared', updateSidebarProfile);
+
+window.updateAdminBadgeCount = async function() {
+    const user = getSidebarUser();
+    if (user.role !== 'admin') return;
+
+    const subsBadge = document.getElementById('subsBadge');
+    if (!subsBadge) return;
+
+    try {
+        const token = window.AuthService?.getToken?.() || localStorage.getItem('authToken') || '';
+        if (!token) return;
+
+        const response = await fetch('http://localhost:3000/api/admin/manual-payments', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const pendingCount = (data.payments || []).filter(p => p.status === 'pending').length;
+
+        if (pendingCount > 0) {
+            subsBadge.textContent = pendingCount;
+            subsBadge.style.display = 'flex';
+        } else {
+            subsBadge.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error updating admin badge:', error);
+    }
+}

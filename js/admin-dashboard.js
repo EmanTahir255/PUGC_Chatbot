@@ -1,12 +1,16 @@
-const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-
-if (!currentUser || currentUser.role !== 'admin') {
-    window.location.href = 'login.html';
-}
+const currentUser = (window.AuthService?.getCurrentUser?.() || JSON.parse(localStorage.getItem('currentUser') || 'null') || {});
 
 const ADMIN_API_BASE = 'http://localhost:3000/api/admin';
 
 const state = {
+    authUsers: [],
+    authUsersLoaded: false,
+    authUsersError: null,
+    manualPayments: [],
+    adminSubscriptions: [],
+    subscriptionAdminLoaded: false,
+    subscriptionAdminError: null,
+    subscriptionActiveTab: 'pending', // 'pending', 'active', 'history'
     meta: {
         intents: [],
         departments: [],
@@ -21,7 +25,9 @@ const state = {
     feeStructures: [],
     scholarships: [],
     events: [],
+    feedback: [],
     filters: {
+        users: { search: '', role: 'all', status: 'all' },
         departments: { search: '' },
         programs: { search: '', status: 'all', department: 'all' },
         feeStructures: { search: '', status: 'all', program: 'all', feeType: 'all' },
@@ -43,6 +49,8 @@ const state = {
         events: 'home'
     },
     notices: {
+        users: null,
+        subscriptions: null,
         departments: null,
         programs: null,
         feeStructures: null,
@@ -52,13 +60,12 @@ const state = {
 };
 
 const users = JSON.parse(localStorage.getItem('users') || '[]');
-const feedback = JSON.parse(localStorage.getItem('feedback') || '[]');
 
 function getAdminHeaders() {
+    const token = window.AuthService?.getToken?.() || localStorage.getItem('authToken') || '';
     return {
         'Content-Type': 'application/json',
-        'x-user-role': currentUser.role,
-        'x-user-email': currentUser.email || ''
+        Authorization: `Bearer ${token}`
     };
 }
 
@@ -79,7 +86,7 @@ async function apiRequest(path, options = {}) {
     }
 
     if (!response.ok) {
-        const error = new Error(payload.error || 'Request failed.');
+        const error = new Error(payload.error || `Request failed (Status: ${response.status})`);
         error.details = payload.details || {};
         error.status = response.status;
         throw error;
@@ -120,6 +127,34 @@ function formatDateTime(value) {
         hour: '2-digit',
         minute: '2-digit'
     });
+}
+
+function formatCurrency(value, currency = 'PKR') {
+    const amount = Number(value || 0);
+    return `${currency || 'PKR'} ${amount.toLocaleString('en-PK', {
+        minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+        maximumFractionDigits: 2
+    })}`;
+}
+
+function formatPaymentMethod(value) {
+    return String(value || 'other')
+        .split('_')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+}
+
+function paymentStatusBadge(status) {
+    const normalized = String(status || 'pending').toLowerCase();
+    const className = normalized === 'approved'
+        ? 'active'
+        : normalized === 'pending'
+            ? 'warning'
+            : normalized === 'rejected'
+                ? 'inactive'
+                : 'muted';
+
+    return `<span class="status-badge ${className}">${escapeHtml(normalized)}</span>`;
 }
 
 function activeBadge(isActive) {
@@ -167,6 +202,10 @@ function setSection(sectionId, options = {}) {
         window.history.replaceState(null, '', nextUrl);
     }
 }
+
+
+// CustomModal is now provided by js/modal.js
+
 
 function attachNavigation() {
     document.querySelectorAll('.sidebar-menu a[data-section]').forEach(link => {
@@ -242,113 +281,787 @@ function attachCrudModeHandlers(section, sectionKey, renderFn) {
 }
 
 function setOverviewCounts() {
-    document.getElementById('statUsers').innerText = users.length;
-    document.getElementById('statFeedback').innerText = feedback.length;
-    document.getElementById('statSubs').innerText = users.filter(user => user.features && user.features.length).length;
+    const activeSubscriptionCount = state.subscriptionAdminLoaded && !state.subscriptionAdminError
+        ? state.adminSubscriptions.filter(item => item.status === 'active').length
+        : 0;
+
+    const pendingRequestsCount = state.subscriptionAdminLoaded && !state.subscriptionAdminError
+        ? state.manualPayments.filter(item => item.status === 'pending').length
+        : 0;
+
+    document.getElementById('statUsers').innerText = state.authUsersLoaded ? state.authUsers.length : 0;
+    document.getElementById('statFeedback').innerText = state.feedback ? state.feedback.length : 0;
+    document.getElementById('statSubs').innerText = activeSubscriptionCount;
+
+    // Sidebar Badge
+    const subsBadge = document.getElementById('subsBadge');
+    if (subsBadge) {
+        if (pendingRequestsCount > 0) {
+            subsBadge.innerText = pendingRequestsCount;
+            subsBadge.style.display = 'flex';
+        } else {
+            subsBadge.style.display = 'none';
+        }
+    }
 }
 
 function renderUsersSection() {
     const section = document.getElementById('users');
+    const authUsers = state.authUsers;
+    const currentUserId = Number(currentUser.userId || 0);
+    const notice = state.notices.users;
+    const filter = state.filters.users;
+
+    // 1. Filter Logic
+    const filteredUsers = authUsers.filter(user => {
+        const matchesSearch = !filter.search ||
+            (user.full_name || '').toLowerCase().includes(filter.search.toLowerCase()) ||
+            (user.email || '').toLowerCase().includes(filter.search.toLowerCase());
+        const matchesRole = filter.role === 'all' || user.role === filter.role;
+        const matchesStatus = filter.status === 'all' ||
+            (filter.status === 'active' && user.is_active) ||
+            (filter.status === 'inactive' && !user.is_active);
+        return matchesSearch && matchesRole && matchesStatus;
+    });
+
+    // 2. Stats Calculation
+    const totalUsers = authUsers.length;
+    const adminCount = authUsers.filter(u => u.role === 'admin').length;
+    const activeCount = authUsers.filter(u => u.is_active).length;
+
     section.innerHTML = `
         <div class="card section-card">
             <div class="section-header">
                 <div>
-                    <h2>Users</h2>
-                    <p>Local demo accounts saved in browser storage.</p>
+                    <h2>Users Management</h2>
+                    <p>Manage authentication accounts and system permissions.</p>
                 </div>
             </div>
-            <div class="admin-list">
-                ${users.length === 0 ? '<div class="empty-state">No users found in local storage.</div>' : users.map((user, index) => `
-                    <div class="record-card simple-card">
-                        <div class="record-main">
-                            <h3>${escapeHtml(user.name || 'User')}</h3>
-                            <p><strong>Email:</strong> ${escapeHtml(user.email || 'Not provided')}</p>
-                            <p><strong>Features:</strong> ${escapeHtml(user.features?.length ? user.features.join(', ') : 'None')}</p>
-                        </div>
-                        <div class="record-actions">
-                            <button type="button" class="danger-btn" data-user-delete="${index}">Delete</button>
-                        </div>
+
+            ${notice ? `<div class="success-banner">${escapeHtml(notice)}</div>` : ''}
+
+            <!-- User Stats Summary -->
+            <div class="stats-summary-bar">
+                <div class="stat-box">
+                    <i class="fas fa-users"></i>
+                    <div class="stat-info">
+                        <h4>Total Accounts</h4>
+                        <p>${totalUsers}</p>
                     </div>
-                `).join('')}
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-user-shield"></i>
+                    <div class="stat-info">
+                        <h4>Admins</h4>
+                        <p>${adminCount}</p>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-check-circle"></i>
+                    <div class="stat-info">
+                        <h4>Active Accounts</h4>
+                        <p>${activeCount}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toolbar with Search & Filters -->
+            <div class="section-toolbar search-redesign">
+                <div class="toolbar-group">
+                    <h3 class="search-label">Search</h3>
+                    <div class="search-wrapper">
+                        <div class="search-control">
+                            <input type="text" id="userSearch" placeholder="Search name or email..." value="${escapeHtml(filter.search)}">
+                        </div>
+                        <button type="button" class="search-btn" id="userSearchBtn">Search</button>
+                    </div>
+                    <div class="filter-controls">
+                        <label>
+                            <span>Role</span>
+                            <select id="userRoleFilter">
+                                <option value="all" ${filter.role === 'all' ? 'selected' : ''}>All Roles</option>
+                                <option value="admin" ${filter.role === 'admin' ? 'selected' : ''}>Admins</option>
+                                <option value="student" ${filter.role === 'student' ? 'selected' : ''}>Students</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Status</span>
+                            <select id="userStatusFilter">
+                                <option value="all" ${filter.status === 'all' ? 'selected' : ''}>All Status</option>
+                                <option value="active" ${filter.status === 'active' ? 'selected' : ''}>Active</option>
+                                <option value="inactive" ${filter.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- High Density User Table -->
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User Details</th>
+                            <th>Role</th>
+                            <th>Last Login</th>
+                            <th>Created</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${!state.authUsersLoaded
+            ? '<tr><td colspan="6" class="empty-state">Loading users from database...</td></tr>'
+            : filteredUsers.length === 0
+                ? '<tr><td colspan="6" class="empty-state">No users match your filters.</td></tr>'
+                : filteredUsers.map(user => {
+                    const isSelf = Number(user.user_id) === currentUserId;
+                    return `
+                                    <tr>
+                                        <td>
+                                            <div class="table-user-info">
+                                                <strong>${escapeHtml(user.full_name || 'User')}</strong>
+                                                <span>${escapeHtml(user.email)}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge ${user.role === 'admin' ? 'info' : 'muted'}">
+                                                ${escapeHtml(user.role || 'student')}
+                                            </span>
+                                        </td>
+                                        <td>${escapeHtml(formatDateTime(user.last_login_at))}</td>
+                                        <td>${escapeHtml(formatDateTime(user.created_at))}</td>
+                                        <td>
+                                            <span class="status-badge ${user.is_active ? 'active' : 'inactive'}">
+                                                ${user.is_active ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="table-actions">
+                                                ${isSelf ? '<span class="muted-text">Current Account</span>' : `
+                                                    <button class="icon-btn ${user.role === 'admin' ? 'warning' : 'primary'}" 
+                                                            data-user-role="${user.user_id}" 
+                                                            data-next-role="${user.role === 'admin' ? 'student' : 'admin'}"
+                                                            title="${user.role === 'admin' ? 'Demote to Student' : 'Promote to Admin'}">
+                                                        <i class="fas fa-user-tag"></i>
+                                                    </button>
+                                                    <button class="icon-btn ${user.is_active ? 'warning' : 'success'}" 
+                                                            data-user-status="${user.user_id}" 
+                                                            data-current-status="${user.is_active}"
+                                                            title="${user.is_active ? 'Deactivate Account' : 'Activate Account'}">
+                                                        <i class="fas fa-${user.is_active ? 'user-slash' : 'user-check'}"></i>
+                                                    </button>
+                                                    <button class="icon-btn danger" 
+                                                            data-user-delete="${user.user_id}"
+                                                            title="Delete Permanently">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                `}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    `;
+                }).join('')
+        }
+                    </tbody>
+                </table>
             </div>
         </div>
     `;
 
-    section.querySelectorAll('[data-user-delete]').forEach(button => {
-        button.addEventListener('click', () => {
-            const index = Number(button.dataset.userDelete);
-            if (!window.confirm('Delete this user from local demo storage?')) return;
-            users.splice(index, 1);
-            localStorage.setItem('users', JSON.stringify(users));
-            setOverviewCounts();
+    // 3. Attach Event Listeners
+
+    // Real-time search removed to prevent focus loss. 
+    // Use the Search button or press Enter to filter.
+
+    // Search Button Listener
+    section.querySelector('#userSearchBtn').addEventListener('click', () => {
+        state.filters.users.search = section.querySelector('#userSearch').value.trim();
+        renderUsersSection();
+    });
+
+    // Enter Key Listener for Search
+    section.querySelector('#userSearch').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            state.filters.users.search = e.target.value.trim();
             renderUsersSection();
-            renderSubscriptionsSection();
+        }
+    });
+
+    // Role Filter Listener
+    section.querySelector('#userRoleFilter').addEventListener('change', (e) => {
+        state.filters.users.role = e.target.value;
+        renderUsersSection();
+    });
+
+    // Status Filter Listener
+    section.querySelector('#userStatusFilter').addEventListener('change', (e) => {
+        state.filters.users.status = e.target.value;
+        renderUsersSection();
+    });
+
+    // Role Change Buttons
+    section.querySelectorAll('[data-user-role]').forEach(button => {
+        button.addEventListener('click', async () => {
+            const userId = Number(button.dataset.userRole);
+            const nextRole = button.dataset.nextRole;
+            const promptText = nextRole === 'admin'
+                ? 'Give this user admin access?'
+                : 'Change this admin back to student?';
+
+            if (!await CustomModal.confirm('Admin Action', promptText)) return;
+            button.disabled = true;
+
+            try {
+                await apiRequest(`/users/${userId}/role`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ role: nextRole })
+                });
+                state.notices.users = `User role updated to ${nextRole}.`;
+                await loadAuthUsers();
+                setOverviewCounts();
+                renderUsersSection();
+            } catch (error) {
+                button.disabled = false;
+                window.alert(error.message || 'Could not update the user role.');
+            }
+        });
+    });
+
+    // Status Change Buttons
+    section.querySelectorAll('[data-user-status]').forEach(button => {
+        button.addEventListener('click', async () => {
+            const userId = Number(button.dataset.userStatus);
+            const currentStatus = button.dataset.currentStatus === 'true';
+            const nextStatus = !currentStatus;
+            const promptText = nextStatus ? 'Activate this account?' : 'Deactivate this account?';
+
+            if (!await CustomModal.confirm('Admin Action', promptText)) return;
+            button.disabled = true;
+
+            try {
+                await apiRequest(`/users/${userId}/status`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ isActive: nextStatus })
+                });
+                state.notices.users = `Account ${nextStatus ? 'activated' : 'deactivated'} successfully.`;
+                await loadAuthUsers();
+                renderUsersSection();
+            } catch (error) {
+                button.disabled = false;
+                window.alert(error.message || 'Could not update status.');
+            }
+        });
+    });
+
+    // Delete Buttons
+    section.querySelectorAll('[data-user-delete]').forEach(button => {
+        button.addEventListener('click', async () => {
+            const userId = Number(button.dataset.userDelete);
+            if (!await CustomModal.confirm('Permanent Deletion', 'PERMANENTLY delete this user account? This cannot be undone.', { type: 'danger' })) return;
+
+            button.disabled = true;
+            try {
+                await apiRequest(`/users/${userId}`, { method: 'DELETE' });
+                state.notices.users = 'User deleted permanently.';
+                await loadAuthUsers();
+                setOverviewCounts();
+                renderUsersSection();
+            } catch (error) {
+                button.disabled = false;
+                window.alert(error.message || 'Delete failed.');
+            }
         });
     });
 }
 
 function renderSubscriptionsSection() {
     const section = document.getElementById('subscriptions');
+    const payments = state.manualPayments;
+    const subscriptions = state.adminSubscriptions;
+    const pendingRequests = payments.filter(p => p.status === 'pending');
+    const activeSubs = subscriptions.filter(s => s.status === 'active');
+
+    const notice = state.notices.subscriptions;
+    const activeTab = state.subscriptionActiveTab;
+
     section.innerHTML = `
         <div class="card section-card">
             <div class="section-header">
                 <div>
-                    <h2>Subscriptions</h2>
-                    <p>Manage local demo feature access without touching database data.</p>
+                    <h2>Subscriptions Management</h2>
+                    <p>Manage manual payment approvals and track premium subscriptions.</p>
+                </div>
+                <div class="section-meta">
+                    <button type="button" class="secondary-btn" data-refresh-subscriptions>
+                        <i class="fas fa-sync-alt"></i> Refresh Data
+                    </button>
                 </div>
             </div>
-            <div class="admin-list">
-                ${users.length === 0 ? '<div class="empty-state">No subscriptions found because there are no users yet.</div>' : users.map((user, index) => `
-                    <div class="record-card simple-card">
-                        <div class="record-main">
-                            <h3>${escapeHtml(user.email || 'User')}</h3>
-                            <p><strong>Features:</strong> ${escapeHtml(user.features?.length ? user.features.join(', ') : 'No subscription')}</p>
-                        </div>
-                        <div class="record-actions">
-                            <button type="button" class="secondary-btn" data-sub-clear="${index}">Clear Features</button>
-                        </div>
+
+            ${notice ? `<div class="success-banner">${escapeHtml(notice)}</div>` : ''}
+
+            <!-- Stats Bar -->
+            <div class="stats-summary-bar">
+                <div class="stat-box">
+                    <i class="fas fa-clock"></i>
+                    <div class="stat-info">
+                        <h4>Pending Requests</h4>
+                        <p>${pendingRequests.length}</p>
                     </div>
-                `).join('')}
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-user-check"></i>
+                    <div class="stat-info">
+                        <h4>Active Premiums</h4>
+                        <p>${activeSubs.length}</p>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-history"></i>
+                    <div class="stat-info">
+                        <h4>Total Transactions</h4>
+                        <p>${payments.filter(p => p.status === 'approved').length}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="tab-nav">
+                <button class="tab-btn ${activeTab === 'pending' ? 'active' : ''}" data-tab="pending">
+                    Pending Approvals (${pendingRequests.length})
+                </button>
+                <button class="tab-btn ${activeTab === 'active' ? 'active' : ''}" data-tab="active">
+                    Active Subscriptions (${activeSubs.length})
+                </button>
+                <button class="tab-btn ${activeTab === 'history' ? 'active' : ''}" data-tab="history">
+                    All History
+                </button>
+            </div>
+
+            <div class="tab-content">
+                ${renderSubscriptionTabContent()}
             </div>
         </div>
     `;
 
-    section.querySelectorAll('[data-sub-clear]').forEach(button => {
-        button.addEventListener('click', () => {
-            const index = Number(button.dataset.subClear);
-            if (!window.confirm('Remove all saved features for this user?')) return;
-            users[index].features = [];
-            localStorage.setItem('users', JSON.stringify(users));
-            setOverviewCounts();
+    // Event Listeners
+    section.querySelector('[data-refresh-subscriptions]')?.addEventListener('click', async event => {
+        const btn = event.currentTarget;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+        await loadSubscriptionAdminData();
+        setOverviewCounts();
+        renderSubscriptionsSection();
+    });
+
+    section.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            state.subscriptionActiveTab = btn.dataset.tab;
             renderSubscriptionsSection();
-            renderUsersSection();
+        });
+    });
+
+    // Approval/Rejection Handlers
+    section.querySelectorAll('[data-payment-approve]').forEach(button => {
+        button.addEventListener('click', async () => {
+            const paymentId = Number(button.dataset.paymentApprove);
+            const note = await CustomModal.prompt('Approval Note', 'Optional admin note for approval:', { placeholder: 'Type your approval note here...' });
+            if (note === null) return;
+            if (!await CustomModal.confirm('Approve Payment', 'Approve this payment and activate premium access?')) return;
+            button.disabled = true;
+            try {
+                await apiRequest(`/manual-payments/${paymentId}/approve`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ adminNote: note })
+                });
+                state.notices.subscriptions = 'Payment approved and premium access activated.';
+                await loadSubscriptionAdminData();
+                setOverviewCounts();
+                renderSubscriptionsSection();
+            } catch (error) {
+                button.disabled = false;
+                window.alert(error.message || 'Could not approve payment.');
+            }
+        });
+    });
+
+    section.querySelectorAll('[data-payment-reject]').forEach(button => {
+        button.addEventListener('click', async () => {
+            const paymentId = Number(button.dataset.paymentReject);
+            const note = await CustomModal.prompt('Rejection Reason', 'Add a short reason for rejection:', { defaultValue: 'Payment could not be verified.', placeholder: 'Why is this payment being rejected?' });
+            if (note === null) return;
+            if (!await CustomModal.confirm('Reject Payment', 'Reject this payment request?')) return;
+            button.disabled = true;
+            try {
+                await apiRequest(`/manual-payments/${paymentId}/reject`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ adminNote: note })
+                });
+                state.notices.subscriptions = 'Payment request rejected.';
+                await loadSubscriptionAdminData();
+                setOverviewCounts();
+                renderSubscriptionsSection();
+            } catch (error) {
+                button.disabled = false;
+                window.alert(error.message || 'Could not reject payment.');
+            }
+        });
+    });
+
+    // Cancellation Handler
+    section.querySelectorAll('[data-subscription-cancel]').forEach(button => {
+        button.addEventListener('click', async () => {
+            const subId = Number(button.dataset.subscriptionCancel);
+            const userEmail = button.dataset.userEmail;
+
+            const reason = await CustomModal.prompt('Cancellation Reason', `Are you sure you want to cancel the subscription for ${userEmail}?`, { defaultValue: 'Manual cancellation by administrator.', placeholder: 'Enter reason for cancellation (sent to student)...' });
+
+            if (reason === null) return; // Cancelled prompt
+
+            if (!await CustomModal.confirm('Cancel Subscription', 'This will immediately revoke their premium access. Proceed?', { type: 'danger' })) return;
+
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                await apiRequest(`/actions/cancel-subscription/${subId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ reason })
+                });
+                state.notices.subscriptions = `Subscription for ${userEmail} has been cancelled.`;
+                await loadSubscriptionAdminData();
+                setOverviewCounts();
+                renderSubscriptionsSection();
+            } catch (error) {
+                button.disabled = false;
+                button.innerText = 'Cancel';
+                let msg = error.message || 'Could not cancel subscription.';
+                if (error.details) msg += '\n\nDetails: ' + error.details;
+                window.alert(msg);
+            }
+        });
+    });
+
+    // History Delete Handler
+    section.querySelectorAll('[data-history-delete-id]').forEach(button => {
+        button.addEventListener('click', async () => {
+            const id = button.dataset.historyDeleteId;
+            const type = button.dataset.historyDeleteType; // 'payment' or 'subscription'
+
+            if (!await CustomModal.confirm('Delete History Record', `Are you sure you want to delete this ${type} record from history?`, { type: 'danger' })) return;
+
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                const endpoint = type === 'payment' ? `/manual-payments/${id}` : `/subscriptions/${id}`;
+                await apiRequest(endpoint, { method: 'DELETE' });
+
+                state.notices.subscriptions = 'History record deleted successfully.';
+                await loadSubscriptionAdminData();
+                setOverviewCounts();
+                renderSubscriptionsSection();
+            } catch (error) {
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-trash"></i>';
+                window.alert(error.message || 'Could not delete history record.');
+            }
         });
     });
 }
 
+function renderSubscriptionTabContent() {
+    const tab = state.subscriptionActiveTab;
+
+    if (!state.subscriptionAdminLoaded) {
+        return '<div class="empty-state">Loading subscription data...</div>';
+    }
+
+    if (tab === 'pending') {
+        const pending = state.manualPayments.filter(p => p.status === 'pending');
+        if (pending.length === 0) return '<div class="empty-state">No pending payment requests.</div>';
+
+        // Count pending requests per user to identify duplicates
+        const pendingCounts = {};
+        pending.forEach(p => {
+            const email = p.userEmail?.toLowerCase();
+            pendingCounts[email] = (pendingCounts[email] || 0) + 1;
+        });
+
+        return `
+            <div class="admin-list">
+                ${pending.map(payment => {
+            const isDuplicate = (pendingCounts[payment.userEmail?.toLowerCase()] || 0) > 1;
+            return `
+                        <div class="record-card simple-card ${isDuplicate ? 'warning-border' : ''}">
+                            <div class="record-main">
+                                <div class="record-topline">
+                                    <h3>${escapeHtml(payment.userName || payment.userEmail || 'Student')}</h3>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        ${isDuplicate ? '<span class="status-badge warning" title="This user has multiple pending requests">Multiple Requests</span>' : ''}
+                                        ${paymentStatusBadge(payment.status)}
+                                    </div>
+                                </div>
+                                <div class="record-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                                    <div>
+                                        <p><strong>Email:</strong> ${escapeHtml(payment.userEmail)}</p>
+                                        <p><strong>Plan:</strong> ${escapeHtml(payment.planName)}</p>
+                                        <p><strong>Amount:</strong> ${escapeHtml(formatCurrency(payment.amount, payment.currency))}</p>
+                                        <p><strong>Method:</strong> ${escapeHtml(formatPaymentMethod(payment.paymentMethod))}</p>
+                                    </div>
+                                    <div>
+                                        <p><strong>Reference:</strong> ${escapeHtml(payment.transactionReference || 'N/A')}</p>
+                                        <p><strong>Sender:</strong> ${escapeHtml(payment.senderAccountName || 'N/A')}</p>
+                                        <p><strong>Submitted:</strong> ${escapeHtml(formatDateTime(payment.submittedAt))}</p>
+                                        ${payment.proofFilePath ? `<p><strong>Proof:</strong> <a href="${escapeHtml(`http://localhost:3000${payment.proofFilePath}`)}" target="_blank" class="text-link">View Screenshot</a></p>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="record-actions">
+                                <button type="button" class="primary-btn" data-payment-approve="${payment.paymentId}">Approve</button>
+                                <button type="button" class="danger-btn" data-payment-reject="${payment.paymentId}">Reject</button>
+                            </div>
+                        </div>
+                    `;
+        }).join('')}
+            </div>
+        `;
+    }
+
+    if (tab === 'active') {
+        const active = state.adminSubscriptions.filter(s => s.status === 'active');
+        if (active.length === 0) return '<div class="empty-state">No active premium subscriptions.</div>';
+
+        return `
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Plan</th>
+                            <th>Started</th>
+                            <th>Expires</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${active.map(sub => `
+                            <tr>
+                                <td>
+                                    <div class="table-user-info">
+                                        <strong>${escapeHtml(sub.userName || 'User')}</strong>
+                                        <span>${escapeHtml(sub.userEmail)}</span>
+                                    </div>
+                                </td>
+                                <td>${escapeHtml(sub.planName)}</td>
+                                <td>${escapeHtml(formatDateTime(sub.startedAt))}</td>
+                                <td>${escapeHtml(formatDateTime(sub.expiresAt))}</td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>
+                                    <button type="button" class="danger-btn" 
+                                            data-subscription-cancel="${sub.subscriptionId}" 
+                                            data-user-email="${escapeHtml(sub.userEmail)}">
+                                        Cancel
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    if (tab === 'history') {
+        // Create a unified history list from both payments and subscriptions
+        const historyItems = [];
+
+        // Add all manual payments
+        state.manualPayments.forEach(pay => {
+            historyItems.push({
+                id: pay.paymentId,
+                date: pay.submittedAt,
+                userName: pay.userName,
+                userEmail: pay.userEmail,
+                planName: pay.planName,
+                amount: pay.amount,
+                currency: pay.currency,
+                status: pay.status,
+                type: 'payment'
+            });
+        });
+
+        // Add cancelled/expired subscriptions to ensure they show up even if payment was approved
+        state.adminSubscriptions.filter(s => s.status !== 'active').forEach(sub => {
+            historyItems.push({
+                id: sub.subscriptionId,
+                date: sub.updatedAt || sub.createdAt,
+                userName: sub.userName,
+                userEmail: sub.userEmail,
+                planName: sub.planName,
+                amount: sub.price,
+                currency: sub.currency,
+                status: sub.status,
+                type: 'subscription'
+            });
+        });
+
+        // Sort by date descending
+        historyItems.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        if (historyItems.length === 0) return '<div class="empty-state">No transaction history.</div>';
+
+        return `
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>User</th>
+                            <th>Plan</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${historyItems.map(item => `
+                            <tr>
+                                <td>${escapeHtml(formatDateTime(item.date))}</td>
+                                <td>
+                                    <div class="table-user-info">
+                                        <strong>${escapeHtml(item.userName || 'User')}</strong>
+                                        <span>${escapeHtml(item.userEmail)}</span>
+                                    </div>
+                                </td>
+                                <td>${escapeHtml(item.planName)}</td>
+                                <td>${escapeHtml(formatCurrency(item.amount, item.currency))}</td>
+                                <td>${paymentStatusBadge(item.status)}</td>
+                                <td>
+                                    ${(item.status === 'active' || item.status === 'approved') ?
+                '<span class="muted-text" title="Active records cannot be deleted from history">Protected</span>' :
+                `<button type="button" class="icon-btn danger" 
+                                                data-history-delete-id="${item.id}" 
+                                                data-history-delete-type="${item.type}"
+                                                title="Delete history record">
+                                            <i class="fas fa-trash"></i>
+                                        </button>`
+            }
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+}
+
+async function loadFeedback() {
+    try {
+        state.feedback = await apiRequest('/feedback');
+    } catch (error) {
+        console.error('Failed to load feedback:', error);
+        state.feedback = [];
+    }
+}
+
+async function handleFeedbackDelete(feedbackId) {
+    if (!await CustomModal.confirm('Delete Feedback', 'Are you sure you want to delete this feedback?', { type: 'danger' })) return;
+
+    try {
+        await apiRequest(`/feedback/${feedbackId}`, { method: 'DELETE' });
+        await loadFeedback();
+        renderFeedbackSection();
+        setOverviewCounts();
+    } catch (error) {
+        alert(error.message || 'Failed to delete feedback.');
+    }
+}
+
 function renderFeedbackSection() {
     const section = document.getElementById('feedback');
+    const feedbackList = state.feedback || [];
+
     section.innerHTML = `
         <div class="card section-card">
             <div class="section-header">
                 <div>
-                    <h2>Feedback</h2>
-                    <p>Recent feedback captured in browser storage for the current demo.</p>
+                    <h2>User Feedback</h2>
+                    <p>Review student feedback and ratings from the backend database.</p>
+                </div>
+                <div class="section-meta">
+                    <button class="secondary-btn icon-btn-text" id="refreshFeedback">
+                        <i class="fas fa-sync-alt"></i> <span>Refresh</span>
+                    </button>
+                    <span class="meta-count">${feedbackList.length} feedback entries</span>
                 </div>
             </div>
-            <div class="admin-list">
-                ${feedback.length === 0 ? '<div class="empty-state">No feedback has been submitted yet.</div>' : feedback.map(item => `
-                    <div class="record-card simple-card">
-                        <div class="record-main">
-                            <h3>${escapeHtml(item.userEmail || 'Anonymous User')}</h3>
-                            <p><strong>Rating:</strong> ${escapeHtml(item.rating || 'N/A')}/5</p>
-                            <p>${escapeHtml(item.message || 'No message provided.')}</p>
-                        </div>
-                    </div>
-                `).join('')}
+            
+            <div class="data-table-container feedback-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Rating</th>
+                            <th>Message</th>
+                            <th>Date</th>
+                            <th class="actions-cell">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${feedbackList.length === 0 ? `
+                            <tr>
+                                <td colspan="5" class="empty-row">No feedback records found.</td>
+                            </tr>
+                        ` : feedbackList.map(item => `
+                            <tr>
+                                <td>
+                                    <div class="table-user-info">
+                                        <strong>${escapeHtml(item.user_name || 'Anonymous')}</strong>
+                                        <span>${escapeHtml(item.user_email || 'No email')}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="rating-badge rating-${item.rating}">
+                                        ${item.rating} <i class="fas fa-star"></i>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="feedback-message-cell" title="${escapeHtml(item.message || '')}">
+                                        ${escapeHtml(item.message || 'No message provided.')}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="date-text">${escapeHtml(formatDate(item.created_at))}</span>
+                                </td>
+                                <td class="actions-cell">
+                                    <div class="table-actions">
+                                        <button class="icon-btn danger" data-delete-feedback="${item.feedback_id}" title="Delete Feedback">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
             </div>
         </div>
     `;
+
+    section.querySelector('#refreshFeedback')?.addEventListener('click', async () => {
+        await loadFeedback();
+        renderFeedbackSection();
+    });
+
+    section.querySelectorAll('[data-delete-feedback]').forEach(button => {
+        button.addEventListener('click', () => {
+            handleFeedbackDelete(button.dataset.deleteFeedback);
+        });
+    });
 }
 
 function renderSectionError(sectionId, message) {
@@ -518,13 +1231,13 @@ function renderDepartmentsSection(formErrors = {}, globalError = '') {
             </div>
             ${globalError ? `<div class="error-banner">${escapeHtml(globalError)}</div>` : ''}
             ${renderCrudModeChooser('departments', {
-                homeText: 'Choose one department management task and we will open that workspace only.',
-                browseTitle: 'Browse Records',
-                browseText: 'Review departments and use search to find a specific office or contact quickly.',
-                addText: 'Show only the add-department form.',
-                editText: 'Pick a department to edit and then open its form separately.',
-                deactivateText: 'Open only department removal actions.'
-            })}
+        homeText: 'Choose one department management task and we will open that workspace only.',
+        browseTitle: 'Browse Records',
+        browseText: 'Review departments and use search to find a specific office or contact quickly.',
+        addText: 'Show only the add-department form.',
+        editText: 'Pick a department to edit and then open its form separately.',
+        deactivateText: 'Open only department removal actions.'
+    })}
             ${notice ? `
             <div class="followup-notice">
                 <div class="followup-notice__header">
@@ -598,6 +1311,11 @@ function renderDepartmentsSection(formErrors = {}, globalError = '') {
                             <div class="record-topline">
                                 <h3>${escapeHtml(item.dept_name)}</h3>
                             </div>
+                            <div class="record-flags">
+                                <span class="status-badge ${item.is_active ? 'active' : 'inactive'}">
+                                    ${item.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                            </div>
                             <p><strong>Head:</strong> ${escapeHtml(item.head_name || 'Not set')}</p>
                             <p><strong>Contact:</strong> ${escapeHtml(item.contact_number || 'Not set')}</p>
                             <p><strong>Email:</strong> ${escapeHtml(item.email || 'Not set')}</p>
@@ -609,7 +1327,12 @@ function renderDepartmentsSection(formErrors = {}, globalError = '') {
                             <button type="button" class="secondary-btn" data-department-edit="${item.department_id}">Edit</button>
                         </div>` : mode === 'deactivate' ? `
                         <div class="record-actions">
-                            <button type="button" class="danger-btn" data-department-delete="${item.department_id}">Delete</button>
+                            <button type="button" class="secondary-btn" data-department-toggle="${item.department_id}" data-current-status="${item.is_active}">
+                                <i class="fas ${item.is_active ? 'fa-toggle-on' : 'fa-toggle-off'}"></i> ${item.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button type="button" class="danger-btn" data-department-delete="${item.department_id}">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
                         </div>` : ''}
                     </div>
                 `).join('')}
@@ -658,6 +1381,26 @@ function renderDepartmentsSection(formErrors = {}, globalError = '') {
         section.querySelectorAll('[data-department-delete]').forEach(button => {
             button.addEventListener('click', () => handleDepartmentDelete(Number(button.dataset.departmentDelete)));
         });
+        section.querySelectorAll('[data-department-toggle]').forEach(button => {
+            button.addEventListener('click', () => {
+                const id = Number(button.dataset.departmentToggle);
+                const currentStatus = String(button.dataset.currentStatus) === 'true' || button.dataset.currentStatus === '1';
+                handleDepartmentToggleStatus(id, !currentStatus);
+            });
+        });
+    }
+}
+
+async function handleDepartmentToggleStatus(deptId, nextStatus) {
+    try {
+        await apiRequest(`/departments/${deptId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ isActive: nextStatus })
+        });
+        await loadDepartmentsAndPrograms();
+        renderDepartmentsSection();
+    } catch (error) {
+        renderDepartmentsSection(error.details, error.message);
     }
 }
 
@@ -671,7 +1414,8 @@ async function handleDepartmentSubmit(event) {
         email: document.getElementById('departmentEmail').value.trim(),
         block_location: document.getElementById('departmentBlock').value.trim(),
         room_number: document.getElementById('departmentRoom').value.trim(),
-        office_hours: document.getElementById('departmentHours').value.trim()
+        office_hours: document.getElementById('departmentHours').value.trim(),
+        is_active: true // Default for new, could be extended if form had a checkbox
     };
 
     try {
@@ -701,8 +1445,7 @@ async function handleDepartmentSubmit(event) {
 async function handleDepartmentDelete(departmentId) {
     const record = state.departments.find(item => item.department_id === departmentId);
     if (!record) return;
-    const confirmed = window.confirm(`Delete the department "${record.dept_name}"? This only works if no program is linked to it.`);
-    if (!confirmed) return;
+    if (!await CustomModal.confirm('Delete Department', `Delete the department "${record.dept_name}"? This only works if no program is linked to it.`, { type: 'danger' })) return;
 
     try {
         await apiRequest(`/departments/${departmentId}`, { method: 'DELETE' });
@@ -752,13 +1495,13 @@ function renderProgramsSection(formErrors = {}, globalError = '') {
             </div>
             ${globalError ? `<div class="error-banner">${escapeHtml(globalError)}</div>` : ''}
             ${renderCrudModeChooser('programs', {
-                homeText: 'Choose one program-management task first, and we will open only that workspace.',
-                browseTitle: 'Browse Records',
-                browseText: 'Review the program catalog and narrow it down with search and filters in one place.',
-                addText: 'Open only the add-program form.',
-                editText: 'Pick a program to edit, then its form appears separately.',
-                deactivateText: 'Open only the deactivation actions for programs.'
-            })}
+        homeText: 'Choose one program-management task first, and we will open only that workspace.',
+        browseTitle: 'Browse Records',
+        browseText: 'Review the program catalog and narrow it down with search and filters in one place.',
+        addText: 'Open only the add-program form.',
+        editText: 'Pick a program to edit, then its form appears separately.',
+        deactivateText: 'Open only the deactivation actions for programs.'
+    })}
             ${notice ? `
             <div class="followup-notice">
                 <div class="followup-notice__header">
@@ -881,7 +1624,12 @@ function renderProgramsSection(formErrors = {}, globalError = '') {
                             <button type="button" class="secondary-btn" data-program-edit="${item.program_id}">Edit</button>
                         </div>` : mode === 'deactivate' ? `
                         <div class="record-actions">
-                            <button type="button" class="danger-btn" data-program-delete="${item.program_id}">${item.is_active ? 'Deactivate' : 'Keep Inactive'}</button>
+                            <button type="button" class="secondary-btn" data-program-toggle="${item.program_id}" data-current-status="${item.is_active}">
+                                <i class="fas ${item.is_active ? 'fa-toggle-on' : 'fa-toggle-off'}"></i> ${item.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button type="button" class="danger-btn" data-program-delete="${item.program_id}">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
                         </div>` : ''}
                     </div>
                 `).join('')}
@@ -936,8 +1684,28 @@ function renderProgramsSection(formErrors = {}, globalError = '') {
 
     if (mode === 'deactivate') {
         section.querySelectorAll('[data-program-delete]').forEach(button => {
-            button.addEventListener('click', () => handleProgramDelete(Number(button.dataset.programDelete)));
+            button.addEventListener('click', () => handleProgramPermanentDelete(Number(button.dataset.programDelete)));
         });
+        section.querySelectorAll('[data-program-toggle]').forEach(button => {
+            button.addEventListener('click', () => {
+                const id = Number(button.dataset.programToggle);
+                const currentStatus = String(button.dataset.currentStatus) === 'true' || button.dataset.currentStatus === '1';
+                handleProgramToggleStatus(id, !currentStatus);
+            });
+        });
+    }
+}
+
+async function handleProgramToggleStatus(programId, nextStatus) {
+    try {
+        await apiRequest(`/programs/${programId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ isActive: nextStatus })
+        });
+        await loadPrograms();
+        renderProgramsSection();
+    } catch (error) {
+        renderProgramsSection(error.details, error.message);
     }
 }
 
@@ -979,14 +1747,13 @@ async function handleProgramSubmit(event) {
     }
 }
 
-async function handleProgramDelete(programId) {
+async function handleProgramPermanentDelete(programId) {
     const record = state.programs.find(item => item.program_id === programId);
     if (!record) return;
-    const confirmed = window.confirm(`Deactivate the program "${record.program_name}"? It will stay in the database but stop appearing as active.`);
-    if (!confirmed) return;
+    if (!await CustomModal.confirm('Delete Program', `Permanently DELETE the program "${record.program_name}"? This action cannot be undone and will fail if other records are linked.`, { type: 'danger' })) return;
 
     try {
-        await apiRequest(`/programs/${programId}`, { method: 'DELETE' });
+        await apiRequest(`/programs/${programId}/permanent`, { method: 'DELETE' });
         if (state.editing.programs === programId) state.editing.programs = null;
         await loadPrograms();
         renderProgramsSection();
@@ -1051,13 +1818,13 @@ function renderFeeStructuresSection(formErrors = {}, globalError = '') {
             </div>
             ${globalError ? `<div class="error-banner">${escapeHtml(globalError)}</div>` : ''}
             ${renderCrudModeChooser('feeStructures', {
-                homeText: 'Choose one fee-structure task and we will open only that workspace.',
-                browseTitle: 'Browse Records',
-                browseText: 'Review fee records with search and filters for program, fee type, and active status.',
-                addText: 'Open only the add-fee-record form.',
-                editText: 'Pick a fee record first, then its form appears separately.',
-                deactivateText: 'Open only the safe deactivation actions for fee records.'
-            })}
+        homeText: 'Choose one fee-structure task and we will open only that workspace.',
+        browseTitle: 'Browse Records',
+        browseText: 'Review fee records with search and filters for program, fee type, and active status.',
+        addText: 'Open only the add-fee-record form.',
+        editText: 'Pick a fee record first, then its form appears separately.',
+        deactivateText: 'Open only the safe deactivation actions for fee records.'
+    })}
             ${notice ? `
             <div class="followup-notice">
                 <div class="followup-notice__header">
@@ -1164,7 +1931,18 @@ function renderFeeStructuresSection(formErrors = {}, globalError = '') {
                             <p><strong>Effective From:</strong> ${escapeHtml(formatDate(item.effective_from))}</p>
                             <p><strong>Effective To:</strong> ${escapeHtml(item.effective_to ? formatDate(item.effective_to) : 'Current / Open')}</p>
                         </div>
-                        ${mode === 'edit' ? `<div class="record-actions"><button type="button" class="secondary-btn" data-fee-edit="${item.fee_structure_id}">Edit</button></div>` : mode === 'deactivate' ? `<div class="record-actions"><button type="button" class="danger-btn" data-fee-delete="${item.fee_structure_id}">${item.effective_to ? 'Already Closed' : 'Deactivate'}</button></div>` : ''}
+                        ${mode === 'edit' ? `
+                        <div class="record-actions">
+                            <button type="button" class="secondary-btn" data-fee-edit="${item.fee_structure_id}">Edit</button>
+                        </div>` : mode === 'deactivate' ? `
+                        <div class="record-actions">
+                            <button type="button" class="secondary-btn" data-fee-toggle="${item.fee_structure_id}" data-current-status="${!item.effective_to}">
+                                <i class="fas ${!item.effective_to ? 'fa-toggle-on' : 'fa-toggle-off'}"></i> ${!item.effective_to ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button type="button" class="danger-btn" data-fee-delete="${item.fee_structure_id}">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>` : ''}
                     </div>
                 `).join('')}
             </div>` : '<div class="empty-state">Choose an action above to continue.</div>'}
@@ -1214,8 +1992,28 @@ function renderFeeStructuresSection(formErrors = {}, globalError = '') {
     }
     if (mode === 'deactivate') {
         section.querySelectorAll('[data-fee-delete]').forEach(button => {
-            button.addEventListener('click', () => handleFeeStructureDelete(Number(button.dataset.feeDelete)));
+            button.addEventListener('click', () => handleFeeStructurePermanentDelete(Number(button.dataset.feeDelete)));
         });
+        section.querySelectorAll('[data-fee-toggle]').forEach(button => {
+            button.addEventListener('click', () => {
+                const id = Number(button.dataset.feeToggle);
+                const currentStatus = String(button.dataset.currentStatus) === 'true' || button.dataset.currentStatus === '1';
+                handleFeeStructureToggleStatus(id, !currentStatus);
+            });
+        });
+    }
+}
+
+async function handleFeeStructureToggleStatus(feeId, nextStatus) {
+    try {
+        await apiRequest(`/fee-structures/${feeId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ isActive: nextStatus })
+        });
+        await loadFeeStructures();
+        renderFeeStructuresSection();
+    } catch (error) {
+        renderFeeStructuresSection(error.details, error.message);
     }
 }
 
@@ -1247,13 +2045,13 @@ async function handleFeeStructureSubmit(event) {
     }
 }
 
-async function handleFeeStructureDelete(feeStructureId) {
+async function handleFeeStructurePermanentDelete(feeStructureId) {
     const record = state.feeStructures.find(item => item.fee_structure_id === feeStructureId);
     if (!record) return;
-    const confirmed = window.confirm(`Deactivate the fee record "${record.program_name} - ${record.fee_type_name}"?`);
-    if (!confirmed) return;
+    if (!await CustomModal.confirm('Delete Fee Record', `Permanently DELETE the fee record for "${record.program_name} - ${record.fee_type_name}"? This action cannot be undone.`, { type: 'danger' })) return;
+
     try {
-        await apiRequest(`/fee-structures/${feeStructureId}`, { method: 'DELETE' });
+        await apiRequest(`/fee-structures/${feeStructureId}/permanent`, { method: 'DELETE' });
         if (state.editing.feeStructures === feeStructureId) state.editing.feeStructures = null;
         await loadFeeStructures();
         renderFeeStructuresSection();
@@ -1300,13 +2098,13 @@ function renderScholarshipsSection(formErrors = {}, globalError = '') {
             </div>
             ${globalError ? `<div class="error-banner">${escapeHtml(globalError)}</div>` : ''}
             ${renderCrudModeChooser('scholarships', {
-                homeText: 'Choose one scholarship-management task and we will open only that workspace.',
-                browseTitle: 'Browse Records',
-                browseText: 'Review scholarships with search and filters for semester, type, and active status.',
-                addText: 'Open only the add-scholarship form.',
-                editText: 'Pick a scholarship record first, then its form appears separately.',
-                deactivateText: 'Open only the safe deactivation actions for scholarship records.'
-            })}
+        homeText: 'Choose one scholarship-management task and we will open only that workspace.',
+        browseTitle: 'Browse Records',
+        browseText: 'Review scholarships with search and filters for semester, type, and active status.',
+        addText: 'Open only the add-scholarship form.',
+        editText: 'Pick a scholarship record first, then its form appears separately.',
+        deactivateText: 'Open only the safe deactivation actions for scholarship records.'
+    })}
             ${notice ? `
             <div class="followup-notice">
                 <div class="followup-notice__header">
@@ -1424,7 +2222,18 @@ function renderScholarshipsSection(formErrors = {}, globalError = '') {
                             <p><strong>Interview:</strong> ${escapeHtml(item.interview_date ? formatDate(item.interview_date) : 'Not set')} | <strong>Announcement:</strong> ${escapeHtml(item.announcement_date ? formatDate(item.announcement_date) : 'Not set')}</p>
                             <p><strong>Max Beneficiaries:</strong> ${escapeHtml(item.max_beneficiaries ?? 'Not listed')} | <strong>Renewable:</strong> ${item.is_renewable ? 'Yes' : 'No'}</p>
                         </div>
-                        ${mode === 'edit' ? `<div class="record-actions"><button type="button" class="secondary-btn" data-scholarship-edit="${item.scholarship_id}">Edit</button></div>` : mode === 'deactivate' ? `<div class="record-actions"><button type="button" class="danger-btn" data-scholarship-delete="${item.scholarship_id}">${item.is_active ? 'Deactivate' : 'Keep Inactive'}</button></div>` : ''}
+                        ${mode === 'edit' ? `
+                        <div class="record-actions">
+                            <button type="button" class="secondary-btn" data-scholarship-edit="${item.scholarship_id}">Edit</button>
+                        </div>` : mode === 'deactivate' ? `
+                        <div class="record-actions">
+                            <button type="button" class="secondary-btn" data-scholarship-toggle="${item.scholarship_id}" data-current-status="${item.is_active}">
+                                <i class="fas ${item.is_active ? 'fa-toggle-on' : 'fa-toggle-off'}"></i> ${item.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button type="button" class="danger-btn" data-scholarship-delete="${item.scholarship_id}">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>` : ''}
                     </div>
                 `).join('')}
             </div>` : '<div class="empty-state">Choose an action above to continue.</div>'}
@@ -1474,8 +2283,28 @@ function renderScholarshipsSection(formErrors = {}, globalError = '') {
     }
     if (mode === 'deactivate') {
         section.querySelectorAll('[data-scholarship-delete]').forEach(button => {
-            button.addEventListener('click', () => handleScholarshipDelete(Number(button.dataset.scholarshipDelete)));
+            button.addEventListener('click', () => handleScholarshipPermanentDelete(Number(button.dataset.scholarshipDelete)));
         });
+        section.querySelectorAll('[data-scholarship-toggle]').forEach(button => {
+            button.addEventListener('click', () => {
+                const id = Number(button.dataset.scholarshipToggle);
+                const currentStatus = String(button.dataset.currentStatus) === 'true' || button.dataset.currentStatus === '1';
+                handleScholarshipToggleStatus(id, !currentStatus);
+            });
+        });
+    }
+}
+
+async function handleScholarshipToggleStatus(scholarshipId, nextStatus) {
+    try {
+        await apiRequest(`/scholarships/${scholarshipId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ isActive: nextStatus })
+        });
+        await loadScholarships();
+        renderScholarshipsSection();
+    } catch (error) {
+        renderScholarshipsSection(error.details, error.message);
     }
 }
 
@@ -1509,13 +2338,13 @@ async function handleScholarshipSubmit(event) {
     }
 }
 
-async function handleScholarshipDelete(scholarshipId) {
+async function handleScholarshipPermanentDelete(scholarshipId) {
     const record = state.scholarships.find(item => item.scholarship_id === scholarshipId);
     if (!record) return;
-    const confirmed = window.confirm(`Deactivate the scholarship "${record.type_name}" for ${record.semester_name} ${record.year}?`);
-    if (!confirmed) return;
+    if (!await CustomModal.confirm('Delete Scholarship Cycle', `Permanently DELETE the scholarship cycle for "${record.type_name}"? This action cannot be undone.`, { type: 'danger' })) return;
+
     try {
-        await apiRequest(`/scholarships/${scholarshipId}`, { method: 'DELETE' });
+        await apiRequest(`/scholarships/${scholarshipId}/permanent`, { method: 'DELETE' });
         if (state.editing.scholarships === scholarshipId) state.editing.scholarships = null;
         await loadScholarships();
         renderScholarshipsSection();
@@ -1548,13 +2377,13 @@ function renderEventsSection(formErrors = {}, globalError = '') {
             </div>
             ${globalError ? `<div class="error-banner">${escapeHtml(globalError)}</div>` : ''}
             ${renderCrudModeChooser('events', {
-                homeText: 'Choose one event-management task and we will open only that workspace.',
-                browseTitle: 'Browse Records',
-                browseText: 'Browse events with search and filters for type, status, and registration in one workspace.',
-                addText: 'Open only the add-event form.',
-                editText: 'Pick an event first, then its edit form appears separately.',
-                deactivateText: 'Open only the safe deactivation actions for events.'
-            })}
+        homeText: 'Choose one event-management task and we will open only that workspace.',
+        browseTitle: 'Browse Records',
+        browseText: 'Browse events with search and filters for type, status, and registration in one workspace.',
+        addText: 'Open only the add-event form.',
+        editText: 'Pick an event first, then its edit form appears separately.',
+        deactivateText: 'Open only the safe deactivation actions for events.'
+    })}
             ${notice ? `
             <div class="followup-notice">
                 <div class="followup-notice__header">
@@ -1696,7 +2525,12 @@ function renderEventsSection(formErrors = {}, globalError = '') {
                             <button type="button" class="secondary-btn" data-event-edit="${item.event_id}">Edit</button>
                         </div>` : mode === 'deactivate' ? `
                         <div class="record-actions">
-                            <button type="button" class="danger-btn" data-event-delete="${item.event_id}">${item.is_active ? 'Deactivate' : 'Keep Inactive'}</button>
+                            <button type="button" class="secondary-btn" data-event-toggle="${item.event_id}" data-current-status="${item.is_active}">
+                                <i class="fas ${item.is_active ? 'fa-toggle-on' : 'fa-toggle-off'}"></i> ${item.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button type="button" class="danger-btn" data-event-delete="${item.event_id}">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
                         </div>` : ''}
                     </div>
                 `).join('')}
@@ -1755,8 +2589,28 @@ function renderEventsSection(formErrors = {}, globalError = '') {
 
     if (mode === 'deactivate') {
         section.querySelectorAll('[data-event-delete]').forEach(button => {
-            button.addEventListener('click', () => handleEventDelete(Number(button.dataset.eventDelete)));
+            button.addEventListener('click', () => handleEventPermanentDelete(Number(button.dataset.eventDelete)));
         });
+        section.querySelectorAll('[data-event-toggle]').forEach(button => {
+            button.addEventListener('click', () => {
+                const id = Number(button.dataset.eventToggle);
+                const currentStatus = String(button.dataset.currentStatus) === 'true' || button.dataset.currentStatus === '1';
+                handleEventToggleStatus(id, !currentStatus);
+            });
+        });
+    }
+}
+
+async function handleEventToggleStatus(eventId, nextStatus) {
+    try {
+        await apiRequest(`/events/${eventId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ isActive: nextStatus })
+        });
+        await loadEvents();
+        renderEventsSection();
+    } catch (error) {
+        renderEventsSection(error.details, error.message);
     }
 }
 
@@ -1799,14 +2653,13 @@ async function handleEventSubmit(event) {
     }
 }
 
-async function handleEventDelete(eventId) {
+async function handleEventPermanentDelete(eventId) {
     const record = state.events.find(item => item.event_id === eventId);
     if (!record) return;
-    const confirmed = window.confirm(`Deactivate the event "${record.event_name}"? It will remain in the database but stop appearing as active.`);
-    if (!confirmed) return;
+    if (!await CustomModal.confirm('Delete Event', `Permanently DELETE the event "${record.event_name}"? This action cannot be undone.`, { type: 'danger' })) return;
 
     try {
-        await apiRequest(`/events/${eventId}`, { method: 'DELETE' });
+        await apiRequest(`/events/${eventId}/permanent`, { method: 'DELETE' });
         if (state.editing.events === eventId) state.editing.events = null;
         await loadEvents();
         renderEventsSection();
@@ -1817,6 +2670,45 @@ async function handleEventDelete(eventId) {
 
 async function loadMeta() {
     state.meta = await apiRequest('/meta');
+}
+
+async function loadAuthUsers() {
+    state.authUsersLoaded = false;
+    state.authUsersError = null;
+
+    try {
+        state.authUsers = await apiRequest('/users');
+        return true;
+    } catch (error) {
+        state.authUsers = [];
+        state.authUsersError = error.message || 'Failed to load users.';
+        return false;
+    } finally {
+        state.authUsersLoaded = true;
+    }
+}
+
+async function loadSubscriptionAdminData() {
+    state.subscriptionAdminLoaded = false;
+    state.subscriptionAdminError = null;
+
+    try {
+        const [paymentsPayload, subscriptionsPayload] = await Promise.all([
+            apiRequest('/manual-payments'),
+            apiRequest('/subscriptions')
+        ]);
+
+        state.manualPayments = paymentsPayload.payments || [];
+        state.adminSubscriptions = subscriptionsPayload.subscriptions || [];
+        return true;
+    } catch (error) {
+        state.manualPayments = [];
+        state.adminSubscriptions = [];
+        state.subscriptionAdminError = error.message || 'Failed to load subscription data.';
+        return false;
+    } finally {
+        state.subscriptionAdminLoaded = true;
+    }
 }
 
 async function loadDepartmentsAndPrograms() {
@@ -1854,7 +2746,8 @@ async function loadAdminData() {
         loadDepartmentsAndPrograms(),
         loadFeeStructures(),
         loadScholarships(),
-        loadEvents()
+        loadEvents(),
+        loadFeedback()
     ]);
 }
 
@@ -1872,15 +2765,37 @@ function renderAllSections() {
 async function initializeAdminDashboard() {
     attachNavigation();
     setSection(getSectionFromHash(), { updateHash: false });
-    setOverviewCounts();
-    renderUsersSection();
-    renderSubscriptionsSection();
-    renderFeedbackSection();
+
+    // Initial render with current state
+    renderAllSections();
 
     try {
+        // Load initial user and subscription data
+        await Promise.all([
+            loadAuthUsers(),
+            loadSubscriptionAdminData()
+        ]);
+
+        // Refresh counts and render users/subs
+        setOverviewCounts();
+        renderUsersSection();
+        renderSubscriptionsSection();
+
+        // Load the rest of the administration data
         await loadAdminData();
+
+        // Final full render
         renderAllSections();
     } catch (error) {
+        console.error('Dashboard initialization error:', error);
+
+        // Ensure everything is rendered at least in error/empty state
+        renderAllSections();
+
+        // Specific errors for major sections
+        renderSectionError('users', 'Failed to load users.');
+        renderSectionError('subscriptions', 'Failed to load subscriptions.');
+        renderSectionError('feedback', error.message || 'Failed to load feedback.');
         renderSectionError('departments', error.message || 'Failed to load departments.');
         renderSectionError('programs', error.message || 'Failed to load programs.');
         renderSectionError('feeStructures', error.message || 'Failed to load fee structure records.');

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const { getPool, sql } = require('../db');
+const { requireAuth } = require('../middleware/auth');
 const {
     extractIntentFromQuestion,
     getGroqResponse,
@@ -10,6 +11,8 @@ const {
     getGroundedGroqResponse
 } = require('../gemini');
 const { logChat } = require('../chat_logger');
+
+router.use(requireAuth);
 
 const DYNAMIC_INTENT_HANDLERS = {
     // Departments
@@ -2160,6 +2163,67 @@ router.post('/chat', async (req, res) => {
     } catch (error) {
         console.error('Full error:', error);
         res.status(500).json({ error: 'Server error. Please try again.' });
+    }
+});
+
+
+router.get('/public/faqs', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const result = await pool.request().query(`
+            SELECT TOP 5 fa.answer_id, fa.answer_text, i.intent_name
+            FROM faq_answers fa
+            JOIN intents i ON fa.intent_id = i.intent_id
+            WHERE fa.is_active = 1
+            ORDER BY i.intent_name
+        `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('Public FAQ error:', error);
+        res.status(500).json({ error: 'Failed to load FAQs.' });
+    }
+});
+
+router.get('/public/events', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const result = await pool.request().query(`
+            SELECT event_name, event_date, event_end_date, venue, description
+            FROM events
+            WHERE is_active = 1
+            ORDER BY event_date DESC
+        `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('Public events error:', error);
+        res.status(500).json({ error: 'Failed to load events.' });
+    }
+});
+
+
+router.post('/chat/feedback', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const { rating, message } = req.body;
+        const userId = req.auth?.sub || null;
+
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ error: 'Valid rating (1-5) is required.' });
+        }
+
+        await pool.request()
+            .input('userId', sql.Int, userId)
+            .input('rating', sql.Int, rating)
+            .input('message', sql.NVarChar, message || null)
+            .query(`
+                INSERT INTO feedback (user_id, rating, message)
+                VALUES (@userId, @rating, @message)
+            `);
+
+        res.json({ success: true, message: 'Feedback submitted successfully.' });
+    } catch (error) {
+        console.error('Feedback submission error:', error);
+        res.status(500).json({ error: 'Failed to submit feedback.' });
     }
 });
 

@@ -9,7 +9,7 @@ function getChatbotShellUser() {
 
     const email = currentUser?.email || localStorage.getItem('userEmail') || '';
     const storedRole = currentUser?.role || localStorage.getItem('userRole') || '';
-    const role = storedRole || (email.toLowerCase().includes('admin') ? 'admin' : 'student');
+    const role = storedRole || 'student';
 
     return {
         ...(currentUser || {}),
@@ -19,10 +19,12 @@ function getChatbotShellUser() {
 }
 
 function renderChatbotNavLink(link) {
+    const isSubs = link.id === 'subsBadgeLink';
     return `
         <a href="${link.href}" ${link.id ? `id="${link.id}"` : ''} ${link.active ? 'class="active"' : ''} title="${link.title || link.label}">
             <i class="fas ${link.icon}"></i>
             <span class="nav-label">${link.label}</span>
+            ${isSubs ? '<span id="subsBadge" class="sidebar-badge" style="display:none;"></span>' : ''}
         </a>
     `;
 }
@@ -42,14 +44,14 @@ function configureChatbotShell() {
             { href: 'dashboard.html', icon: 'fa-user', label: 'Student Dashboard' },
             { href: 'premium.html', icon: 'fa-crown', label: 'Premium' },
             { href: 'chatbot.html', icon: 'fa-comments', label: 'Chatbot', active: true },
-            { href: '#history', id: 'history-btn', icon: 'fa-history', label: 'History' }
+            { href: 'chatbot.html#history', id: 'history-btn', icon: 'fa-history', label: 'History' }
         ];
 
         const adminLinks = [
             { href: 'index.html', icon: 'fa-home', label: 'Home' },
             { href: 'admin-dashboard.html', icon: 'fa-chart-pie', label: 'Overview' },
             { href: 'admin-dashboard.html#users', icon: 'fa-users', label: 'Users' },
-            { href: 'admin-dashboard.html#subscriptions', icon: 'fa-credit-card', label: 'Subscriptions' },
+            { href: 'admin-dashboard.html#subscriptions', id: 'subsBadgeLink', icon: 'fa-credit-card', label: 'Subscriptions' },
             { href: 'admin-dashboard.html#departments', icon: 'fa-building', label: 'Departments' },
             { href: 'admin-dashboard.html#programs', icon: 'fa-graduation-cap', label: 'Programs' },
             { href: 'admin-dashboard.html#feeStructures', icon: 'fa-money-check-dollar', label: 'Fee Structure' },
@@ -58,7 +60,7 @@ function configureChatbotShell() {
             { href: 'admin-dashboard.html#feedback', icon: 'fa-star', label: 'Feedback' },
             { href: 'report.html', icon: 'fa-chart-line', label: 'Analytics Report' },
             { href: 'chatbot.html', icon: 'fa-comments', label: 'Test Chatbot', active: true },
-            { href: '#history', id: 'history-btn', icon: 'fa-history', label: 'History' }
+            { href: 'chatbot.html#history', id: 'history-btn', icon: 'fa-history', label: 'History' }
         ];
 
         nav.setAttribute('aria-label', isAdmin ? 'Admin navigation' : 'Student navigation');
@@ -79,6 +81,10 @@ function configureChatbotShell() {
         }
 
         document.querySelectorAll('.tool-upgrade-link').forEach(link => link.remove());
+        
+        if (window.updateAdminBadgeCount) {
+            window.updateAdminBadgeCount();
+        }
     }
 }
 

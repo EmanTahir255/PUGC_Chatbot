@@ -70,6 +70,14 @@
                     <i class="fas fa-crown"></i>
                     <span class="nav-label">Premium</span>
                 </a>
+                <a href="challan.html" title="Fee Challan" data-premium-only="true">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span class="nav-label">Fee Challan</span>
+                </a>
+                <a href="application-form.html" title="Application Forms" data-premium-only="true">
+                    <i class="fas fa-file-alt"></i>
+                    <span class="nav-label">Application Forms</span>
+                </a>
                 <a href="chatbot.html" title="Chatbot">
                     <i class="fas fa-comments"></i>
                     <span class="nav-label">Chatbot</span>
@@ -77,14 +85,6 @@
                 <a href="chatbot.html#history" title="History">
                     <i class="fas fa-history"></i>
                     <span class="nav-label">History</span>
-                </a>
-                <a href="challan.html" title="Fee Challan">
-                    <i class="fas fa-file-invoice-dollar"></i>
-                    <span class="nav-label">Fee Challan</span>
-                </a>
-                <a href="application-form.html" title="Application Forms">
-                    <i class="fas fa-file-alt"></i>
-                    <span class="nav-label">Application Forms</span>
                 </a>
             </nav>
 
@@ -150,7 +150,7 @@
                     <i class="fas fa-file-invoice-dollar"></i>
                     <h3>Generate Fee Challan</h3>
                     <p>Create a challan on a dedicated page and preview it before downloading the PDF.</p>
-                    <a href="challan.html" class="primary-btn">
+                    <a href="challan.html" class="primary-btn" data-premium-only="true">
                         <i class="fas fa-arrow-right"></i> Open Challan Generator
                     </a>
                 </section>
@@ -159,7 +159,7 @@
                     <i class="fas fa-file-alt" style="font-size:2rem;color:var(--accent);margin-bottom:12px;"></i>
                     <h3>Application Forms</h3>
                     <p>Generate official university application forms — transcripts, resit exams, semester freeze, ID card, and more.</p>
-                    <a href="application-form.html" class="primary-btn">
+                    <a href="application-form.html" class="primary-btn" data-premium-only="true">
                         <i class="fas fa-arrow-right"></i> Open Form Generator
                     </a>
                 </section>
@@ -199,6 +199,7 @@
     </div>
 
     <script src="js/auth-validation.js"></script>
+    <script src="js/modal.js"></script>
     <script src="js/sidebar.js"></script>
     <script src="js/subscription.js"></script>
     <script src="js/challan.js"></script>
