@@ -591,94 +591,16 @@ function loadHistory() {
 }
 
 
-/* ------------------ Custom Modal Component ------------------ */
-class CustomModal {
-    static confirm(title, message, options = {}) {
-        const { confirmText = 'Confirm', cancelText = 'Cancel', type = 'warning' } = options;
-        return new Promise((resolve) => {
-            const backdrop = document.createElement('div');
-            backdrop.className = 'custom-modal-backdrop';
-            const isDanger = type === 'danger';
-            const icon = isDanger ? 'fa-triangle-exclamation' : 'fa-circle-question';
-            backdrop.innerHTML = `
-                <div class="custom-modal-container">
-                    <div class="modal-icon-wrapper ${isDanger ? 'danger' : ''}">
-                        <i class="fa-solid ${icon}"></i>
-                    </div>
-                    <h3>${escapeHtml(title)}</h3>
-                    <p>${escapeHtml(message)}</p>
-                    <div class="modal-footer">
-                        <button class="modal-btn cancel-btn" id="modalCancelBtn">${escapeHtml(cancelText)}</button>
-                        <button class="modal-btn ${isDanger ? 'danger-btn' : 'confirm-btn'}" id="modalConfirmBtn">${escapeHtml(confirmText)}</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(backdrop);
-            setTimeout(() => backdrop.classList.add('active'), 10);
-            const cleanup = (result) => {
-                backdrop.classList.remove('active');
-                setTimeout(() => {
-                    if (backdrop.parentNode) document.body.removeChild(backdrop);
-                    resolve(result);
-                }, 300);
-            };
-            backdrop.querySelector('#modalConfirmBtn').addEventListener('click', () => cleanup(true));
-            backdrop.querySelector('#modalCancelBtn').addEventListener('click', () => cleanup(false));
-            backdrop.addEventListener('click', (e) => { if (e.target === backdrop) cleanup(false); });
-        });
-    }
 
-    static prompt(title, message, options = {}) {
-        const { confirmText = 'Submit', cancelText = 'Cancel', defaultValue = '', placeholder = '' } = options;
-        return new Promise((resolve) => {
-            const backdrop = document.createElement('div');
-            backdrop.className = 'custom-modal-backdrop';
-            backdrop.innerHTML = `
-                <div class="custom-modal-container">
-                    <div class="modal-icon-wrapper">
-                        <i class="fa-solid fa-pen-to-square"></i>
-                    </div>
-                    <h3>${escapeHtml(title)}</h3>
-                    <p>${escapeHtml(message)}</p>
-                    <div class="modal-input-wrapper" style="margin-bottom: 25px;">
-                        <textarea id="modalPromptInput" 
-                                  style="width: 100%; padding: 12px; border: 1px solid #dbe2ef; border-radius: 10px; font-family: inherit; font-size: 0.95rem; box-sizing: border-box; min-height: 100px; outline: none;" 
-                                  placeholder="${escapeHtml(placeholder)}">${escapeHtml(defaultValue)}</textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="modal-btn cancel-btn" id="modalCancelBtn">${escapeHtml(cancelText)}</button>
-                        <button class="modal-btn confirm-btn" id="modalConfirmBtn">${escapeHtml(confirmText)}</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(backdrop);
-            setTimeout(() => {
-                backdrop.classList.add('active');
-                backdrop.querySelector('#modalPromptInput').focus();
-            }, 10);
-            const cleanup = (result) => {
-                backdrop.classList.remove('active');
-                setTimeout(() => {
-                    if (backdrop.parentNode) document.body.removeChild(backdrop);
-                    resolve(result);
-                }, 300);
-            };
-            backdrop.querySelector('#modalConfirmBtn').addEventListener('click', () => {
-                const value = backdrop.querySelector('#modalPromptInput').value.trim();
-                cleanup(value);
-            });
-            backdrop.querySelector('#modalCancelBtn').addEventListener('click', () => cleanup(null));
-            backdrop.addEventListener('click', (e) => { if (e.target === backdrop) cleanup(null); });
-        });
-    }
-}
+// CustomModal is now provided by js/modal.js
+
 
 async function clearAllHistory() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     if (!currentUser?.email) return;
 
     const confirmed = await CustomModal.confirm(
-        "Clear History", 
+        "Clear History",
         "Are you sure you want to clear all your chat history? This action cannot be undone.",
         { type: 'danger', confirmText: 'Clear All' }
     );
@@ -686,7 +608,7 @@ async function clearAllHistory() {
     if (confirmed) {
         const historyKey = `chatHistory_${currentUser.email}`;
         localStorage.removeItem(historyKey);
-        
+
         // Update UI
         const historyList = document.getElementById('history-list');
         if (historyList) {
@@ -699,7 +621,7 @@ async function clearAllHistory() {
                 </div>
             `;
         }
-        
+
         // Also clear the active chat window for a fresh start
         startNewChat();
     }
@@ -708,39 +630,67 @@ async function clearAllHistory() {
 // ==============================
 // FAQ Feature
 // ==============================
-function showFAQ() {
-    const faqList = JSON.parse(localStorage.getItem('adminFAQs') || '[]');
+async function showFAQ() {
+    try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch('http://localhost:3000/api/public/faqs', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const faqs = await response.json();
 
-    if (faqList.length === 0) {
-        appendMessage('bot', "No FAQs available yet.");
-        return;
+        if (!faqs || faqs.length === 0) {
+            appendMessage('bot', "No FAQs available yet.");
+            return;
+        }
+
+        let faqText = "<b>Top 5 Frequently Asked Questions:</b><br><br>";
+        faqs.forEach(f => {
+            faqText += `<b>Q: ${f.intent_name}</b><br>A: ${f.answer_text}<br><br>`;
+        });
+
+        appendMessage('bot', faqText.trim());
+    } catch (error) {
+        console.error('FAQ fetch error:', error);
+        appendMessage('bot', "Sorry, I couldn't load the FAQs right now.");
     }
-
-    let faqText = "FAQ Suggestions:\n\n";
-    faqList.forEach(f => faqText += `Q: ${f.q}\nA: ${f.a}\n\n`);
-
-    appendMessage('bot', faqText.trim());
 }
 
 
 // ==============================
 // Event Reminders (Premium)
 // ==============================
-function showEvents() {
+async function showEvents() {
     if (!hasFeatureAccess("Event Reminders")) {
         appendMessage('bot', "🔒 Event Reminders are locked. Subscribe to unlock.");
         return;
     }
 
-    const events = JSON.parse(localStorage.getItem('adminEvents') || '[]');
-    if (events.length === 0) {
-        appendMessage('bot', "📅 No upcoming events available.");
-        return;
-    }
+    try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch('http://localhost:3000/api/public/events', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const events = await response.json();
 
-    let eventsText = "📅 Upcoming Events:\n\n";
-    events.forEach(e => eventsText += `${e.date} - ${e.title}\n`);
-    appendMessage('bot', eventsText);
+        if (!events || events.length === 0) {
+            appendMessage('bot', "📅 No upcoming events available.");
+            return;
+        }
+
+        let eventsText = "<b>📅 Upcoming Events:</b><br><br>";
+        events.forEach(e => {
+            const dateStr = new Date(e.event_date).toLocaleDateString();
+            eventsText += `<b>${e.event_name}</b><br>`;
+            eventsText += `Date: ${dateStr}${e.event_end_date ? ' to ' + new Date(e.event_end_date).toLocaleDateString() : ''}<br>`;
+            if (e.venue) eventsText += `Venue: ${e.venue}<br>`;
+            if (e.description) eventsText += `${e.description}<br>`;
+            eventsText += `<br>`;
+        });
+        appendMessage('bot', eventsText);
+    } catch (error) {
+        console.error('Events fetch error:', error);
+        appendMessage('bot', "Sorry, I couldn't load the events right now.");
+    }
 }
 
 // ==============================

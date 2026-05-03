@@ -356,13 +356,27 @@ function bindSimpleLogoutButton() {
 async function handleSignup(event) {
     event.preventDefault();
 
+    console.log('--- Signup Process Started ---');
     const form = event.currentTarget;
-    const name = form.querySelector('input[type="text"]');
-    const email = form.querySelector('input[type="email"]');
-    const password = form.querySelectorAll('input[type="password"]')[0];
-    const confirmPassword = form.querySelectorAll('input[type="password"]')[1];
-    let isValid = true;
+    const name = document.getElementById('signup-name');
+    const email = document.getElementById('signup-email');
+    const password = document.getElementById('signup-password');
+    const confirmPassword = document.getElementById('signup-confirm-password');
 
+    console.log('Fields found:', {
+        name: !!name,
+        email: !!email,
+        password: !!password,
+        confirmPassword: !!confirmPassword
+    });
+
+    if (!name || !email || !password || !confirmPassword) {
+        console.error('Critical Error: Some signup form fields were not found by ID.');
+        setFormStatus(form, 'Technical error: Could not find all form fields.');
+        return;
+    }
+
+    let isValid = true;
     clearFormStatus(form);
 
     if (name.value.trim().length < 3) {
@@ -395,11 +409,16 @@ async function handleSignup(event) {
         clearError(confirmPassword);
     }
 
-    if (!isValid) return;
+    if (!isValid) {
+        console.warn('Signup validation failed.');
+        return;
+    }
 
-    const releaseButton = setButtonLoading(form.querySelector('button[type="submit"]'), '<i class="fas fa-spinner fa-spin"></i> Creating...');
+    const signupButton = form.querySelector('button[type="submit"]');
+    const releaseButton = setButtonLoading(signupButton, '<i class="fas fa-spinner fa-spin"></i> Creating...');
 
     try {
+        console.log('Sending signup request for:', email.value.trim());
         const payload = await requestAuth('/signup', {
             method: 'POST',
             body: JSON.stringify({
@@ -410,12 +429,17 @@ async function handleSignup(event) {
             })
         });
 
+        console.log('Signup successful, payload received:', payload);
         const user = applyAuthState(payload);
-        setFormStatus(form, 'Account created successfully.', 'success');
+        setFormStatus(form, 'Account created successfully. Redirecting...', 'success');
+        
         window.setTimeout(() => {
-            window.location.href = getAuthPageRedirect(user.role);
-        }, 250);
+            const redirectUrl = getAuthPageRedirect(user.role);
+            console.log('Redirecting to:', redirectUrl);
+            window.location.href = redirectUrl;
+        }, 1000); // Increased to 1s to allow user to see success message
     } catch (error) {
+        console.error('Signup API Error:', error);
         if (error.details?.fullName) showError(name, error.details.fullName);
         if (error.details?.email) showError(email, error.details.email);
         if (error.details?.password) showError(password, error.details.password);
@@ -429,32 +453,43 @@ async function handleSignup(event) {
 async function handleLogin(event) {
     event.preventDefault();
 
+    console.log('--- Login Process Started ---');
     const form = event.currentTarget;
-    const email = form.querySelector('input[type="email"]');
-    const password = form.querySelector('input[type="password"]');
-    let isValid = true;
+    const email = document.getElementById('login-email') || form.querySelector('input[type="email"]');
+    const password = document.getElementById('login-password') || form.querySelector('input[type="password"]') || form.querySelector('input[type="text"]');
+    
+    console.log('Fields found:', {
+        email: !!email,
+        password: !!password
+    });
 
+    let isValid = true;
     clearFormStatus(form);
 
-    if (!isValidEmail(email.value.trim())) {
-        showError(email, 'Invalid email address');
+    if (!email || !isValidEmail(email.value.trim())) {
+        if (email) showError(email, 'Invalid email address');
         isValid = false;
     } else {
         clearError(email);
     }
 
-    if (password.value.trim() === '') {
-        showError(password, 'Password cannot be empty');
+    if (!password || password.value.trim() === '') {
+        if (password) showError(password, 'Password cannot be empty');
         isValid = false;
     } else {
         clearError(password);
     }
 
-    if (!isValid) return;
+    if (!isValid) {
+        console.warn('Login validation failed.');
+        return;
+    }
 
-    const releaseButton = setButtonLoading(form.querySelector('button[type="submit"]'), '<i class="fas fa-spinner fa-spin"></i> Signing In...');
+    const loginButton = form.querySelector('button[type="submit"]');
+    const releaseButton = setButtonLoading(loginButton, '<i class="fas fa-spinner fa-spin"></i> Signing In...');
 
     try {
+        console.log('Sending login request for:', email.value.trim());
         const payload = await requestAuth('/login', {
             method: 'POST',
             body: JSON.stringify({
@@ -463,10 +498,12 @@ async function handleLogin(event) {
             })
         });
 
+        console.log('Login successful, payload received:', payload);
         const user = applyAuthState(payload);
         window.location.href = getAuthPageRedirect(user.role);
     } catch (error) {
-        showError(password, error.message || 'Invalid email or password.');
+        console.error('Login API Error:', error);
+        if (password) showError(password, error.message || 'Invalid email or password.');
         setFormStatus(form, error.message || 'Invalid email or password.');
     } finally {
         releaseButton();

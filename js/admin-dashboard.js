@@ -204,110 +204,8 @@ function setSection(sectionId, options = {}) {
 }
 
 
-/* ------------------ Custom Modal Component ------------------ */
-class CustomModal {
-    static confirm(title, message, options = {}) {
-        const { confirmText = 'Confirm', cancelText = 'Cancel', type = 'warning' } = options;
-        
-        return new Promise((resolve) => {
-            const backdrop = document.createElement('div');
-            backdrop.className = 'custom-modal-backdrop';
-            
-            const isDanger = type === 'danger';
-            const icon = isDanger ? 'fa-triangle-exclamation' : 'fa-circle-question';
-            
-            backdrop.innerHTML = `
-                <div class="custom-modal-container">
-                    <div class="modal-icon-wrapper ${isDanger ? 'danger' : ''}">
-                        <i class="fa-solid ${icon}"></i>
-                    </div>
-                    <h3>${escapeHtml(title)}</h3>
-                    <p>${escapeHtml(message)}</p>
-                    <div class="modal-footer">
-                        <button class="modal-btn cancel-btn" id="modalCancelBtn">${escapeHtml(cancelText)}</button>
-                        <button class="modal-btn ${isDanger ? 'danger-btn' : 'confirm-btn'}" id="modalConfirmBtn">${escapeHtml(confirmText)}</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(backdrop);
-            
-            // Trigger animation
-            setTimeout(() => backdrop.classList.add('active'), 10);
-            
-            const cleanup = (result) => {
-                backdrop.classList.remove('active');
-                setTimeout(() => {
-                    if (backdrop.parentNode) document.body.removeChild(backdrop);
-                    resolve(result);
-                }, 300);
-            };
-            
-            backdrop.querySelector('#modalConfirmBtn').addEventListener('click', () => cleanup(true));
-            backdrop.querySelector('#modalCancelBtn').addEventListener('click', () => cleanup(false));
-            
-            // Close on backdrop click (optional)
-            backdrop.addEventListener('click', (e) => {
-                if (e.target === backdrop) cleanup(false);
-            });
-        });
-    }
+// CustomModal is now provided by js/modal.js
 
-    static prompt(title, message, options = {}) {
-        const { confirmText = 'Submit', cancelText = 'Cancel', defaultValue = '', placeholder = '' } = options;
-        
-        return new Promise((resolve) => {
-            const backdrop = document.createElement('div');
-            backdrop.className = 'custom-modal-backdrop';
-            
-            backdrop.innerHTML = `
-                <div class="custom-modal-container">
-                    <div class="modal-icon-wrapper">
-                        <i class="fa-solid fa-pen-to-square"></i>
-                    </div>
-                    <h3>${escapeHtml(title)}</h3>
-                    <p>${escapeHtml(message)}</p>
-                    <div class="modal-input-wrapper" style="margin-bottom: 25px;">
-                        <textarea id="modalPromptInput" 
-                                  style="width: 100%; padding: 12px; border: 1px solid #dbe2ef; border-radius: 10px; font-family: inherit; font-size: 0.95rem; box-sizing: border-box; min-height: 100px; outline: none;" 
-                                  placeholder="${escapeHtml(placeholder)}">${escapeHtml(defaultValue)}</textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="modal-btn cancel-btn" id="modalCancelBtn">${escapeHtml(cancelText)}</button>
-                        <button class="modal-btn confirm-btn" id="modalConfirmBtn">${escapeHtml(confirmText)}</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(backdrop);
-            
-            // Trigger animation and focus
-            setTimeout(() => {
-                backdrop.classList.add('active');
-                backdrop.querySelector('#modalPromptInput').focus();
-            }, 10);
-            
-            const cleanup = (result) => {
-                backdrop.classList.remove('active');
-                setTimeout(() => {
-                    if (backdrop.parentNode) document.body.removeChild(backdrop);
-                    resolve(result);
-                }, 300);
-            };
-            
-            backdrop.querySelector('#modalConfirmBtn').addEventListener('click', () => {
-                const value = backdrop.querySelector('#modalPromptInput').value.trim();
-                cleanup(value);
-            });
-            backdrop.querySelector('#modalCancelBtn').addEventListener('click', () => cleanup(null));
-            
-            // Close on backdrop click (optional)
-            backdrop.addEventListener('click', (e) => {
-                if (e.target === backdrop) cleanup(null);
-            });
-        });
-    }
-}
 
 function attachNavigation() {
     document.querySelectorAll('.sidebar-menu a[data-section]').forEach(link => {
@@ -859,7 +757,7 @@ function renderSubscriptionsSection() {
             try {
                 const endpoint = type === 'payment' ? `/manual-payments/${id}` : `/subscriptions/${id}`;
                 await apiRequest(endpoint, { method: 'DELETE' });
-                
+
                 state.notices.subscriptions = 'History record deleted successfully.';
                 await loadSubscriptionAdminData();
                 setOverviewCounts();
@@ -894,8 +792,8 @@ function renderSubscriptionTabContent() {
         return `
             <div class="admin-list">
                 ${pending.map(payment => {
-                    const isDuplicate = (pendingCounts[payment.userEmail?.toLowerCase()] || 0) > 1;
-                    return `
+            const isDuplicate = (pendingCounts[payment.userEmail?.toLowerCase()] || 0) > 1;
+            return `
                         <div class="record-card simple-card ${isDuplicate ? 'warning-border' : ''}">
                             <div class="record-main">
                                 <div class="record-topline">
@@ -926,7 +824,7 @@ function renderSubscriptionTabContent() {
                             </div>
                         </div>
                     `;
-                }).join('')}
+        }).join('')}
             </div>
         `;
     }
@@ -1042,15 +940,15 @@ function renderSubscriptionTabContent() {
                                 <td>${escapeHtml(formatCurrency(item.amount, item.currency))}</td>
                                 <td>${paymentStatusBadge(item.status)}</td>
                                 <td>
-                                    ${(item.status === 'active' || item.status === 'approved') ? 
-                                        '<span class="muted-text" title="Active records cannot be deleted from history">Protected</span>' : 
-                                        `<button type="button" class="icon-btn danger" 
+                                    ${(item.status === 'active' || item.status === 'approved') ?
+                '<span class="muted-text" title="Active records cannot be deleted from history">Protected</span>' :
+                `<button type="button" class="icon-btn danger" 
                                                 data-history-delete-id="${item.id}" 
                                                 data-history-delete-type="${item.type}"
                                                 title="Delete history record">
                                             <i class="fas fa-trash"></i>
                                         </button>`
-                                    }
+            }
                                 </td>
                             </tr>
                         `).join('')}
@@ -1072,7 +970,7 @@ async function loadFeedback() {
 
 async function handleFeedbackDelete(feedbackId) {
     if (!await CustomModal.confirm('Delete Feedback', 'Are you sure you want to delete this feedback?', { type: 'danger' })) return;
-    
+
     try {
         await apiRequest(`/feedback/${feedbackId}`, { method: 'DELETE' });
         await loadFeedback();
@@ -2867,7 +2765,7 @@ function renderAllSections() {
 async function initializeAdminDashboard() {
     attachNavigation();
     setSection(getSectionFromHash(), { updateHash: false });
-    
+
     // Initial render with current state
     renderAllSections();
 
@@ -2877,7 +2775,7 @@ async function initializeAdminDashboard() {
             loadAuthUsers(),
             loadSubscriptionAdminData()
         ]);
-        
+
         // Refresh counts and render users/subs
         setOverviewCounts();
         renderUsersSection();
@@ -2885,15 +2783,15 @@ async function initializeAdminDashboard() {
 
         // Load the rest of the administration data
         await loadAdminData();
-        
+
         // Final full render
         renderAllSections();
     } catch (error) {
         console.error('Dashboard initialization error:', error);
-        
+
         // Ensure everything is rendered at least in error/empty state
         renderAllSections();
-        
+
         // Specific errors for major sections
         renderSectionError('users', 'Failed to load users.');
         renderSectionError('subscriptions', 'Failed to load subscriptions.');

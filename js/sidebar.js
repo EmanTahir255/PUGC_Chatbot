@@ -208,6 +208,47 @@ function initSidebar() {
             closeProfileModal();
         }
     });
+
+    // Handle Subscription Access Control
+    applySubscriptionAccess();
+}
+
+function applySubscriptionAccess() {
+    if (!window.SubscriptionService) {
+        console.warn('SubscriptionService not available for sidebar access control.');
+        return;
+    }
+
+    const isPremium = window.SubscriptionService.isPremium();
+    const premiumLinks = document.querySelectorAll('[data-premium-only="true"]');
+
+    premiumLinks.forEach(link => {
+        if (!isPremium) {
+            link.classList.add('locked-feature');
+            
+            // Add lock icon if not already there
+            if (!link.querySelector('.lock-icon')) {
+                const lock = document.createElement('i');
+                lock.className = 'fas fa-lock lock-icon';
+                link.appendChild(lock);
+            }
+
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                window.CustomModal.confirm('Premium Feature', 'This feature is only available for Weekly and Monthly premium subscribers. Upgrade now?', {
+                    confirmText: 'Upgrade',
+                    cancelText: 'Later'
+                }).then(confirmed => {
+                    if (confirmed) window.location.href = 'premium.html';
+                });
+            });
+        } else {
+            link.classList.remove('locked-feature');
+            link.querySelector('.lock-icon')?.remove();
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', initSidebar);

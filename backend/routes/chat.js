@@ -2167,6 +2167,40 @@ router.post('/chat', async (req, res) => {
 });
 
 
+router.get('/public/faqs', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const result = await pool.request().query(`
+            SELECT TOP 5 fa.answer_id, fa.answer_text, i.intent_name
+            FROM faq_answers fa
+            JOIN intents i ON fa.intent_id = i.intent_id
+            WHERE fa.is_active = 1
+            ORDER BY i.intent_name
+        `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('Public FAQ error:', error);
+        res.status(500).json({ error: 'Failed to load FAQs.' });
+    }
+});
+
+router.get('/public/events', async (req, res) => {
+    try {
+        const pool = await getPool();
+        const result = await pool.request().query(`
+            SELECT event_name, event_date, event_end_date, venue, description
+            FROM events
+            WHERE is_active = 1
+            ORDER BY event_date DESC
+        `);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('Public events error:', error);
+        res.status(500).json({ error: 'Failed to load events.' });
+    }
+});
+
+
 router.post('/chat/feedback', async (req, res) => {
     try {
         const pool = await getPool();

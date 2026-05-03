@@ -33,7 +33,7 @@ const FORM_CONFIG = {
         title: 'Semester Freeze / Deferment Form',
         icon: 'fa-snowflake',
         fields: [
-            { id: 'freezeSemester', label: 'Semester to Freeze', type: 'select', options: ['1st','2nd','3rd','4th','5th','6th','7th','8th'], required: true },
+            { id: 'freezeSemester', label: 'Semester to Freeze', type: 'select', options: ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'], required: true },
             { id: 'freezeDuration', label: 'Duration', type: 'select', options: ['1 Semester', '2 Semesters'], required: true },
             { id: 'freezeReason', label: 'Reason for Freeze', type: 'textarea', placeholder: 'Describe your reason...', required: true },
             { id: 'freezeDoc', label: 'Supporting Document Available', type: 'select', options: ['Yes', 'No'], required: true },
@@ -109,22 +109,22 @@ function formatToday() {
 }
 
 function esc(val) {
-    return String(val || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(val || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // ── DOM References ───────────────────────────────────────────────
-const formTypeEl   = document.getElementById('formType');
-const appForm      = document.getElementById('applicationForm');
-const dynSection   = document.getElementById('dynamicFieldsSection');
-const formPanel    = document.getElementById('formPanel');
+const formTypeEl = document.getElementById('formType');
+const appForm = document.getElementById('applicationForm');
+const dynSection = document.getElementById('dynamicFieldsSection');
+const formPanel = document.getElementById('formPanel');
 const previewSection = document.getElementById('previewSection');
-const previewDoc   = document.getElementById('previewDocument');
-const step1El      = document.getElementById('step1');
-const step2El      = document.getElementById('step2');
-const step3El      = document.getElementById('step3');
+const previewDoc = document.getElementById('previewDocument');
+const step1El = document.getElementById('step1');
+const step2El = document.getElementById('step2');
+const step3El = document.getElementById('step3');
 
 // ── Auto-fill Read-only Fields ───────────────────────────────────
-document.getElementById('appId').value  = generateAppId();
+document.getElementById('appId').value = generateAppId();
 document.getElementById('appDate').value = formatToday();
 
 try {
@@ -132,7 +132,7 @@ try {
     if (user.name) document.getElementById('appStudentName').value = user.name;
     if (user.rollNo) document.getElementById('appRollNo').value = user.rollNo;
     if (user.email && !user.email.includes('@')) document.getElementById('appEmail').value = user.email;
-} catch(e) {}
+} catch (e) { }
 
 // ── Render Dynamic Fields ────────────────────────────────────────
 function renderDynamicFields(type) {
@@ -155,7 +155,7 @@ function renderDynamicFields(type) {
             f.options.forEach(o => { html += `<option value="${esc(o)}">${esc(o)}</option>`; });
             html += `</select>`;
         } else if (f.type === 'textarea') {
-            html += `<textarea id="${esc(f.id)}" rows="3" placeholder="${esc(f.placeholder||'')}"${f.required ? ' required' : ''}></textarea>`;
+            html += `<textarea id="${esc(f.id)}" rows="3" placeholder="${esc(f.placeholder || '')}"${f.required ? ' required' : ''}></textarea>`;
         } else {
             const extra = [
                 f.min !== undefined ? `min="${f.min}"` : '',
@@ -175,8 +175,8 @@ function renderDynamicFields(type) {
     // Auto-calc leave days
     if (type === 'leave') {
         const startEl = document.getElementById('leaveStart');
-        const endEl   = document.getElementById('leaveEnd');
-        const daysEl  = document.getElementById('leaveDays');
+        const endEl = document.getElementById('leaveEnd');
+        const daysEl = document.getElementById('leaveDays');
         function calcDays() {
             if (startEl.value && endEl.value) {
                 const diff = Math.ceil((new Date(endEl.value) - new Date(startEl.value)) / 86400000);
@@ -228,22 +228,22 @@ function getFieldValue(id, fallback) {
 }
 
 function buildPreviewHTML() {
-    const type   = formTypeEl.value;
+    const type = formTypeEl.value;
     const config = FORM_CONFIG[type];
-    const appId  = getFieldValue('appId');
-    const appDate= getFieldValue('appDate');
+    const appId = getFieldValue('appId');
+    const appDate = getFieldValue('appDate');
 
     const commonFields = [
         ['Student Name', getFieldValue('appStudentName')],
         ["Father's Name", getFieldValue('appFatherName')],
-        ['Roll Number',   getFieldValue('appRollNo')],
+        ['Roll Number', getFieldValue('appRollNo')],
         ['CNIC / B-Form', getFieldValue('appCnic')],
-        ['Program',       getFieldValue('appProgram')],
-        ['Department',    getFieldValue('appDept')],
-        ['Semester',      getFieldValue('appSemester')],
-        ['Email',         getFieldValue('appEmail')],
-        ['Phone',         getFieldValue('appPhone')],
-        ['Address',       getFieldValue('appAddress')],
+        ['Program', getFieldValue('appProgram')],
+        ['Department', getFieldValue('appDept')],
+        ['Semester', getFieldValue('appSemester')],
+        ['Email', getFieldValue('appEmail')],
+        ['Phone', getFieldValue('appPhone')],
+        ['Address', getFieldValue('appAddress')],
     ];
 
     let commonRows = '';
@@ -316,7 +316,7 @@ function buildPreviewHTML() {
 function goToStep(n) {
     [step1El, step2El, step3El].forEach((s, i) => {
         s.classList.remove('active', 'done');
-        if (i + 1 < n)  s.classList.add('done');
+        if (i + 1 < n) s.classList.add('done');
         if (i + 1 === n) s.classList.add('active');
     });
 }
@@ -347,7 +347,7 @@ document.getElementById('editFormBtn').addEventListener('click', () => {
 // ── Reset ────────────────────────────────────────────────────────
 document.getElementById('resetFormBtn').addEventListener('click', () => {
     appForm.reset();
-    document.getElementById('appId').value   = generateAppId();
+    document.getElementById('appId').value = generateAppId();
     document.getElementById('appDate').value = formatToday();
     dynSection.innerHTML = '';
     dynSection.style.display = 'none';
@@ -384,77 +384,77 @@ document.getElementById('downloadPdfBtn').addEventListener('click', async () => 
         const right = W - pad;
         let y = 15;
 
-        const type   = formTypeEl.value;
+        const type = formTypeEl.value;
         const config = FORM_CONFIG[type];
-        const appId  = getFieldValue('appId');
-        const appDate= getFieldValue('appDate');
+        const appId = getFieldValue('appId');
+        const appDate = getFieldValue('appDate');
 
         // Header
-        doc.setFont('helvetica','bold'); doc.setFontSize(8);
-        doc.setTextColor(80,80,80);
-        doc.text('DEPARTMENT OF EXAMINATIONS', W/2, y, {align:'center'}); y += 6;
-        doc.setFontSize(14); doc.setTextColor(0,33,71);
-        doc.text('UNIVERSITY OF THE PUNJAB', W/2, y, {align:'center'}); y += 7;
-        doc.setFontSize(10); doc.setTextColor(60,60,60);
-        doc.text('Gujranwala Campus', W/2, y, {align:'center'}); y += 10;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+        doc.setTextColor(80, 80, 80);
+        doc.text('DEPARTMENT OF EXAMINATIONS', W / 2, y, { align: 'center' }); y += 6;
+        doc.setFontSize(14); doc.setTextColor(0, 33, 71);
+        doc.text('UNIVERSITY OF THE PUNJAB', W / 2, y, { align: 'center' }); y += 7;
+        doc.setFontSize(10); doc.setTextColor(60, 60, 60);
+        doc.text('Gujranwala Campus', W / 2, y, { align: 'center' }); y += 10;
 
         // Form Title Badge
-        doc.setFillColor(0,33,71); doc.setTextColor(255,255,255); doc.setFontSize(11);
+        doc.setFillColor(0, 33, 71); doc.setTextColor(255, 255, 255); doc.setFontSize(11);
         const titleW = doc.getTextWidth(config ? config.title : 'Application Form') + 16;
-        doc.roundedRect(W/2 - titleW/2, y-6, titleW, 10, 3, 3, 'F');
-        doc.text(config ? config.title : 'Application Form', W/2, y, {align:'center'}); y += 12;
+        doc.roundedRect(W / 2 - titleW / 2, y - 6, titleW, 10, 3, 3, 'F');
+        doc.text(config ? config.title : 'Application Form', W / 2, y, { align: 'center' }); y += 12;
 
         // Divider
-        doc.setDrawColor(0,33,71); doc.setLineWidth(0.6);
+        doc.setDrawColor(0, 33, 71); doc.setLineWidth(0.6);
         doc.line(pad, y, right, y); y += 6;
 
         // App ID row
-        doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(80,80,80);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(80, 80, 80);
         doc.text(`Application ID: ${appId}`, pad, y);
-        doc.text(`Date: ${appDate}`, right, y, {align:'right'}); y += 8;
+        doc.text(`Date: ${appDate}`, right, y, { align: 'right' }); y += 8;
 
         // Section helper
         function drawSection(title, rows) {
-            doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(0,33,71);
-            doc.setFillColor(240,244,249);
-            doc.rect(pad, y-4, W - 2*pad, 8, 'F');
-            doc.text(title.toUpperCase(), pad+3, y+1); y += 8;
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(0, 33, 71);
+            doc.setFillColor(240, 244, 249);
+            doc.rect(pad, y - 4, W - 2 * pad, 8, 'F');
+            doc.text(title.toUpperCase(), pad + 3, y + 1); y += 8;
 
-            doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(30,40,60);
-            const colMid = W/2 + 2;
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(30, 40, 60);
+            const colMid = W / 2 + 2;
             const labelW = 32;
-            
+
             for (let i = 0; i < rows.length; i += 2) {
                 const [k1, v1] = rows[i];
-                const row2 = rows[i+1];
+                const row2 = rows[i + 1];
 
-                doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
+                doc.setFont('helvetica', 'bold'); doc.setTextColor(80, 80, 80);
                 const k1Lines = doc.splitTextToSize(`${k1}:`, labelW - 2);
                 doc.text(k1Lines, pad, y);
-                
-                doc.setFont('helvetica','normal'); doc.setTextColor(0,33,71);
+
+                doc.setFont('helvetica', 'normal'); doc.setTextColor(0, 33, 71);
                 const valX1 = pad + labelW;
                 const valW1 = colMid - valX1 - 4;
                 const v1Lines = doc.splitTextToSize(String(v1 || '—'), valW1);
                 doc.text(v1Lines, valX1, y);
-                
+
                 let rowH = Math.max(k1Lines.length, v1Lines.length) * 4;
 
                 if (row2) {
                     const [k2, v2] = row2;
-                    doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
+                    doc.setFont('helvetica', 'bold'); doc.setTextColor(80, 80, 80);
                     const k2Lines = doc.splitTextToSize(`${k2}:`, labelW - 2);
                     doc.text(k2Lines, colMid, y);
-                    
-                    doc.setFont('helvetica','normal'); doc.setTextColor(0,33,71);
+
+                    doc.setFont('helvetica', 'normal'); doc.setTextColor(0, 33, 71);
                     const valX2 = colMid + labelW;
                     const valW2 = W - pad - valX2;
                     const v2Lines = doc.splitTextToSize(String(v2 || '—'), valW2);
                     doc.text(v2Lines, valX2, y);
-                    
+
                     rowH = Math.max(rowH, k2Lines.length * 4, v2Lines.length * 4);
                 }
-                
+
                 y += rowH + 4;
             }
             y += 2;
@@ -463,14 +463,14 @@ document.getElementById('downloadPdfBtn').addEventListener('click', async () => 
         const commonRows = [
             ['Student Name', getFieldValue('appStudentName')],
             ["Father's Name", getFieldValue('appFatherName')],
-            ['Roll Number',   getFieldValue('appRollNo')],
-            ['CNIC',          getFieldValue('appCnic')],
-            ['Program',       getFieldValue('appProgram')],
-            ['Department',    getFieldValue('appDept')],
-            ['Semester',      getFieldValue('appSemester')],
-            ['Email',         getFieldValue('appEmail')],
-            ['Phone',         getFieldValue('appPhone')],
-            ['Address',       getFieldValue('appAddress')],
+            ['Roll Number', getFieldValue('appRollNo')],
+            ['CNIC', getFieldValue('appCnic')],
+            ['Program', getFieldValue('appProgram')],
+            ['Department', getFieldValue('appDept')],
+            ['Semester', getFieldValue('appSemester')],
+            ['Email', getFieldValue('appEmail')],
+            ['Phone', getFieldValue('appPhone')],
+            ['Address', getFieldValue('appAddress')],
         ];
         drawSection('Student Details', commonRows);
 
@@ -481,28 +481,28 @@ document.getElementById('downloadPdfBtn').addEventListener('click', async () => 
 
         // Declaration
         y += 2;
-        doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(0,33,71);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(0, 33, 71);
         doc.text('Declaration:', pad, y); y += 5;
-        doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
-        const decl = doc.splitTextToSize('I hereby declare that all the particulars mentioned above are correct and complete to the best of my knowledge. In case of any inaccuracy therein, I shall be solely responsible for the same.', right-pad);
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 60, 60);
+        const decl = doc.splitTextToSize('I hereby declare that all the particulars mentioned above are correct and complete to the best of my knowledge. In case of any inaccuracy therein, I shall be solely responsible for the same.', right - pad);
         doc.text(decl, pad, y); y += decl.length * 4 + 8;
 
         // Signatures
-        const sigCols = [pad, W/2 - 10, pad, W/2 - 10];
+        const sigCols = [pad, W / 2 - 10, pad, W / 2 - 10];
         const sigLabels = ['Signature of Applicant', 'Signature of Guardian', 'Incharge Department', 'Assistant Controller / Incharge Examinations'];
         sigLabels.forEach((label, i) => {
-            const col = i % 2 === 0 ? pad : W/2;
+            const col = i % 2 === 0 ? pad : W / 2;
             if (i === 2) y += 14;
-            doc.setDrawColor(40,40,40); doc.setLineWidth(0.4);
-            doc.line(col, y, col+55, y);
-            doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(70,70,70);
-            doc.text(label, col, y+4);
+            doc.setDrawColor(40, 40, 40); doc.setLineWidth(0.4);
+            doc.line(col, y, col + 55, y);
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(70, 70, 70);
+            doc.text(label, col, y + 4);
         });
 
-        const filename = `PUGC-${(config ? config.title : 'Application').replace(/\s+/g,'-')}-${appId}.pdf`;
+        const filename = `PUGC-${(config ? config.title : 'Application').replace(/\s+/g, '-')}-${appId}.pdf`;
         doc.save(filename);
         goToStep(3);
-    } catch(err) {
+    } catch (err) {
         alert('PDF generation failed. Please try printing instead.');
         console.error(err);
     } finally {

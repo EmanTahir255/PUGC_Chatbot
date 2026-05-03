@@ -49,8 +49,9 @@ function buildPublicUser(record) {
 }
 
 async function findUserByEmail(pool, email) {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
     const result = await pool.request()
-        .input('email', sql.NVarChar(255), email)
+        .input('email', sql.NVarChar(255), normalizedEmail)
         .query(`
             SELECT TOP 1
                 user_id,
@@ -63,7 +64,7 @@ async function findUserByEmail(pool, email) {
                 created_at,
                 updated_at
             FROM users
-            WHERE email = @email
+            WHERE LOWER(email) = @email
         `);
 
     return result.recordset[0] || null;
