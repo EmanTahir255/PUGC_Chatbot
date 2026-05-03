@@ -1,3 +1,4 @@
+setInterval(() => console.log('handles:', process._getActiveHandles().length), 100);
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -27,12 +28,8 @@ app.use('/api/challan', challanRoutes);
 // Start server
 const PORT = process.env.PORT || 3000;
 
-if (require.main === module) {
-    app.listen(PORT, (err) => {
-        if (err) {
-            console.error('Failed to start server:', err.message);
-            process.exit(1);
-        }
+if (true) {
+    app.listen(PORT, () => {
         console.log(`Backend server running on port ${PORT}`);
     });
 }

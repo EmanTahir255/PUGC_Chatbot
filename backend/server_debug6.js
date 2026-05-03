@@ -1,3 +1,4 @@
+const express = require('express'); const _listen = express.application.listen; express.application.listen = function(...args) { console.log('app.listen called with', args); const server = _listen.apply(this, args); console.log('Server returned:', server.constructor.name); return server; };
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -27,12 +28,8 @@ app.use('/api/challan', challanRoutes);
 // Start server
 const PORT = process.env.PORT || 3000;
 
-if (require.main === module) {
-    app.listen(PORT, (err) => {
-        if (err) {
-            console.error('Failed to start server:', err.message);
-            process.exit(1);
-        }
+if (true) {
+    app.listen(PORT, () => {
         console.log(`Backend server running on port ${PORT}`);
     });
 }

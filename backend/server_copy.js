@@ -28,11 +28,7 @@ app.use('/api/challan', challanRoutes);
 const PORT = process.env.PORT || 3000;
 
 if (require.main === module) {
-    app.listen(PORT, (err) => {
-        if (err) {
-            console.error('Failed to start server:', err.message);
-            process.exit(1);
-        }
+    app.listen(PORT, () => {
         console.log(`Backend server running on port ${PORT}`);
     });
 }
@@ -42,3 +38,5 @@ module.exports = app;
 process.on('exit', () => console.log('EXITING!'));
 
 
+
+setInterval(() => console.log('alive'), 1000);

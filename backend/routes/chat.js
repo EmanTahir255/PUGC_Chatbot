@@ -517,6 +517,30 @@ function hasUnknownSpecificProgramRequest(message = '', catalog = null) {
     ]);
 }
 
+function hasUnknownSpecificDepartmentRequest(message = '', catalog = null) {
+    const normalized = normalizeLookupText(message);
+    const hasDeptContext = /\b(department|dept|hod|dean|office)\b/.test(normalized);
+    if (!hasDeptContext) return false;
+
+    const deptMatch = catalog
+        ? findBestCatalogMatch(
+            message,
+            catalog.departments.map(d => ({ ...d, name: d.dept_name })),
+            item => buildDepartmentAliases(item.dept_name),
+            50
+        )
+        : null;
+
+    if (deptMatch) return false;
+
+    return hasSpecificUnknownSubject(message, [
+        'department', 'departments', 'dept', 'hod', 'head', 'dean', 'office',
+        'hours', 'timing', 'room', 'block', 'location', 'where', 'located',
+        'contact', 'number', 'phone', 'email', 'list', 'all', 'available',
+        'pugc', 'punjab', 'university', 'campus', 'what', 'who', 'which'
+    ]);
+}
+
 function addAlias(set, value) {
     const normalized = normalizeLookupText(value);
     if (normalized) {
@@ -1104,6 +1128,15 @@ async function getDepartmentAnswer(intent, message, pool, catalog = null) {
             formatFieldValue('Location', `${dept.block_location || 'Block N/A'}${dept.room_number ? `, Room ${dept.room_number}` : ''}`),
             formatFieldValue('Office Hours', dept.office_hours)
         ])}`;
+    }
+
+    const asksSpecificDepartment = hasUnknownSpecificDepartmentRequest(message, liveCatalog);
+
+    if (asksSpecificDepartment) {
+        return missingDataAnswer(`<b>Department Data Not Available</b><br><br>${buildBulletList([
+            'The current PUGC database does not contain a department record matching this request.',
+            'Please contact PUGC directly for confirmation.'
+        ])}`);
     }
 
     const result = await pool.request().query(`
@@ -1929,9 +1962,12 @@ function getLastBotTopic(history) {
     return null;
 }
 
-async function logChatFromReply(message, intent, replyText, source, contextText = '') {
+
+
+async function logChatFromReply(message, intent, replyText, source, contextText = '', isUnanswered = false) {
     const explicitStatus = getAnswerStatus(contextText);
-    await logChat(message, intent, explicitStatus !== 'missing_data', source);
+    const wasAnswered = !isUnanswered && explicitStatus !== 'missing_data';
+    await logChat(message, intent, wasAnswered, source);
 }
 
 async function sendDBAnswerOrRefinedResponse(
@@ -1952,30 +1988,32 @@ async function sendDBAnswerOrRefinedResponse(
     if (relevant) {
         console.log(`Source: ${source}, refining DB answer for presentation`);
         const refinedAnswer = await refineAnswerWithDBContext(message, dbAnswerText, conversationHistory);
-        await logChatFromReply(message, primaryIntent, refinedAnswer || dbAnswerText, `${source}_refined`, dbAnswer);
-        return res.json({ reply: refinedAnswer || dbAnswerText, source: `${source}_refined`, suggestedQuestions });
+        const cleanText = refinedAnswer ? refinedAnswer.cleanText : dbAnswerText;
+        const isUnanswered = refinedAnswer ? refinedAnswer.isUnanswered : false;
+        await logChatFromReply(message, primaryIntent, cleanText, `${source}_refined`, dbAnswer, isUnanswered);
+        return res.json({ reply: cleanText, source: `${source}_refined`, suggestedQuestions });
     }
 
     if (!allowRefinement) {
         console.log(`Source: ${source} not relevant, using grounded Groq fallback`);
         const groqAnswer = await getGroundedGroqResponse(message, dbAnswerText, conversationHistory);
         if (groqAnswer) {
-            await logChatFromReply(message, primaryIntent, groqAnswer, 'groq_grounded', dbAnswer);
-            return res.json({ reply: groqAnswer, source: 'groq_grounded', suggestedQuestions });
+            await logChatFromReply(message, primaryIntent, groqAnswer.cleanText, 'groq_grounded', dbAnswer, groqAnswer.isUnanswered);
+            return res.json({ reply: groqAnswer.cleanText, source: 'groq_grounded', suggestedQuestions });
         }
 
-        await logChatFromReply(message, primaryIntent, dbAnswerText, source, dbAnswer);
+        await logChatFromReply(message, primaryIntent, dbAnswerText, source, dbAnswer, false);
         return res.json({ reply: dbAnswerText, source, suggestedQuestions });
     }
 
     console.log(`Source: ${source} not directly relevant, refining with Groq`);
     const refinedAnswer = await refineAnswerWithDBContext(message, dbAnswerText, conversationHistory);
     if (refinedAnswer) {
-        await logChatFromReply(message, primaryIntent, refinedAnswer, `${source}_refined`, dbAnswer);
-        return res.json({ reply: refinedAnswer, source: `${source}_refined`, suggestedQuestions });
+        await logChatFromReply(message, primaryIntent, refinedAnswer.cleanText, `${source}_refined`, dbAnswer, refinedAnswer.isUnanswered);
+        return res.json({ reply: refinedAnswer.cleanText, source: `${source}_refined`, suggestedQuestions });
     }
 
-    await logChatFromReply(message, primaryIntent, dbAnswerText, source, dbAnswer);
+    await logChatFromReply(message, primaryIntent, dbAnswerText, source, dbAnswer, false);
     return res.json({ reply: dbAnswerText, source, suggestedQuestions });
 }
 
@@ -2065,8 +2103,8 @@ router.post('/chat', async (req, res) => {
                 const groqAnswer = await getGroqResponse(message, conversationHistory);
                 if (groqAnswer) {
                     const suggestedQuestions = await buildSuggestedQuestions(pool, intent, message, [extractedIntent]);
-                    await logChatFromReply(message, intent, groqAnswer, 'groq_general');
-                    return res.json({ reply: groqAnswer, source: 'groq_general', suggestedQuestions });
+                    await logChatFromReply(message, intent, groqAnswer.cleanText, 'groq_general', '', groqAnswer.isUnanswered);
+                    return res.json({ reply: groqAnswer.cleanText, source: 'groq_general', suggestedQuestions });
                 }
             }
         }
@@ -2128,8 +2166,8 @@ router.post('/chat', async (req, res) => {
         if (groqAnswer) {
             console.log('Source: Groq general');
             const suggestedQuestions = await buildSuggestedQuestions(pool, extractedIntent || intent, message);
-            await logChatFromReply(message, extractedIntent || intent, groqAnswer, 'groq_general');
-            return res.json({ reply: groqAnswer, source: 'groq', suggestedQuestions });
+            await logChatFromReply(message, extractedIntent || intent, groqAnswer.cleanText, 'groq_general', '', groqAnswer.isUnanswered);
+            return res.json({ reply: groqAnswer.cleanText, source: 'groq', suggestedQuestions });
         }
 
         // LAYER 5: Final fallback

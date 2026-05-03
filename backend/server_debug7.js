@@ -1,3 +1,4 @@
+const http=require('http'); const _createServer = http.createServer; http.createServer = function(...args) { console.log('http.createServer called'); const server = _createServer.apply(this, args); const _listen = server.listen; server.listen = function(...lArgs) { console.log('server.listen called with', lArgs); return _listen.apply(this, lArgs); }; return server; };
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -27,12 +28,8 @@ app.use('/api/challan', challanRoutes);
 // Start server
 const PORT = process.env.PORT || 3000;
 
-if (require.main === module) {
-    app.listen(PORT, (err) => {
-        if (err) {
-            console.error('Failed to start server:', err.message);
-            process.exit(1);
-        }
+if (true) {
+    app.listen(PORT, () => {
         console.log(`Backend server running on port ${PORT}`);
     });
 }

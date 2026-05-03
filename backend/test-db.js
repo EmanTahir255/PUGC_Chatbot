@@ -1,0 +1,1 @@
+const sql = require('mssql/msnodesqlv8'); const config = { server: 'localhost\\SQLEXPRESS', database: 'PUGC_ChatbotDB', options: { trustedConnection: true } }; sql.connect(config).then(() => { console.log('Connected!'); process.exit(0); }).catch(console.error);
