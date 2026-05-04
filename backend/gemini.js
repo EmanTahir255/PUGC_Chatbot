@@ -276,8 +276,9 @@ async function refineAnswerWithDBContext(userMessage, dbAnswer, conversationHist
                     role: 'system',
                     content: `You are PUGC SmartBot, a helpful virtual assistant for Punjab University Gujranwala Campus (PUGC).
 Answer the user's latest question directly and concisely.
-Use the provided PUGC database information as trusted context, but do not repeat unrelated details.
-If the database context does not contain the exact answer, NEVER invent or guess missing facts, rules, or details. Instead, politely inform the user as PUGC SmartBot that this specific information is not currently available, and suggest they contact the administration at 055-9200001. Do NOT use robotic phrases like "in the provided context" or "in the database". Keep it natural and conversational.
+Use the provided "PUGC Database Context" as the SOLE source of truth for factual information (dates, names, fees, etc.).
+If the database context does not contain the exact answer, or if it says no records were found, NEVER invent or guess facts. Politely inform the user that this specific information is not currently available in the university records. 
+Do NOT rely on your own internal knowledge about PUGC or information mentioned in previous turns if it contradicts the current database context.
 
 IMPORTANT JSON FORMAT:
 You MUST respond with a valid JSON object exactly matching this structure:
@@ -327,9 +328,9 @@ async function getGroundedGroqResponse(userMessage, dbAnswer, conversationHistor
                 {
                     role: 'system',
                     content: `You are PUGC SmartBot.
-Answer the user's latest question using ONLY the provided PUGC database information and the conversation history.
-Do not introduce new departments, programs, fees, dates, or policies unless they appear in the provided information.
-If the exact answer is not present, NEVER invent missing facts. Politely inform the user as PUGC SmartBot that this specific information is not currently available, and suggest they contact the administration at 055-9200001. Do NOT use robotic phrases like "in the provided context" or "in the database". Keep it natural and conversational.
+Answer the user's latest question using ONLY the provided "Nearest PUGC database information" as your factual source.
+Treat the provided database context as the absolute ground truth. Do not introduce any dates, fees, or events from your internal knowledge or from outdated parts of the conversation.
+If the exact answer is not in the provided context, politely state that the information is not available and suggest contacting the office at 055-9200001.
 
 IMPORTANT JSON FORMAT:
 You MUST respond with a valid JSON object exactly matching this structure:
@@ -370,10 +371,60 @@ ${dbAnswer}`
     }
 }
 
+/**
+ * Semantically extracts query parameters (table, filters, fields) from a user message.
+ */
+async function extractQueryParameters(userMessage, schemaContext, hints = {}) {
+    try {
+        const messages = [
+            {
+                role: 'system',
+                content: `You are a database query parameters extractor for PUGC university chatbot.
+Given a student question and a database schema, identify the target table, filtering criteria, and specific fields requested.
+
+SCHEMA CONTEXT:
+${JSON.stringify(schemaContext, null, 2)}
+
+LIVE DATABASE HINTS (Use these exact strings for filters if they match the user's intent):
+${JSON.stringify(hints, null, 2)}
+
+INSTRUCTIONS:
+1. Identify the most relevant 'targetTable' from the schema.
+2. Extract 'filters' (key-value pairs) for the query. Use exact strings from hints if possible.
+3. Identify 'timeScope' (past, present, upcoming, or all). Default is 'all' unless specified (e.g., "what's happening now" = present, "previous events" = past, "next events" = upcoming).
+4. Identify 'requiredFields' (array of column names) the user is asking about.
+5. If the question is too vague, return null.
+
+IMPORTANT JSON FORMAT:
+You MUST respond with a valid JSON object exactly matching this structure:
+{
+  "targetTable": "table_name",
+  "filters": { "column_name": "value" },
+  "timeScope": "upcoming",
+  "requiredFields": ["column1", "column2"]
+}
+Or return exactly null if no match.`
+            },
+            {
+                role: 'user',
+                content: userMessage
+            }
+        ];
+
+        const rawResponse = await runChatWithFallback(messages, 400, 0, 'Query extraction error', true);
+        if (!rawResponse || rawResponse === 'null') return null;
+        return JSON.parse(rawResponse);
+    } catch (error) {
+        console.error('Query extraction error:', error.message);
+        return null;
+    }
+}
+
 module.exports = {
     extractIntentFromQuestion,
     getGroqResponse,
     isAnswerRelevant,
     refineAnswerWithDBContext,
-    getGroundedGroqResponse
+    getGroundedGroqResponse,
+    extractQueryParameters
 };

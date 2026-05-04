@@ -645,7 +645,8 @@ async function showFAQ() {
 
         let faqText = "<b>Top 5 Frequently Asked Questions:</b><br><br>";
         faqs.forEach(f => {
-            faqText += `<b>Q: ${f.intent_name}</b><br>A: ${f.answer_text}<br><br>`;
+            const question = f.question_text || f.intent_name;
+            faqText += `<b>Q: ${question}</b><br>A: ${f.answer_text}<br><br>`;
         });
 
         appendMessage('bot', faqText.trim());

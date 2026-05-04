@@ -8,9 +8,11 @@ const {
     getGroqResponse,
     isAnswerRelevant,
     refineAnswerWithDBContext,
-    getGroundedGroqResponse
+    getGroundedGroqResponse,
+    extractQueryParameters
 } = require('../gemini');
 const { logChat } = require('../chat_logger');
+const DB_SCHEMA = require('../config/db_schema');
 
 router.use(requireAuth);
 
@@ -779,84 +781,6 @@ async function loadStructuredCatalog(pool) {
     };
 }
 
-function detectDepartmentField(message = '') {
-    const text = normalizeLookupText(message);
-    if (/\b(program|programs|offer|offered)\b/.test(text)) return 'programs';
-    if (/\b(head|hod|chair|dean)\b/.test(text)) return 'head_name';
-    if (/\b(contact|phone|number|call|helpline)\b/.test(text)) return 'contact_number';
-    if (/\b(email|mail)\b/.test(text)) return 'email';
-    if (/\b(room|office room)\b/.test(text)) return 'room_number';
-    if (/\b(hours|timing|timings|open)\b/.test(text)) return 'office_hours';
-    if (/\b(block|location|where|located|building)\b/.test(text)) return 'block_location';
-    return 'summary';
-}
-
-function detectProgramField(message = '') {
-    const text = normalizeLookupText(message);
-    if (/\bfee|fees\b/.test(text)) return 'fees';
-    if (/\bcredit\b/.test(text)) return 'total_credit_hrs';
-    if (/\bsemester|semesters\b/.test(text)) return 'total_semesters';
-    if (/\bduration|years|how long|year\b/.test(text)) return 'duration_years';
-    if (/\bseat|seats|capacity|intake\b/.test(text)) return 'total_seats';
-    if (/\bdepartment|which department\b/.test(text)) return 'department';
-    if (/\blevel|undergraduate|graduate|postgraduate\b/.test(text)) return 'program_level';
-    if (/\bdescription|overview|details|about\b/.test(text)) return 'description';
-    if (/\bprogram|programs|offer|available\b/.test(text)) return 'list';
-    return 'summary';
-}
-
-function detectFeeField(message = '', feeTypes = []) {
-    const text = normalizeLookupText(message);
-    const matchedFeeType = findBestCatalogMatch(
-        text,
-        feeTypes.map(type => ({ ...type, name: type.fee_type_name })),
-        item => buildFeeTypeAliases(item.fee_type_name),
-        40
-    );
-
-    if (matchedFeeType) {
-        return { kind: 'specific_fee_type', feeType: matchedFeeType };
-    }
-    if (/\beffective from|from when|starts from\b/.test(text)) return { kind: 'effective_from' };
-    if (/\beffective to|valid till|until\b/.test(text)) return { kind: 'effective_to' };
-    if (/\btotal|overall|semester fee|complete fee|full fee\b/.test(text)) return { kind: 'total' };
-    return { kind: 'breakdown' };
-}
-
-function detectScholarshipField(message = '') {
-    const text = normalizeLookupText(message);
-    if (/\bdeadline|last date|apply by\b/.test(text)) return 'application_deadline';
-    if (/\binterview\b/.test(text)) return 'interview_date';
-    if (/\bannouncement|announce|result\b/.test(text)) return 'announcement_date';
-    if (/\bbenefit|percentage|coverage|amount\b/.test(text)) return 'benefit_percentage';
-    if (/\bcgpa|criteria|eligibility\b/.test(text)) return 'min_cgpa_required';
-    if (/\bincome|family income\b/.test(text)) return 'max_family_income';
-    if (/\brenewable|renew\b/.test(text)) return 'is_renewable';
-    if (/\bbeneficiaries|students\b/.test(text)) return 'max_beneficiaries';
-    if (/\bfunding|funding source|sponsor\b/.test(text)) return 'funding_source';
-    if (/\bsemester\b/.test(text)) return 'semester_name';
-    return 'summary';
-}
-
-function detectScholarshipScope(message = '') {
-    const text = normalizeLookupText(message);
-
-    if (/\b(all scholarships|all scholarship|every scholarship|all types of scholarships|scholarship list)\b/.test(text)) {
-        return 'all';
-    }
-    if (/\b(previous|past|history|last|old scholarships|expired scholarships|when was|when did|was it|was interview|was announcement)\b/.test(text)) {
-        return 'past';
-    }
-    if (/\b(current|active|available now|open now|ongoing)\b/.test(text)) {
-        return 'current';
-    }
-    if (/\b(upcoming|future|next|deadline|last date|apply by|coming)\b/.test(text)) {
-        return 'future';
-    }
-
-    return 'current';
-}
-
 function detectSemesterReference(message = '', semesters = []) {
     const normalized = normalizeLookupText(message);
     const yearMatch = normalized.match(/\b(20\d{2})\b/);
@@ -892,37 +816,6 @@ function getScholarshipStatus(row) {
     deadline.setHours(0, 0, 0, 0);
 
     return deadline >= today ? 'Open' : 'Closed';
-}
-
-function detectEventField(message = '') {
-    const text = normalizeLookupText(message);
-    if (/\bvenue|where|held\b/.test(text)) return 'venue';
-    if (/\bend|ends|finish\b/.test(text)) return 'event_end_date';
-    if (/\bdate|when\b/.test(text)) return 'event_date';
-    if (/\bregistration deadline|register by|last date to register\b/.test(text)) return 'registration_deadline';
-    if (/\bregister|registration|required\b/.test(text)) return 'registration_required';
-    if (/\bdescription|details|about\b/.test(text)) return 'description';
-    if (/\bsemester\b/.test(text)) return 'semester_name';
-    return 'summary';
-}
-
-function detectEventTimeScope(message = '') {
-    const text = normalizeLookupText(message);
-
-    if (/\b(all events|all event|event list|complete event|full event|every event)\b/.test(text)) {
-        return 'all';
-    }
-    if (/\b(today|current|currently|now|ongoing|happening today|this week|this month)\b/.test(text)) {
-        return 'current';
-    }
-    if (/\b(previous|past|history|last|held before|already happened|old events)\b/.test(text)) {
-        return 'past';
-    }
-    if (/\b(upcoming|future|next|schedule|planned|coming)\b/.test(text)) {
-        return 'future';
-    }
-
-    return 'future';
 }
 
 function formatFieldValue(label, value, formatter = null, suffix = '') {
@@ -1826,6 +1719,11 @@ async function getFaqSearchAnswer(message, pool) {
 }
 
 async function getSchemaAwareFallbackAnswer(message, pool) {
+    // 1. Try the high-professional semantic fetcher first
+    const semanticAnswer = await getSchemaBasedAnswer(message, pool);
+    if (semanticAnswer) return semanticAnswer;
+
+    // 2. Legacy fallback for specialized logic
     const catalog = await loadStructuredCatalog(pool);
     const normalized = normalizeLookupText(message);
 
@@ -1859,10 +1757,127 @@ async function getSchemaAwareFallbackAnswer(message, pool) {
     return getFaqSearchAnswer(message, pool);
 }
 
+/**
+ * A unified, professional data fetcher that uses LLM-extracted parameters 
+ * to query any supported table in the database.
+ */
+async function getSchemaBasedAnswer(message, pool) {
+    try {
+        // 1. Fetch current names from DB to provide as "Hints" to the LLM.
+        // This solves the "Psychology" vs "Psycology" spelling mismatch problem perfectly.
+        const catalog = await pool.request().query(`
+            SELECT 'dept_name' as type, dept_name as name FROM departments
+            UNION ALL
+            SELECT 'program_name' as type, program_name as name FROM programs WHERE is_active = 1
+        `);
+        
+        const hints = catalog.recordset.reduce((acc, row) => {
+            if (!acc[row.type]) acc[row.type] = [];
+            acc[row.type].push(row.name);
+            return acc;
+        }, {});
+
+        // 2. Extract semantic parameters from message using schema context and live hints
+        const params = await extractQueryParameters(message, DB_SCHEMA, hints);
+        if (!params || !params.targetTable || !DB_SCHEMA[params.targetTable]) {
+            return null;
+        }
+
+        const { targetTable, filters, requiredFields, timeScope } = params;
+        const schema = DB_SCHEMA[targetTable];
+
+        // 3. Build the SQL query safely
+        const selectCols = requiredFields && requiredFields.length > 0
+            ? requiredFields.filter(col => schema.columns[col] || col === schema.primary_key)
+            : Object.keys(schema.columns);
+
+        if (selectCols.length === 0) return null;
+
+        const request = pool.request();
+        let query = `SELECT TOP 20 ${selectCols.join(', ')} FROM ${targetTable}`;
+
+        // 3. Apply filters semantically
+        const filterClauses = [];
+        
+        // 3.1 Time-Scope Logic (for tables with date columns like 'events')
+        if (timeScope && timeScope !== 'all' && (schema.columns.event_date || schema.columns.application_deadline)) {
+            const dateCol = schema.columns.event_date ? 'event_date' : 'application_deadline';
+            const endDateCol = schema.columns.event_end_date ? 'event_end_date' : dateCol;
+            
+            if (timeScope === 'upcoming') {
+                filterClauses.push(`${dateCol} > CAST(GETDATE() AS DATE)`);
+            } else if (timeScope === 'past') {
+                filterClauses.push(`${endDateCol} < CAST(GETDATE() AS DATE)`);
+            } else if (timeScope === 'present') {
+                filterClauses.push(`CAST(GETDATE() AS DATE) BETWEEN CAST(${dateCol} AS DATE) AND CAST(${endDateCol} AS DATE)`);
+            }
+        }
+
+        if (filters && typeof filters === 'object') {
+            Object.entries(filters).forEach(([col, val], index) => {
+                // Ensure column exists in schema to prevent injection
+                if (schema.columns[col] || col === schema.primary_key || (schema.foreign_keys && schema.foreign_keys[col])) {
+                    const paramName = `val${index}`;
+                    request.input(paramName, val);
+                    
+                    // Use LIKE for strings, equals for numbers/IDs
+                    if (typeof val === 'string') {
+                        filterClauses.push(`${col} LIKE '%' + @${paramName} + '%'`);
+                    } else {
+                        filterClauses.push(`${col} = @${paramName}`);
+                    }
+                }
+            });
+        }
+
+        // Always respect is_active if it exists in the table
+        if (schema.columns.is_active) {
+            filterClauses.push('is_active = 1');
+        }
+
+        if (filterClauses.length > 0) {
+            query += ` WHERE ${filterClauses.join(' AND ')}`;
+        }
+
+        // Add default ordering
+        if (schema.columns.event_date) query += ' ORDER BY event_date ASC';
+        else if (schema.columns.dept_name) query += ' ORDER BY dept_name';
+        else if (schema.columns.program_name) query += ' ORDER BY program_name';
+
+        console.log(`Dynamic Query: ${query}`);
+        const result = await request.query(query);
+
+        if (result.recordset.length === 0) {
+            return missingDataAnswer(`<b>${targetTable.charAt(0).toUpperCase() + targetTable.slice(1)} Info</b><br><br>I couldn't find any records matching your request in our current database.`);
+        }
+
+        // 4. Return the raw data. 
+        // We add a timestamp to the data so the LLM knows what "now" is relative to the records.
+        const responseData = {
+            currentTime: new Date().toISOString(),
+            records: result.recordset
+        };
+        return JSON.stringify(responseData);
+
+    } catch (error) {
+        console.error('getSchemaBasedAnswer error:', error.message);
+        return null;
+    }
+}
+
 async function getDynamicAnswer(intent, message, pool) {
     const handler = DYNAMIC_INTENT_HANDLERS[intent];
     if (!handler) return null;
 
+    // HIGH PRIORITY: Try the semantic schema-based fetcher first for professional, real-time data.
+    // This handles synonyms, partial names, and complex field requests dynamically.
+    const semanticAnswer = await getSchemaBasedAnswer(message, pool);
+    if (semanticAnswer) {
+        console.log(`Semantic fetcher found answer for intent: ${intent}`);
+        return semanticAnswer;
+    }
+
+    // FALLBACK: Old manual handlers (keeping for compatibility/safety)
     const catalog = await loadStructuredCatalog(pool);
 
     switch (handler) {
@@ -2209,11 +2224,27 @@ router.get('/public/faqs', async (req, res) => {
     try {
         const pool = await getPool();
         const result = await pool.request().query(`
-            SELECT TOP 5 fa.answer_id, fa.answer_text, i.intent_name
-            FROM faq_answers fa
-            JOIN intents i ON fa.intent_id = i.intent_id
-            WHERE fa.is_active = 1
-            ORDER BY i.intent_name
+            WITH UniqueFAQs AS (
+                SELECT 
+                    fa.answer_id, 
+                    fa.answer_text, 
+                    i.intent_name,
+                    ISNULL(te.example_text, i.description) as question_text,
+                    ROW_NUMBER() OVER(PARTITION BY i.intent_id ORDER BY fa.answer_id) as rn
+                FROM faq_answers fa
+                JOIN intents i ON fa.intent_id = i.intent_id
+                OUTER APPLY (
+                    SELECT TOP 1 example_text 
+                    FROM training_examples 
+                    WHERE intent_id = i.intent_id 
+                    ORDER BY example_id
+                ) te
+                WHERE fa.is_active = 1
+            )
+            SELECT TOP 5 answer_id, answer_text, intent_name, question_text
+            FROM UniqueFAQs
+            WHERE rn = 1
+            ORDER BY intent_name
         `);
         res.json(result.recordset);
     } catch (error) {

@@ -2142,7 +2142,7 @@ function renderScholarshipsSection(formErrors = {}, globalError = '') {
                         <select id="scholarshipSemesterFilter">
                             <option value="all">All Semesters</option>
                             ${state.meta.semesters.map(semester => `
-                                <option value="${semester.semester_id}" ${state.filters.scholarships.semester === String(semester.semester_id) ? 'selected' : ''}>${escapeHtml(`${semester.semester_name} ${semester.year}`)}</option>
+                                <option value="${semester.semester_id}" ${state.filters.scholarships.semester === String(semester.semester_id) ? 'selected' : ''}>${escapeHtml(semester.semester_name.includes(semester.year) ? semester.semester_name : `${semester.semester_name} ${semester.year}`)}</option>
                             `).join('')}
                         </select>
                     </label>
@@ -2178,7 +2178,7 @@ function renderScholarshipsSection(formErrors = {}, globalError = '') {
                         <select id="scholarshipSemester" required>
                             <option value="">Select semester</option>
                             ${state.meta.semesters.map(semester => `
-                                <option value="${semester.semester_id}" ${(currentRecord?.semester_id || '') === semester.semester_id ? 'selected' : ''}>${escapeHtml(`${semester.semester_name} ${semester.year} (${semester.semester_type})`)}</option>
+                                <option value="${semester.semester_id}" ${(currentRecord?.semester_id || '') === semester.semester_id ? 'selected' : ''}>${escapeHtml(`${semester.semester_name.includes(semester.year) ? semester.semester_name : `${semester.semester_name} ${semester.year}`} (${semester.semester_type})`)}</option>
                             `).join('')}
                         </select>
                     </label>
@@ -2215,7 +2215,7 @@ function renderScholarshipsSection(formErrors = {}, globalError = '') {
                                 <h3>${escapeHtml(item.type_name)}</h3>
                                 ${activeBadge(item.is_active)}
                             </div>
-                            <p><strong>Semester:</strong> ${escapeHtml(`${item.semester_name} ${item.year}`)}</p>
+                            <p><strong>Semester:</strong> ${escapeHtml(item.semester_name.includes(item.year) ? item.semester_name : `${item.semester_name} ${item.year}`)}</p>
                             <p><strong>Funding Source:</strong> ${escapeHtml(item.funding_source || 'Not listed')}</p>
                             <p><strong>Benefit:</strong> ${escapeHtml(item.benefit_percentage ?? 'Not listed')}% | <strong>Min CGPA:</strong> ${escapeHtml(item.min_cgpa_required ?? 'Not listed')}</p>
                             <p><strong>Deadline:</strong> ${escapeHtml(formatDate(item.application_deadline))}</p>
@@ -2461,7 +2461,7 @@ function renderEventsSection(formErrors = {}, globalError = '') {
                             <option value="">No semester linked</option>
                             ${state.meta.semesters.map(semester => `
                                 <option value="${semester.semester_id}" ${(currentRecord?.semester_id || '') === semester.semester_id ? 'selected' : ''}>
-                                    ${escapeHtml(`${semester.semester_name} ${semester.year} (${semester.semester_type})`)}
+                                    ${escapeHtml(`${semester.semester_name.includes(semester.year) ? semester.semester_name : `${semester.semester_name} ${semester.year}`} (${semester.semester_type})`)}
                                 </option>
                             `).join('')}
                         </select>
