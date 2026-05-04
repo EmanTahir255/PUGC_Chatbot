@@ -3,11 +3,11 @@ const sql = require("mssql");
 
 const dbConfig = {
   server: "localhost",
+  port: 1433,
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   options: {
-    instanceName: process.env.DB_INSTANCE,  // 🔥 dynamic
     encrypt: false,
     trustServerCertificate: true,
     enableArithAbort: true,

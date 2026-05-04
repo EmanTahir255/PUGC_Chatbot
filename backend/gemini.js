@@ -61,18 +61,24 @@ function historyToTranscript(conversationHistory = []) {
     .join("\n");
 }
 
-async function runGroqChat(messages, maxTokens, temperature) {
-  const completion = await groq.chat.completions.create({
+async function runGroqChat(messages, maxTokens, temperature, requireJson = false) {
+  const params = {
     model: GROQ_MODEL,
     messages,
     max_tokens: maxTokens,
     temperature
-  });
+  };
+
+  if (requireJson) {
+      params.response_format = { type: "json_object" };
+  }
+
+  const completion = await groq.chat.completions.create(params);
 
   return completion.choices?.[0]?.message?.content?.trim() || null;
 }
 
-async function runGeminiChat(messages, maxTokens, temperature) {
+async function runGeminiChat(messages, maxTokens, temperature, requireJson = false) {
   if (!geminiClient) {
     return null;
   }
@@ -88,20 +94,27 @@ async function runGeminiChat(messages, maxTokens, temperature) {
     .join("\n");
 
   const prompt = `${systemPrompt}\n\nConversation:\n${transcript}\n\nReply exactly as instructed above.`;
-  const result = await model.generateContent({
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: {
+  
+  const generationConfig = {
       temperature,
       maxOutputTokens: maxTokens
-    }
+  };
+
+  if (requireJson) {
+      generationConfig.responseMimeType = "application/json";
+  }
+
+  const result = await model.generateContent({
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig
   });
 
   return result.response?.text()?.trim() || null;
 }
 
-async function runChatWithFallback(messages, maxTokens, temperature, errorLabel) {
+async function runChatWithFallback(messages, maxTokens, temperature, errorLabel, requireJson = false) {
   try {
-    return await runGroqChat(messages, maxTokens, temperature);
+    return await runGroqChat(messages, maxTokens, temperature, requireJson);
   } catch (error) {
     console.error(`${errorLabel} (Groq):`, error.message);
 
@@ -111,7 +124,7 @@ async function runChatWithFallback(messages, maxTokens, temperature, errorLabel)
 
     try {
       console.log(`${errorLabel}: trying Gemini fallback...`);
-      return await runGeminiChat(messages, maxTokens, temperature);
+      return await runGeminiChat(messages, maxTokens, temperature, requireJson);
     } catch (geminiError) {
       console.error(`${errorLabel} (Gemini):`, geminiError.message);
       return null;
@@ -151,6 +164,23 @@ If the question does not match any intent, return: NONE`,
   }
 }
 
+function parseLLMResponse(jsonString) {
+    if (!jsonString) return null;
+    try {
+        const parsed = JSON.parse(jsonString);
+        return {
+            cleanText: parsed.reply || "<b>Response format error</b>",
+            isUnanswered: !!parsed.unanswered
+        };
+    } catch (e) {
+        console.error("Failed to parse JSON response:", e.message, "\\nRaw Output:", jsonString);
+        return {
+            cleanText: jsonString,
+            isUnanswered: false
+        };
+    }
+}
+
 // General AI response when DB has no answer
 async function getGroqResponse(userMessage, conversationHistory = []) {
     try {
@@ -160,14 +190,22 @@ async function getGroqResponse(userMessage, conversationHistory = []) {
                 content: `You are PUGC SmartBot, a helpful virtual assistant for Punjab University Gujranwala Campus (PUGC) in Pakistan.
 
 Rules:
-- Only answer questions related to PUGC, university life, academics, admissions, fees, hostel, library, departments, exams, scholarships, and student services
-- If unrelated to university, say you can only help with PUGC related queries
-- Keep answers concise and helpful
-- Formal but friendly tone
-- If unsure about specific PUGC details, give general guidance and suggest contacting PUGC at 055-9200001
-- Use conversation history to understand follow-up questions and references like "its fee", "tell me more", "what about that"
+- Only answer questions related to PUGC, university life, academics, admissions, fees, hostel, library, departments, exams, scholarships, and student services.
+- If unrelated to university, say you can only help with PUGC related queries.
+- Keep answers concise and helpful, using a formal but friendly tone.
+- NEVER invent, guess, or assume any facts, rules, departments, programs, fees, or specific details about PUGC. You do not have database access in this layer.
+- If the user asks for *any* specific factual information about PUGC (such as a specific department, program, policy, event, person, facility, etc.) and you cannot verify it from the conversation history, you MUST admit that the specific information is not available in your database and suggest contacting PUGC at 055-9200001.
+- Use conversation history to understand follow-up questions and references.
 
-IMPORTANT FORMATTING RULES:
+IMPORTANT JSON FORMAT:
+You MUST respond with a valid JSON object exactly matching this structure:
+{
+  "reply": "Your markdown formatted string here",
+  "unanswered": boolean
+}
+Set "unanswered": true ONLY if the user asks for specific PUGC information that you do not have context for and you must advise them to contact PUGC. Set it to false for general greetings, chit-chat, or if you can fully answer based on conversation history.
+
+Your "reply" string MUST follow these rules:
 - Always start with a bold heading using <b>heading</b>
 - Do not return one long paragraph
 - Use <br><br> after the heading
@@ -183,7 +221,8 @@ IMPORTANT FORMATTING RULES:
                 content: userMessage
             }
         ];
-        return await runChatWithFallback(messages, 500, 0.7, 'General AI response error');
+        const rawResponse = await runChatWithFallback(messages, 600, 0.7, 'General AI response error', true);
+        return parseLLMResponse(rawResponse);
 
     } catch (error) {
         console.error('Groq error:', error.message);
@@ -231,16 +270,25 @@ ${dbAnswer}`
 async function refineAnswerWithDBContext(userMessage, dbAnswer, conversationHistory = []) {
     try {
         // Reword only when the stored answer is related but does not directly answer the latest question.
-        return await runChatWithFallback(
+        const rawResponse = await runChatWithFallback(
             [
                 {
                     role: 'system',
                     content: `You are PUGC SmartBot, a helpful virtual assistant for Punjab University Gujranwala Campus (PUGC).
 Answer the user's latest question directly and concisely.
-Use the provided PUGC database information as trusted context, but do not repeat unrelated details.
-If the database context does not contain the exact answer, infer only what is reasonable from it and say to contact PUGC for confirmation.
+Use the provided "PUGC Database Context" as the SOLE source of truth for factual information (dates, names, fees, etc.).
+If the database context does not contain the exact answer, or if it says no records were found, NEVER invent or guess facts. Politely inform the user that this specific information is not currently available in the university records. 
+Do NOT rely on your own internal knowledge about PUGC or information mentioned in previous turns if it contradicts the current database context.
 
-IMPORTANT FORMATTING RULES:
+IMPORTANT JSON FORMAT:
+You MUST respond with a valid JSON object exactly matching this structure:
+{
+  "reply": "Your markdown formatted string here",
+  "unanswered": boolean
+}
+Set "unanswered": true ONLY if the specific data is missing from the context and you must suggest contacting PUGC. Otherwise false.
+
+Your "reply" string MUST follow these rules:
 - Always start with a bold heading using <b>heading</b>
 - Do not return one long paragraph
 - Use <br><br> after the heading
@@ -260,10 +308,12 @@ Related PUGC database information:
 ${dbAnswer}`
                 }
             ],
-            350,
+            450,
             0.2,
-            'Answer refinement error'
+            'Answer refinement error',
+            true
         );
+        return parseLLMResponse(rawResponse);
     } catch (error) {
         console.error('Answer refinement error:', error.message);
         return null;
@@ -273,16 +323,24 @@ ${dbAnswer}`
 async function getGroundedGroqResponse(userMessage, dbAnswer, conversationHistory = []) {
     try {
         // Strict fallback: use nearby DB context, but do not invent missing PUGC facts.
-        return await runChatWithFallback(
+        const rawResponse = await runChatWithFallback(
             [
                 {
                     role: 'system',
                     content: `You are PUGC SmartBot.
-Answer the user's latest question using ONLY the provided PUGC database information and the conversation history.
-Do not introduce new departments, programs, fees, dates, or policies unless they appear in the provided information.
-If the exact answer is not present, clearly say that it is not available in the current PUGC data and suggest contacting PUGC.
+Answer the user's latest question using ONLY the provided "Nearest PUGC database information" as your factual source.
+Treat the provided database context as the absolute ground truth. Do not introduce any dates, fees, or events from your internal knowledge or from outdated parts of the conversation.
+If the exact answer is not in the provided context, politely state that the information is not available and suggest contacting the office at 055-9200001.
 
-IMPORTANT FORMATTING RULES:
+IMPORTANT JSON FORMAT:
+You MUST respond with a valid JSON object exactly matching this structure:
+{
+  "reply": "Your markdown formatted string here",
+  "unanswered": boolean
+}
+Set "unanswered": true ONLY if you cannot answer the question completely and must suggest contacting PUGC due to missing data. Otherwise false.
+
+Your "reply" string MUST follow these rules:
 - Always start with a bold heading using <b>heading</b>
 - Do not return one long paragraph
 - Use <br><br> after the heading
@@ -301,12 +359,63 @@ Nearest PUGC database information:
 ${dbAnswer}`
                 }
             ],
-            350,
+            450,
             0.1,
-            'Grounded Groq error'
+            'Grounded Groq error',
+            true
         );
+        return parseLLMResponse(rawResponse);
     } catch (error) {
         console.error('Grounded Groq error:', error.message);
+        return null;
+    }
+}
+
+/**
+ * Semantically extracts query parameters (table, filters, fields) from a user message.
+ */
+async function extractQueryParameters(userMessage, schemaContext, hints = {}) {
+    try {
+        const messages = [
+            {
+                role: 'system',
+                content: `You are a database query parameters extractor for PUGC university chatbot.
+Given a student question and a database schema, identify the target table, filtering criteria, and specific fields requested.
+
+SCHEMA CONTEXT:
+${JSON.stringify(schemaContext, null, 2)}
+
+LIVE DATABASE HINTS (Use these exact strings for filters if they match the user's intent):
+${JSON.stringify(hints, null, 2)}
+
+INSTRUCTIONS:
+1. Identify the most relevant 'targetTable' from the schema.
+2. Extract 'filters' (key-value pairs) for the query. Use exact strings from hints if possible.
+3. Identify 'timeScope' (past, present, upcoming, or all). Default is 'all' unless specified (e.g., "what's happening now" = present, "previous events" = past, "next events" = upcoming).
+4. Identify 'requiredFields' (array of column names) the user is asking about.
+5. If the question is too vague, return null.
+
+IMPORTANT JSON FORMAT:
+You MUST respond with a valid JSON object exactly matching this structure:
+{
+  "targetTable": "table_name",
+  "filters": { "column_name": "value" },
+  "timeScope": "upcoming",
+  "requiredFields": ["column1", "column2"]
+}
+Or return exactly null if no match.`
+            },
+            {
+                role: 'user',
+                content: userMessage
+            }
+        ];
+
+        const rawResponse = await runChatWithFallback(messages, 400, 0, 'Query extraction error', true);
+        if (!rawResponse || rawResponse === 'null') return null;
+        return JSON.parse(rawResponse);
+    } catch (error) {
+        console.error('Query extraction error:', error.message);
         return null;
     }
 }
@@ -316,5 +425,6 @@ module.exports = {
     getGroqResponse,
     isAnswerRelevant,
     refineAnswerWithDBContext,
-    getGroundedGroqResponse
+    getGroundedGroqResponse,
+    extractQueryParameters
 };
