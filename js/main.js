@@ -12,6 +12,7 @@ async function loadLayout() {
 
         // Toggle navbar buttons after header loads
         toggleNavbarButtons();
+        initNavToggle();
     } catch (error) {
         console.error("Error loading layout components:", error);
     }
@@ -77,6 +78,41 @@ function toggleNavbarButtons() {
     // Show/hide Admin Dashboard (only admin users)
     if (adminBtn) {
         adminBtn.style.display = (loggedIn && isAdmin) ? 'flex' : 'none';
+    }
+}
+
+function initNavToggle() {
+    const navToggle = document.querySelector('.nav-toggle');
+    const navLinks = document.querySelector('.nav-links');
+
+    if (navToggle && navLinks) {
+        navToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('nav-active');
+            
+            // Change icon
+            const icon = navToggle.querySelector('i');
+            if (icon) {
+                if (navLinks.classList.contains('nav-active')) {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-times');
+                } else {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
+            }
+        });
+
+        // Close menu when clicking a link
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('nav-active');
+                const icon = navToggle.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
+            });
+        });
     }
 }
 

@@ -86,7 +86,7 @@
     }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
     .hero-image img {
         max-width: 300px;
     }
@@ -170,12 +170,7 @@
 }
 
 /* ------------------ Mobile Adjustments ------------------ */
-@media(max-width:900px){
-    .hero-content { flex-direction: column; gap: 30px; }
-    .hero-image img { max-width: 300px; }
-}
-
-@media(max-width:600px){
+@media(max-width: 768px){
     .about-hero { padding: 0 5%; }
     .about-section { padding: 30px 5%; }
 }
