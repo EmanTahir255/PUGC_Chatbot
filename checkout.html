@@ -73,7 +73,7 @@
         <form class="checkout-form">
           <div class="form-group">
             <label for="name">Full Name</label>
-            <input type="text" id="name" required>
+            <input type="text" id="name" required maxlength="50">
           </div>
           <div class="form-group">
             <label for="email">Email Address</label>
@@ -126,19 +126,19 @@
           <div class="manual-fields">
             <div class="form-group">
               <label for="sender-name">Sender Account Name</label>
-              <input type="text" id="sender-name" placeholder="Name shown on payment account">
+              <input type="text" id="sender-name" placeholder="Name shown on payment account" maxlength="50">
             </div>
             <div class="form-group">
               <label for="sender-number">Sender Account Number</label>
-              <input type="text" id="sender-number" placeholder="Mobile/account number used">
+              <input type="text" id="sender-number" placeholder="Mobile/account number used" maxlength="30" inputmode="numeric">
             </div>
             <div class="form-group">
               <label for="transaction-reference">Transaction Reference</label>
-              <input type="text" id="transaction-reference" placeholder="Transaction ID / reference number">
+              <input type="text" id="transaction-reference" placeholder="Transaction ID / reference number" maxlength="25">
             </div>
             <div class="form-group">
               <label for="student-note">Note</label>
-              <textarea id="student-note" rows="3" placeholder="Any extra detail for admin"></textarea>
+              <textarea id="student-note" rows="3" placeholder="Any extra detail for admin" maxlength="200"></textarea>
             </div>
           </div>
           <label class="upload-field">

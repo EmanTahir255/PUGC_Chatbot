@@ -1271,33 +1271,33 @@ function renderDepartmentsSection(formErrors = {}, globalError = '') {
                 </div>
                 ${renderFieldErrors(formErrors)}
                 <div class="form-grid">
-                    <label class="field">
+                    <label class="field full-width">
                         <span>Department Name</span>
-                        <input type="text" id="departmentName" value="${escapeHtml(currentRecord?.dept_name || '')}" required>
+                        <input type="text" id="departmentName" value="${escapeHtml(currentRecord?.dept_name || '')}" placeholder="e.g. Computer Science" required>
                     </label>
                     <label class="field">
                         <span>Head / HOD Name</span>
-                        <input type="text" id="departmentHead" value="${escapeHtml(currentRecord?.head_name || '')}">
+                        <input type="text" id="departmentHead" value="${escapeHtml(currentRecord?.head_name || '')}" placeholder="e.g. Dr. John Doe">
                     </label>
                     <label class="field">
                         <span>Contact Number</span>
-                        <input type="text" id="departmentPhone" value="${escapeHtml(currentRecord?.contact_number || '')}">
+                        <input type="text" id="departmentPhone" value="${escapeHtml(currentRecord?.contact_number || '')}" placeholder="e.g. +92 300 1234567">
                     </label>
-                    <label class="field">
-                        <span>Email</span>
-                        <input type="email" id="departmentEmail" value="${escapeHtml(currentRecord?.email || '')}">
+                    <label class="field full-width">
+                        <span>Email Address</span>
+                        <input type="email" id="departmentEmail" value="${escapeHtml(currentRecord?.email || '')}" placeholder="e.g. cs@pugc.edu.pk">
                     </label>
                     <label class="field">
                         <span>Block / Location</span>
-                        <input type="text" id="departmentBlock" value="${escapeHtml(currentRecord?.block_location || '')}">
+                        <input type="text" id="departmentBlock" value="${escapeHtml(currentRecord?.block_location || '')}" placeholder="e.g. Main Block">
                     </label>
                     <label class="field">
                         <span>Room Number</span>
-                        <input type="text" id="departmentRoom" value="${escapeHtml(currentRecord?.room_number || '')}">
+                        <input type="text" id="departmentRoom" value="${escapeHtml(currentRecord?.room_number || '')}" placeholder="e.g. 204">
                     </label>
                     <label class="field full-width">
                         <span>Office Hours</span>
-                        <input type="text" id="departmentHours" value="${escapeHtml(currentRecord?.office_hours || '')}" placeholder="Monday-Friday 9AM-4PM">
+                        <input type="text" id="departmentHours" value="${escapeHtml(currentRecord?.office_hours || '')}" placeholder="e.g. Mon-Fri 9AM-4PM">
                     </label>
                 </div>
                 <div class="form-actions">
@@ -1558,8 +1558,12 @@ function renderProgramsSection(formErrors = {}, globalError = '') {
                 </div>
                 ${renderFieldErrors(formErrors)}
                 <div class="form-grid">
+                    <label class="field full-width">
+                        <span>Program Name</span>
+                        <input type="text" id="programName" value="${escapeHtml(currentRecord?.program_name || '')}" placeholder="e.g. BS Software Engineering" required>
+                    </label>
                     <label class="field">
-                        <span>Department</span>
+                        <span>Associated Department</span>
                         <select id="programDepartment" required>
                             <option value="">Select department</option>
                             ${state.meta.departments.map(department => `
@@ -1570,16 +1574,12 @@ function renderProgramsSection(formErrors = {}, globalError = '') {
                         </select>
                     </label>
                     <label class="field">
-                        <span>Program Name</span>
-                        <input type="text" id="programName" value="${escapeHtml(currentRecord?.program_name || '')}" required>
-                    </label>
-                    <label class="field">
                         <span>Program Level</span>
-                        <input type="text" id="programLevel" value="${escapeHtml(currentRecord?.program_level || '')}" placeholder="BS, MS, MPhil" required>
+                        <input type="text" id="programLevel" value="${escapeHtml(currentRecord?.program_level || '')}" placeholder="BS, MS, etc." required>
                     </label>
                     <label class="field">
                         <span>Duration (Years)</span>
-                        <input type="number" step="0.1" min="0.5" id="programDuration" value="${escapeHtml(currentRecord?.duration_years || '')}" required>
+                        <input type="number" step="0.5" min="0.5" id="programDuration" value="${escapeHtml(currentRecord?.duration_years || '')}" required>
                     </label>
                     <label class="field">
                         <span>Total Semesters</span>
@@ -1590,16 +1590,16 @@ function renderProgramsSection(formErrors = {}, globalError = '') {
                         <input type="number" min="1" id="programCredits" value="${escapeHtml(currentRecord?.total_credit_hrs || '')}" required>
                     </label>
                     <label class="field">
-                        <span>Total Seats</span>
+                        <span>Total Seats Available</span>
                         <input type="number" min="1" id="programSeats" value="${escapeHtml(currentRecord?.total_seats || '')}" required>
                     </label>
-                    <label class="field inline-field">
-                        <span>Active</span>
+                    <label class="field inline-field full-width">
                         <input type="checkbox" id="programIsActive" ${currentRecord ? (currentRecord.is_active ? 'checked' : '') : 'checked'}>
+                        <span>Currently Active / Open for Admission</span>
                     </label>
                     <label class="field full-width">
-                        <span>Description</span>
-                        <textarea id="programDescription" rows="4" placeholder="Short program overview for admin reference and downstream chatbot use.">${escapeHtml(currentRecord?.description || '')}</textarea>
+                        <span>Program Description</span>
+                        <textarea id="programDescription" rows="3" placeholder="Brief overview of the program...">${escapeHtml(currentRecord?.description || '')}</textarea>
                     </label>
                 </div>
                 <div class="form-actions">
@@ -1884,8 +1884,8 @@ function renderFeeStructuresSection(formErrors = {}, globalError = '') {
                 </div>
                 ${renderFieldErrors(formErrors)}
                 <div class="form-grid">
-                    <label class="field">
-                        <span>Program</span>
+                    <label class="field full-width">
+                        <span>Associated Program</span>
                         <select id="feeStructureProgram" required>
                             <option value="">Select program</option>
                             ${state.meta.programs.map(program => `
@@ -1893,8 +1893,8 @@ function renderFeeStructuresSection(formErrors = {}, globalError = '') {
                             `).join('')}
                         </select>
                     </label>
-                    <label class="field">
-                        <span>Fee Type</span>
+                    <label class="field full-width">
+                        <span>Fee Component Type</span>
                         <select id="feeStructureType" required>
                             <option value="">Select fee type</option>
                             ${state.meta.feeTypes.map(type => `
@@ -1903,15 +1903,15 @@ function renderFeeStructuresSection(formErrors = {}, globalError = '') {
                         </select>
                     </label>
                     <label class="field">
-                        <span>Amount</span>
-                        <input type="number" min="0" step="0.01" id="feeStructureAmount" value="${escapeHtml(currentRecord?.amount || '')}" required>
+                        <span>Amount (PKR)</span>
+                        <input type="number" min="0" step="1" id="feeStructureAmount" value="${escapeHtml(currentRecord?.amount || '')}" placeholder="e.g. 45000" required>
                     </label>
                     <label class="field">
-                        <span>Effective From</span>
+                        <span>Effective From Date</span>
                         <input type="date" id="feeStructureFrom" value="${escapeHtml(toInputDate(currentRecord?.effective_from))}" required>
                     </label>
-                    <label class="field">
-                        <span>Effective To</span>
+                    <label class="field full-width">
+                        <span>Effective To Date (Leave empty if current)</span>
                         <input type="date" id="feeStructureTo" value="${escapeHtml(toInputDate(currentRecord?.effective_to))}">
                     </label>
                 </div>
@@ -2164,8 +2164,8 @@ function renderScholarshipsSection(formErrors = {}, globalError = '') {
                 </div>
                 ${renderFieldErrors(formErrors)}
                 <div class="form-grid">
-                    <label class="field">
-                        <span>Scholarship Type</span>
+                    <label class="field full-width">
+                        <span>Scholarship Category</span>
                         <select id="scholarshipType" required>
                             <option value="">Select scholarship type</option>
                             ${state.meta.scholarshipTypes.map(type => `
@@ -2173,8 +2173,8 @@ function renderScholarshipsSection(formErrors = {}, globalError = '') {
                             `).join('')}
                         </select>
                     </label>
-                    <label class="field">
-                        <span>Semester</span>
+                    <label class="field full-width">
+                        <span>Academic Semester</span>
                         <select id="scholarshipSemester" required>
                             <option value="">Select semester</option>
                             ${state.meta.semesters.map(semester => `
@@ -2195,12 +2195,12 @@ function renderScholarshipsSection(formErrors = {}, globalError = '') {
                         <input type="date" id="scholarshipAnnouncementDate" value="${escapeHtml(toInputDate(currentRecord?.announcement_date))}">
                     </label>
                     <label class="field">
-                        <span>Max Beneficiaries</span>
-                        <input type="number" min="1" id="scholarshipMaxBeneficiaries" value="${escapeHtml(currentRecord?.max_beneficiaries || '')}">
+                        <span>Maximum Beneficiaries</span>
+                        <input type="number" min="1" id="scholarshipMaxBeneficiaries" value="${escapeHtml(currentRecord?.max_beneficiaries || '')}" placeholder="e.g. 50">
                     </label>
-                    <label class="field inline-field">
-                        <span>Active</span>
+                    <label class="field inline-field full-width">
                         <input type="checkbox" id="scholarshipIsActive" ${currentRecord ? (currentRecord.is_active ? 'checked' : '') : 'checked'}>
+                        <span>This scholarship cycle is currently active and visible to students</span>
                     </label>
                 </div>
                 <div class="form-actions">
@@ -2444,6 +2444,10 @@ function renderEventsSection(formErrors = {}, globalError = '') {
                 </div>
                 ${renderFieldErrors(formErrors)}
                 <div class="form-grid">
+                    <label class="field full-width">
+                        <span>Event Name</span>
+                        <input type="text" id="eventName" value="${escapeHtml(currentRecord?.event_name || '')}" placeholder="e.g. Annual Sports Gala 2024" required>
+                    </label>
                     <label class="field">
                         <span>Event Type</span>
                         <select id="eventType" required>
@@ -2456,9 +2460,9 @@ function renderEventsSection(formErrors = {}, globalError = '') {
                         </select>
                     </label>
                     <label class="field">
-                        <span>Semester</span>
+                        <span>Linked Semester</span>
                         <select id="eventSemester">
-                            <option value="">No semester linked</option>
+                            <option value="">No specific semester</option>
                             ${state.meta.semesters.map(semester => `
                                 <option value="${semester.semester_id}" ${(currentRecord?.semester_id || '') === semester.semester_id ? 'selected' : ''}>
                                     ${escapeHtml(`${semester.semester_name.includes(semester.year) ? semester.semester_name : `${semester.semester_name} ${semester.year}`} (${semester.semester_type})`)}
@@ -2466,37 +2470,33 @@ function renderEventsSection(formErrors = {}, globalError = '') {
                             `).join('')}
                         </select>
                     </label>
-                    <label class="field full-width">
-                        <span>Event Name</span>
-                        <input type="text" id="eventName" value="${escapeHtml(currentRecord?.event_name || '')}" required>
-                    </label>
                     <label class="field">
                         <span>Start Date</span>
                         <input type="date" id="eventDate" value="${escapeHtml(toInputDate(currentRecord?.event_date))}" required>
                     </label>
                     <label class="field">
-                        <span>End Date</span>
+                        <span>End Date (Optional)</span>
                         <input type="date" id="eventEndDate" value="${escapeHtml(toInputDate(currentRecord?.event_end_date))}">
                     </label>
-                    <label class="field">
-                        <span>Venue</span>
-                        <input type="text" id="eventVenue" value="${escapeHtml(currentRecord?.venue || '')}">
+                    <label class="field full-width">
+                        <span>Venue / Location</span>
+                        <input type="text" id="eventVenue" value="${escapeHtml(currentRecord?.venue || '')}" placeholder="e.g. Main Auditorium">
                     </label>
-                    <label class="field inline-field">
-                        <span>Registration Required</span>
-                        <input type="checkbox" id="eventRegistrationRequired" ${currentRecord?.registration_required ? 'checked' : ''}>
-                    </label>
-                    <label class="field inline-field">
-                        <span>Active</span>
-                        <input type="checkbox" id="eventIsActive" ${currentRecord ? (currentRecord.is_active ? 'checked' : '') : 'checked'}>
-                    </label>
-                    <label class="field">
+                    <label class="field full-width">
                         <span>Registration Deadline</span>
                         <input type="date" id="eventRegistrationDeadline" value="${escapeHtml(toInputDate(currentRecord?.registration_deadline))}">
                     </label>
+                    <label class="field inline-field">
+                        <input type="checkbox" id="eventRegistrationRequired" ${currentRecord?.registration_required ? 'checked' : ''}>
+                        <span>Mandatory Registration</span>
+                    </label>
+                    <label class="field inline-field">
+                        <input type="checkbox" id="eventIsActive" ${currentRecord ? (currentRecord.is_active ? 'checked' : '') : 'checked'}>
+                        <span>Active / Published</span>
+                    </label>
                     <label class="field full-width">
-                        <span>Description</span>
-                        <textarea id="eventDescription" rows="4" placeholder="Add event details, audience, or instructions.">${escapeHtml(currentRecord?.description || '')}</textarea>
+                        <span>Event Description & Instructions</span>
+                        <textarea id="eventDescription" rows="3" placeholder="Provide details about the event...">${escapeHtml(currentRecord?.description || '')}</textarea>
                     </label>
                 </div>
                 <div class="form-actions">
@@ -2511,7 +2511,7 @@ function renderEventsSection(formErrors = {}, globalError = '') {
                                 <h3>${escapeHtml(item.event_name)}</h3>
                                 ${activeBadge(item.is_active)}
                             </div>
-                            <p><strong>Type:</strong> ${escapeHtml(item.event_type_name)} ${item.semester_name ? `| <strong>Semester:</strong> ${escapeHtml(item.semester_name)}` : ''}</p>
+                             <p><strong>Type:</strong> ${escapeHtml(item.event_type_name)} ${item.semester_name ? `| <strong>Semester:</strong> ${escapeHtml(item.semester_name.includes(item.year) ? item.semester_name : `${item.semester_name} ${item.year}`)}` : ''}</p>
                             <p><strong>Date:</strong> ${escapeHtml(formatDate(item.event_date))}${item.event_end_date ? ` to ${escapeHtml(formatDate(item.event_end_date))}` : ''}</p>
                             <p><strong>Venue:</strong> ${escapeHtml(item.venue || 'Not set')}</p>
                             <p class="record-text">${escapeHtml(item.description || 'No description added.')}</p>

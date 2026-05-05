@@ -42,6 +42,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentUser = SubscriptionService.getCurrentUser();
     const selectedPlan = JSON.parse(localStorage.getItem('selectedSubscriptionPlan') || 'null') || SubscriptionService.PLANS.monthly;
 
+    // Real-time restriction for account number
+    senderNumberInput?.addEventListener('input', (e) => {
+        const method = getSelectedPaymentMethod();
+        if (method === 'easypaisa' || method === 'jazzcash') {
+            // Strip non-numeric characters for mobile wallets
+            e.target.value = e.target.value.replace(/\D/g, '');
+        }
+    });
+
     backButton?.addEventListener('click', () => {
         window.location.href = 'premium.html';
     });
@@ -54,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="plan-summary-row">
                 <div>
                     <h4>${selectedPlan.name}</h4>
-                    <p>${selectedPlan.durationDays} days premium access, high chat limit, full history, event reminders, fee challan generator, and smart transcript request form generator.</p>
+                    <p>${selectedPlan.durationDays} days premium access, high chat limit, full history, event reminders, fee challan generator, and application forms.</p>
                 </div>
                 <strong>Rs. ${selectedPlan.price}</strong>
             </div>
@@ -149,28 +158,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function validateManualPayment() {
-        if (!nameInput.value.trim()) {
+        const nameRegex = /^[a-zA-Z\s]{3,50}$/;
+        const referenceRegex = /^[a-zA-Z0-9-]{6,25}$/;
+        const method = getSelectedPaymentMethod();
+
+        if (!nameInput.value.trim() || !nameRegex.test(nameInput.value.trim())) {
             nameInput.focus();
-            return 'Please enter your full name.';
+            return 'Please enter a valid full name (3-50 letters only).';
         }
 
         if (!emailInput.value.trim()) {
             return 'Login email is required before subscription.';
         }
 
-        if (!senderNameInput.value.trim()) {
+        if (!senderNameInput.value.trim() || !nameRegex.test(senderNameInput.value.trim())) {
             senderNameInput.focus();
-            return 'Please enter sender account name.';
+            return 'Please enter a valid sender account name (3-50 letters only).';
         }
 
-        if (!senderNumberInput.value.trim()) {
+        const senderNumber = senderNumberInput.value.trim();
+        if (!senderNumber) {
             senderNumberInput.focus();
             return 'Please enter sender account number.';
         }
 
-        if (!transactionReferenceInput.value.trim()) {
+        if (method === 'easypaisa' || method === 'jazzcash') {
+            if (!/^03\d{9}$/.test(senderNumber)) {
+                senderNumberInput.focus();
+                return 'Please enter a valid 11-digit mobile number starting with 03.';
+            }
+        } else if (senderNumber.length < 10) {
+            senderNumberInput.focus();
+            return 'Please enter a valid account number or IBAN.';
+        }
+
+        if (!transactionReferenceInput.value.trim() || !referenceRegex.test(transactionReferenceInput.value.trim())) {
             transactionReferenceInput.focus();
-            return 'Please enter the transaction reference.';
+            return 'Please enter a valid transaction reference (6-25 characters, alphanumeric).';
         }
 
         return '';

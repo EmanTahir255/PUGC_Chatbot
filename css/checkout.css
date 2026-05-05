@@ -584,7 +584,7 @@ body {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .back-btn {
     top: 18px;
     left: 18px;

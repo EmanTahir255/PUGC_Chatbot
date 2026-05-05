@@ -21,7 +21,11 @@ function getChatbotShellUser() {
 function renderChatbotNavLink(link) {
     const isSubs = link.id === 'subsBadgeLink';
     return `
-        <a href="${link.href}" ${link.id ? `id="${link.id}"` : ''} ${link.active ? 'class="active"' : ''} title="${link.title || link.label}">
+        <a href="${link.href}" 
+           ${link.id ? `id="${link.id}"` : ''} 
+           ${link.active ? 'class="active"' : ''} 
+           ${link.premiumOnly ? 'data-premium-only="true"' : ''} 
+           title="${link.title || link.label}">
             <i class="fas ${link.icon}"></i>
             <span class="nav-label">${link.label}</span>
             ${isSubs ? '<span id="subsBadge" class="sidebar-badge" style="display:none;"></span>' : ''}
@@ -43,6 +47,8 @@ function configureChatbotShell() {
             { href: 'index.html', icon: 'fa-home', label: 'Home' },
             { href: 'dashboard.html', icon: 'fa-user', label: 'Student Dashboard' },
             { href: 'premium.html', icon: 'fa-crown', label: 'Premium' },
+            { href: 'challan.html', icon: 'fa-file-invoice-dollar', label: 'Fee Challan', premiumOnly: true },
+            { href: 'application-form.html', icon: 'fa-file-alt', label: 'Application Forms', premiumOnly: true },
             { href: 'chatbot.html', icon: 'fa-comments', label: 'Chatbot', active: true },
             { href: 'chatbot.html#history', id: 'history-btn', icon: 'fa-history', label: 'History' }
         ];

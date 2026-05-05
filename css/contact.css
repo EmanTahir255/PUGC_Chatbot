@@ -42,6 +42,12 @@
     box-shadow: 0 10px 20px rgba(0,0,0,0.1);
 }
 
+.map-box iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
 /* Contact Form */
 .contact-form {
     background: #ffffff;
@@ -149,7 +155,26 @@
         padding: 80px 5% 20px 5%;
     }
 
-    .map-box, .contact-form {
+    .map-box {
+        height: 350px; /* Fixed height for map on smaller screens */
+    }
+
+    .contact-form {
         height: auto;
+        padding: 40px 20px;
+    }
+}
+
+@media(max-width:768px) {
+    .contact-form input,
+    .contact-form textarea,
+    .contact-form .cta-btn,
+    .form-heading {
+        width: 100%;
+        margin-left: 0;
+        box-sizing: border-box;
+    }
+    .contact-form {
+        padding: 20px;
     }
 }

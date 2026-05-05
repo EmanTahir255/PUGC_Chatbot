@@ -170,12 +170,49 @@ function initSidebar() {
     updateAdminBadgeCount();
 
     toggle?.addEventListener('click', () => {
-        const collapsed = !document.body.classList.contains('sidebar-collapsed');
-        document.body.classList.toggle('sidebar-collapsed', collapsed);
-        localStorage.setItem('sidebarCollapsed', String(collapsed));
-        toggle.setAttribute('aria-expanded', String(!collapsed));
-        profileMenu?.classList.remove('active');
+        const isMobile = window.innerWidth <= 768;
+        
+        if (isMobile) {
+            sidebar.classList.toggle('sidebar-open');
+        } else {
+            const collapsed = !document.body.classList.contains('sidebar-collapsed');
+            document.body.classList.toggle('sidebar-collapsed', collapsed);
+            localStorage.setItem('sidebarCollapsed', String(collapsed));
+            toggle.setAttribute('aria-expanded', String(!collapsed));
+            profileMenu?.classList.remove('active');
+        }
     });
+
+    // Mobile specific toggle injection
+    if (window.innerWidth <= 768) {
+        let mobileBtn = document.querySelector('.mobile-sidebar-toggle');
+        if (!mobileBtn) {
+            mobileBtn = document.createElement('button');
+            mobileBtn.className = 'mobile-sidebar-toggle';
+            mobileBtn.innerHTML = '<i class="fas fa-bars"></i>';
+            mobileBtn.setAttribute('aria-label', 'Open Sidebar');
+            document.body.appendChild(mobileBtn);
+        }
+
+        mobileBtn.addEventListener('click', () => {
+            sidebar.classList.add('sidebar-open');
+        });
+
+        // Close sidebar when clicking outside or on links
+        document.addEventListener('click', (e) => {
+            if (sidebar.classList.contains('sidebar-open')) {
+                if (!sidebar.contains(e.target) && !mobileBtn.contains(e.target)) {
+                    sidebar.classList.remove('sidebar-open');
+                }
+            }
+        });
+
+        sidebar.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                sidebar.classList.remove('sidebar-open');
+            });
+        });
+    }
 
     profileButton?.addEventListener('click', event => {
         event.stopPropagation();

@@ -149,7 +149,7 @@
 }
 
 /* ------------------ Mobile Adjustments ------------------ */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
     .hero {
         padding: 80px 5%;
         min-height: 90vh; /* keep it tall on small screens */

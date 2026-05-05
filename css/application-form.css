@@ -599,3 +599,18 @@
     .appform-steps { padding: 16px; gap: 4px; }
     .step-label { font-size: 0.78rem; }
 }
+
+@media (max-width: 580px) {
+    .appform-steps {
+        padding: 10px;
+    }
+    .step-label {
+        display: none;
+    }
+    .appform-step {
+        justify-content: center;
+    }
+    .appform-step:not(:last-child)::after {
+        margin: 0 8px;
+    }
+}

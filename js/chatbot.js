@@ -106,7 +106,7 @@ function hasFeatureAccess(featureName) {
         "Event Reminders",
         "Full Chat History",
         "Fee Challan Generator",
-        "Smart Transcript Request Form Generator",
+        "Application Forms",
         "Higher Chat Limit"
     ]);
 

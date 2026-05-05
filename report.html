@@ -24,15 +24,107 @@
       flex-wrap: wrap;
     }
 
-    .ctrl-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #fff;
-      border: 1px solid #dbe2ef;
-      border-radius: 8px;
-      padding: 8px 14px;
-    }
+        /* Medium screens (Tablets) */
+        @media (max-width: 1024px) {
+            .side-by-side-grid {
+                grid-template-columns: 1fr !important;
+                gap: 20px !important;
+            }
+        }
+
+        /* Small screens (Mobile) */
+        @media (max-width: 768px) {
+            .report-controls {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 8px !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            .ctrl-group {
+                width: 100% !important;
+                justify-content: space-between !important;
+                box-sizing: border-box !important;
+            }
+            .report-btn {
+                width: 100% !important;
+                display: flex !important;
+                justify-content: center !important;
+                margin-bottom: 8px !important; 
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+                box-sizing: border-box !important;
+            }
+            .report-controls div[style*="flex-grow: 1"] {
+                display: none !important;
+            }
+            
+            /* Table to Card Conversion */
+            .unanswered-table thead {
+                display: none;
+            }
+            .unanswered-table tr {
+                display: block;
+                background: #fff;
+                border: 1px solid #edf2f7;
+                border-radius: 12px;
+                padding: 15px;
+                margin-bottom: 15px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            }
+            .unanswered-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 0;
+                border: none;
+                font-size: 0.92rem;
+            }
+            .unanswered-table td:not(:last-child) {
+                border-bottom: 1px dashed #f1f5f9;
+            }
+            .unanswered-table td::before {
+                content: attr(data-label);
+                font-weight: 700;
+                color: #64748b;
+                margin-right: 15px;
+                font-size: 0.8rem;
+                text-transform: uppercase;
+            }
+            .unanswered-table td:nth-child(2) {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            .unanswered-table td:nth-child(2)::before {
+                margin-bottom: 5px;
+            }
+            .main-content {
+                margin-left: 0 !important;
+                padding-top: 60px;
+            }
+            .chart-box {
+                height: 250px;
+            }
+            .cat-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .cat-name {
+                min-width: unset;
+                margin-bottom: 5px;
+            }
+        }
+
+        .ctrl-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            border: 1px solid #dbe2ef;
+            border-radius: 8px;
+            padding: 8px 14px;
+        }
 
     .ctrl-group label {
       font-size: 0.9rem;
@@ -958,11 +1050,11 @@
       } else {
         tbody.innerHTML = unansweredQuestions.map((q, i) => `
       <tr>
-        <td><span class="rank-num">${i + 1}</span></td>
-        <td style="max-width:300px; line-height:1.4;">${escHtml(q.question_text)}</td>
-        <td><span class="chip">${escHtml(q.category)}</span></td>
-        <td><span class="priority priority-${q.priority}">${q.priority}</span></td>
-        <td style="text-align:right;font-weight:700">${q.frequency}</td>
+        <td data-label="#"><span class="rank-num">${i+1}</span></td>
+        <td data-label="Question" style="max-width:300px; line-height:1.4;">${escHtml(q.question_text)}</td>
+        <td data-label="Category"><span class="chip">${escHtml(q.category)}</span></td>
+        <td data-label="Priority"><span class="priority priority-${q.priority}">${q.priority}</span></td>
+        <td data-label="Freq" style="text-align:right;font-weight:700">${q.frequency}</td>
       </tr>
     `).join('');
       }
