@@ -2511,7 +2511,7 @@ function renderEventsSection(formErrors = {}, globalError = '') {
                                 <h3>${escapeHtml(item.event_name)}</h3>
                                 ${activeBadge(item.is_active)}
                             </div>
-                            <p><strong>Type:</strong> ${escapeHtml(item.event_type_name)} ${item.semester_name ? `| <strong>Semester:</strong> ${escapeHtml(item.semester_name)}` : ''}</p>
+                             <p><strong>Type:</strong> ${escapeHtml(item.event_type_name)} ${item.semester_name ? `| <strong>Semester:</strong> ${escapeHtml(item.semester_name.includes(item.year) ? item.semester_name : `${item.semester_name} ${item.year}`)}` : ''}</p>
                             <p><strong>Date:</strong> ${escapeHtml(formatDate(item.event_date))}${item.event_end_date ? ` to ${escapeHtml(formatDate(item.event_end_date))}` : ''}</p>
                             <p><strong>Venue:</strong> ${escapeHtml(item.venue || 'Not set')}</p>
                             <p class="record-text">${escapeHtml(item.description || 'No description added.')}</p>

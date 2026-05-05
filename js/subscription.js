@@ -7,7 +7,7 @@ const SubscriptionService = (() => {
         'Full Chat History',
         'Event Reminders',
         'Fee Challan Generator',
-        'Smart Transcript Request Form Generator',
+        'Application Forms',
         'Higher Chat Limit'
     ];
     let remoteSyncTimer = null;

@@ -515,7 +515,7 @@ function hasUnknownSpecificProgramRequest(message = '', catalog = null) {
         'program', 'programs', 'course', 'degree', 'available', 'offer', 'offered', 'study',
         'pugc', 'punjab', 'university', 'campus', 'bs', 'ms', 'phd', 'bachelor', 'master',
         'details', 'detail', 'list', 'fee', 'fees', 'tuition', 'charges', 'cost', 'structure',
-        'semester', 'total', 'what'
+        'semester', 'total', 'what', 'info', 'information'
     ]);
 }
 
@@ -539,7 +539,7 @@ function hasUnknownSpecificDepartmentRequest(message = '', catalog = null) {
         'department', 'departments', 'dept', 'hod', 'head', 'dean', 'office',
         'hours', 'timing', 'room', 'block', 'location', 'where', 'located',
         'contact', 'number', 'phone', 'email', 'list', 'all', 'available',
-        'pugc', 'punjab', 'university', 'campus', 'what', 'who', 'which'
+        'pugc', 'punjab', 'university', 'campus', 'what', 'who', 'which', 'info', 'information', 'details'
     ]);
 }
 
@@ -1770,7 +1770,7 @@ async function getSchemaBasedAnswer(message, pool) {
             UNION ALL
             SELECT 'program_name' as type, program_name as name FROM programs WHERE is_active = 1
         `);
-        
+
         const hints = catalog.recordset.reduce((acc, row) => {
             if (!acc[row.type]) acc[row.type] = [];
             acc[row.type].push(row.name);
@@ -1798,12 +1798,12 @@ async function getSchemaBasedAnswer(message, pool) {
 
         // 3. Apply filters semantically
         const filterClauses = [];
-        
+
         // 3.1 Time-Scope Logic (for tables with date columns like 'events')
         if (timeScope && timeScope !== 'all' && (schema.columns.event_date || schema.columns.application_deadline)) {
             const dateCol = schema.columns.event_date ? 'event_date' : 'application_deadline';
             const endDateCol = schema.columns.event_end_date ? 'event_end_date' : dateCol;
-            
+
             if (timeScope === 'upcoming') {
                 filterClauses.push(`${dateCol} > CAST(GETDATE() AS DATE)`);
             } else if (timeScope === 'past') {
@@ -1819,7 +1819,7 @@ async function getSchemaBasedAnswer(message, pool) {
                 if (schema.columns[col] || col === schema.primary_key || (schema.foreign_keys && schema.foreign_keys[col])) {
                     const paramName = `val${index}`;
                     request.input(paramName, val);
-                    
+
                     // Use LIKE for strings, equals for numbers/IDs
                     if (typeof val === 'string') {
                         filterClauses.push(`${col} LIKE '%' + @${paramName} + '%'`);

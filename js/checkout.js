@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="plan-summary-row">
                 <div>
                     <h4>${selectedPlan.name}</h4>
-                    <p>${selectedPlan.durationDays} days premium access, high chat limit, full history, event reminders, fee challan generator, and smart transcript request form generator.</p>
+                    <p>${selectedPlan.durationDays} days premium access, high chat limit, full history, event reminders, fee challan generator, and application forms.</p>
                 </div>
                 <strong>Rs. ${selectedPlan.price}</strong>
             </div>
