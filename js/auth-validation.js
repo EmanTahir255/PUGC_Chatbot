@@ -510,9 +510,103 @@ async function handleLogin(event) {
     }
 }
 
+async function handleForgotPassword(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const email = document.getElementById('forgot-email');
+    const statusDiv = document.getElementById('forgotStatus');
+
+    if (!email || !isValidEmail(email.value.trim())) {
+        showError(email, 'Please enter a valid email address');
+        return;
+    }
+    clearError(email);
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const release = setButtonLoading(submitBtn, '<i class="fas fa-spinner fa-spin"></i> Sending...');
+
+    try {
+        const res = await window.AuthService.requestAuth('/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email: email.value.trim() })
+        });
+        statusDiv.style.display = 'block';
+        statusDiv.style.color = '#15803d';
+        statusDiv.textContent = res.message;
+        form.reset();
+    } catch (error) {
+        statusDiv.style.display = 'block';
+        statusDiv.style.color = '#b91c1c';
+        statusDiv.textContent = error.message || 'Failed to send reset link.';
+    } finally {
+        release();
+    }
+}
+
+async function handleResetPassword(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const password = document.getElementById('reset-password');
+    const confirmPassword = document.getElementById('reset-confirm-password');
+    const statusDiv = document.getElementById('resetStatus');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    if (!token) {
+        statusDiv.style.display = 'block';
+        statusDiv.style.color = '#b91c1c';
+        statusDiv.textContent = 'Invalid or missing reset token.';
+        return;
+    }
+
+    let isValid = true;
+    const passError = getPasswordValidationError(password.value);
+    if (passError) {
+        showError(password, passError);
+        isValid = false;
+    } else {
+        clearError(password);
+    }
+
+    if (password.value !== confirmPassword.value) {
+        showError(confirmPassword, 'Passwords do not match');
+        isValid = false;
+    } else {
+        clearError(confirmPassword);
+    }
+
+    if (!isValid) return;
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const release = setButtonLoading(submitBtn, '<i class="fas fa-spinner fa-spin"></i> Updating...');
+
+    try {
+        const res = await window.AuthService.requestAuth('/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({ token, password: password.value })
+        });
+        statusDiv.style.display = 'block';
+        statusDiv.style.color = '#15803d';
+        statusDiv.textContent = res.message;
+        
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 2000);
+    } catch (error) {
+        statusDiv.style.display = 'block';
+        statusDiv.style.color = '#b91c1c';
+        statusDiv.textContent = error.message || 'Failed to update password.';
+    } finally {
+        release();
+    }
+}
+
 function bindAuthForms() {
-    const signupForm = document.querySelector('.signup-form');
-    const loginForm = document.querySelector('.login-form');
+    const signupForm = document.querySelector('.signup-form') || document.getElementById('signupForm');
+    const loginForm = document.querySelector('.login-form') || document.getElementById('loginForm');
+    const forgotForm = document.getElementById('forgotPasswordForm');
+    const resetForm = document.getElementById('resetPasswordForm');
 
     if (signupForm && signupForm.dataset.authBound !== 'true') {
         signupForm.dataset.authBound = 'true';
@@ -522,6 +616,16 @@ function bindAuthForms() {
     if (loginForm && loginForm.dataset.authBound !== 'true') {
         loginForm.dataset.authBound = 'true';
         loginForm.addEventListener('submit', handleLogin);
+    }
+
+    if (forgotForm && forgotForm.dataset.authBound !== 'true') {
+        forgotForm.dataset.authBound = 'true';
+        forgotForm.addEventListener('submit', handleForgotPassword);
+    }
+
+    if (resetForm && resetForm.dataset.authBound !== 'true') {
+        resetForm.dataset.authBound = 'true';
+        resetForm.addEventListener('submit', handleResetPassword);
     }
 }
 

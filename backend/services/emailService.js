@@ -226,6 +226,31 @@ function buildRoleChangeEmail({ name, newRole }) {
     };
 }
 
+function buildResetPasswordEmail({ name, resetLink }) {
+    const displayName = name || 'Student';
+    return {
+        subject: 'Reset Your PUGC SmartBot Password',
+        text: `Hello ${displayName}, you requested to reset your password. Click the link below to set a new password. The link expires in 1 hour. Link: ${resetLink}`,
+        html: `
+            <div style="font-family:Arial,sans-serif;line-height:1.6;color:#243447;max-width:600px;margin:auto;border:1px solid #e1e8ed;padding:20px;border-radius:10px;">
+                <div style="text-align:center;margin-bottom:20px;">
+                    <h2 style="color:#002147;margin:0;">PUGC SmartBot</h2>
+                </div>
+                <h3 style="color:#243447;">Reset Your Password</h3>
+                <p>Hello ${displayName},</p>
+                <p>We received a request to reset your password for your PUGC SmartBot account. Click the button below to choose a new password:</p>
+                <div style="text-align:center;margin:30px 0;">
+                    <a href="${resetLink}" style="background-color:#002147;color:white;padding:14px 28px;text-decoration:none;border-radius:50px;font-weight:bold;display:inline-block;">Reset Password</a>
+                </div>
+                <p style="font-size:0.9rem;color:#657786;">If the button doesn't work, copy and paste this link into your browser:</p>
+                <p style="font-size:0.85rem;word-break:break-all;"><a href="${resetLink}" style="color:#1da1f2;">${resetLink}</a></p>
+                <hr style="border:none;border-top:1px solid #e1e8ed;margin:25px 0;">
+                <p style="font-size:0.85rem;color:#657786;">This link will expire in <strong>1 hour</strong>. If you didn't request a password reset, you can safely ignore this email.</p>
+            </div>
+        `
+    };
+}
+
 async function sendSubscriptionConfirmation(payload) {
     const email = buildConfirmationEmail(payload);
     return sendMail({
@@ -274,11 +299,20 @@ async function sendUserRoleChangeEmail(payload) {
     });
 }
 
+async function sendPasswordResetEmail(payload) {
+    const email = buildResetPasswordEmail(payload);
+    return sendMail({
+        to: payload.email,
+        ...email
+    });
+}
+
 module.exports = {
     sendSubscriptionConfirmation,
     sendSubscriptionExpiry,
     sendSubscriptionCancellation,
     sendSubscriptionRejection,
     sendUserAccountStatusEmail,
-    sendUserRoleChangeEmail
+    sendUserRoleChangeEmail,
+    sendPasswordResetEmail
 };

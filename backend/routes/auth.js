@@ -1,7 +1,9 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { getPool, sql } = require('../db');
 const { requireAuth, signAuthToken } = require('../middleware/auth');
+const emailService = require('../services/emailService');
 
 const router = express.Router();
 const PASSWORD_SALT_ROUNDS = 12;
@@ -245,6 +247,104 @@ router.post('/logout', (req, res) => {
     return res.json({
         message: 'Logout successful. Remove the token on the client side.'
     });
+});
+
+router.post('/forgot-password', async (req, res) => {
+    const email = normalizeEmail(req.body.email);
+
+    if (!isValidEmail(email)) {
+        return res.status(400).json({ error: 'A valid email address is required.' });
+    }
+
+    try {
+        const pool = await getPool();
+        const user = await findUserByEmail(pool, email);
+
+        if (!user) {
+            // Professional security practice: don't reveal if user exists
+            return res.json({ message: 'If an account exists with that email, a reset link has been sent.' });
+        }
+
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 3600000); // 1 hour from now
+
+        await pool.request()
+            .input('userId', sql.Int, user.user_id)
+            .input('token', sql.NVarChar(255), token)
+            .input('expiresAt', sql.DateTime, expiresAt)
+            .query(`
+                INSERT INTO password_resets (user_id, token, expires_at)
+                VALUES (@userId, @token, @expiresAt)
+            `);
+
+        const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5500'}/reset-password.html?token=${token}`;
+
+        await emailService.sendPasswordResetEmail({
+            email: user.email,
+            name: user.full_name,
+            resetLink
+        });
+
+        return res.json({ message: 'If an account exists with that email, a reset link has been sent.' });
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+router.post('/reset-password', async (req, res) => {
+    const { token, password } = req.body;
+    const passwordError = getPasswordValidationError(password || '');
+
+    console.log(`[ResetPassword] Attempting reset with token: ${token ? (token.substring(0, 5) + '...') : 'null'}`);
+
+    if (!token || passwordError) {
+        return res.status(400).json({ error: passwordError || 'Invalid request.' });
+    }
+
+    try {
+        const pool = await getPool();
+        const resetRecord = await pool.request()
+            .input('token', sql.NVarChar(255), token)
+            .query(`
+                SELECT TOP 1 user_id, expires_at
+                FROM password_resets
+                WHERE token = @token
+                ORDER BY created_at DESC
+            `);
+
+        if (resetRecord.recordset.length === 0) {
+            console.warn('[ResetPassword] Token not found in database.');
+            return res.status(400).json({ error: 'The reset link is invalid or has expired.' });
+        }
+
+        const { user_id: userId, expires_at: expiresAt } = resetRecord.recordset[0];
+        
+        // Timezone-safe check: Compare against current system time
+        if (new Date(expiresAt) < new Date()) {
+            console.warn(`[ResetPassword] Token expired. DB Expiry: ${expiresAt}, Current Time: ${new Date()}`);
+            return res.status(400).json({ error: 'The reset link is invalid or has expired.' });
+        }
+
+        const passwordHash = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
+
+        await pool.request()
+            .input('userId', sql.Int, userId)
+            .input('passwordHash', sql.NVarChar(255), passwordHash)
+            .query(`
+                UPDATE users
+                SET password_hash = @passwordHash, updated_at = GETDATE()
+                WHERE user_id = @userId;
+
+                DELETE FROM password_resets WHERE user_id = @userId;
+            `);
+
+        console.log(`[ResetPassword] SUCCESS: Password updated for user_id: ${userId}`);
+        return res.json({ message: 'Password updated successfully. You can now log in.' });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
 });
 
 module.exports = router;
